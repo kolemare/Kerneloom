@@ -1,0 +1,13 @@
+#ifndef KL_ROCM_COPY_HIPH
+#define KL_ROCM_COPY_HIPH
+
+#include <core/tensor.hpp>
+
+namespace kl
+{
+
+    void rocm_copy(Tensor &dst, const Tensor &src);
+
+}
+
+#endif // KL_ROCM_COPY_HIPH

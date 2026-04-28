@@ -3,15 +3,15 @@
 namespace kl
 {
 
-    Device default_device()
-    {
-#if defined(KERNELOOM_DEFAULT_BACKEND_CUDA)
-        return Device::cuda();
-#elif defined(KERNELOOM_DEFAULT_BACKEND_ROCM)
-        return Device::rocm();
+        Device default_device()
+        {
+#if defined(KL_ENABLE_CUDA)
+                return Device::cuda();
+#elif defined(KL_ENABLE_ROCM)
+                return Device::rocm();
 #else
-        return Device::cpu();
+                return Device::cpu();
 #endif
-    }
+        }
 
 }

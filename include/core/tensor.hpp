@@ -1,11 +1,14 @@
-#pragma once
+#ifndef KL_TENSOR_HPP
+#define KL_TENSOR_HPP
 
+#include <core/buffer.hpp>
 #include <core/device.hpp>
+#include <core/dtype.hpp>
+#include <core/layout.hpp>
 #include <core/shape.hpp>
+#include <core/storage.hpp>
 
 #include <cstddef>
-#include <initializer_list>
-#include <vector>
 
 namespace kl
 {
@@ -13,30 +16,43 @@ namespace kl
     class Tensor
     {
     public:
-        Tensor();
-        Tensor(Shape2D shape, Device device = Device::cpu());
-        Tensor(Shape2D shape, std::vector<float> data, Device device = Device::cpu());
+        Tensor(
+            Shape shape,
+            DType dtype = DType::Float32,
+            Device device = Device::cpu(),
+            Layout layout = Layout::Unknown,
+            Storage storage = Storage::RowMajor);
 
-        const Shape2D &shape() const;
-        const Device &device() const;
+        Tensor(const Tensor &) = delete;
+        Tensor &operator=(const Tensor &) = delete;
 
-        std::size_t rows() const;
-        std::size_t cols() const;
-        std::size_t size() const;
+        Tensor(Tensor &&other) noexcept = default;
+        Tensor &operator=(Tensor &&other) noexcept = default;
 
-        float *data();
-        const float *data() const;
+        const Shape &shape() const;
+        DType dtype() const;
+        Device device() const;
+        Layout layout() const;
+        Storage storage() const;
 
-        std::vector<float> &host_data();
-        const std::vector<float> &host_data() const;
+        std::size_t rank() const;
+        std::size_t numel() const;
+        std::size_t nbytes() const;
 
-        float &operator()(std::size_t row, std::size_t col);
-        const float &operator()(std::size_t row, std::size_t col) const;
+        void *data();
+        const void *data() const;
+
+        Tensor to(Device device) const;
 
     private:
-        Shape2D shape_;
+        Shape shape_;
+        DType dtype_;
         Device device_;
-        std::vector<float> data_;
+        Layout layout_;
+        Storage storage_;
+        Buffer buffer_;
     };
 
 }
+
+#endif // KL_TENSOR_HPP

@@ -1,91 +1,101 @@
 #include <ops/matmul.hpp>
 
+#include <kernels/cpu/matmul_cpu.hpp>
+
+#if defined(KL_ENABLE_CUDA)
+#include <kernels/cuda/matmul_cuda.cuh>
+#endif
+
+#if defined(KL_ENABLE_ROCM)
+#include <kernels/rocm/matmul_rocm.hiph>
+#endif
+
 #include <stdexcept>
-
-namespace kl::detail
-{
-
-#if KERNELOOM_HAS_CPU
-    void matmul_cpu(
-        const float *a,
-        const float *b,
-        float *c,
-        int m,
-        int n,
-        int k);
-#endif
-
-#if KERNELOOM_HAS_CUDA
-    void matmul_cuda(
-        const float *a,
-        const float *b,
-        float *c,
-        int m,
-        int n,
-        int k);
-#endif
-
-#if KERNELOOM_HAS_ROCM
-    void matmul_rocm(
-        const float *a,
-        const float *b,
-        float *c,
-        int m,
-        int n,
-        int k);
-#endif
-
-}
 
 namespace kl
 {
 
+    namespace
+    {
+
+        void validate_matmul_inputs(const Tensor &a, const Tensor &b)
+        {
+            if (a.device().type() != b.device().type())
+            {
+                throw std::runtime_error("matmul expects both tensors on the same device");
+            }
+
+            if (a.dtype() != b.dtype())
+            {
+                throw std::runtime_error("matmul expects tensors with the same dtype");
+            }
+
+            if (a.dtype() != DType::Float32)
+            {
+                throw std::runtime_error("matmul currently supports only Float32 tensors");
+            }
+
+            if (a.rank() != 2 || b.rank() != 2)
+            {
+                throw std::runtime_error("matmul expects two rank-2 tensors");
+            }
+
+            if (a.storage() != Storage::RowMajor ||
+                b.storage() != Storage::RowMajor)
+            {
+                throw std::runtime_error("matmul currently supports only RowMajor tensors");
+            }
+
+            const std::size_t a_cols = a.shape()[1];
+            const std::size_t b_rows = b.shape()[0];
+
+            if (a_cols != b_rows)
+            {
+                throw std::runtime_error("matmul shape mismatch");
+            }
+        }
+
+    }
+
     Tensor matmul(const Tensor &a, const Tensor &b)
     {
-        if (a.cols() != b.rows())
-        {
-            throw std::runtime_error("matmul shape mismatch");
-        }
+        validate_matmul_inputs(a, b);
 
-        if (a.device().type() != b.device().type())
-        {
-            throw std::runtime_error("matmul requires both tensors to use the same device");
-        }
+        const std::size_t m = a.shape()[0];
+        const std::size_t n = b.shape()[1];
 
-        const int m = static_cast<int>(a.rows());
-        const int n = static_cast<int>(b.cols());
-        const int k = static_cast<int>(a.cols());
-
-        Tensor out(Shape2D(a.rows(), b.cols()), a.device());
+        Tensor c(
+            Shape{m, n},
+            a.dtype(),
+            a.device(),
+            Layout::Unknown,
+            Storage::RowMajor);
 
         switch (a.device().type())
         {
         case DeviceType::CPU:
-#if KERNELOOM_HAS_CPU
-            detail::matmul_cpu(a.data(), b.data(), out.data(), m, n, k);
-            break;
-#else
-            throw std::runtime_error("CPU backend was not compiled");
-#endif
+            matmul_cpu_float32(a, b, c);
+            return c;
 
         case DeviceType::CUDA:
-#if KERNELOOM_HAS_CUDA
-            detail::matmul_cuda(a.data(), b.data(), out.data(), m, n, k);
-            break;
+#if defined(KL_ENABLE_CUDA)
+            matmul_cuda_float32(a, b, c);
+            return c;
 #else
-            throw std::runtime_error("CUDA backend was not compiled");
+            throw std::runtime_error("CUDA matmul requested but CUDA backend is not enabled");
 #endif
 
         case DeviceType::ROCM:
-#if KERNELOOM_HAS_ROCM
-            detail::matmul_rocm(a.data(), b.data(), out.data(), m, n, k);
-            break;
+#if defined(KL_ENABLE_ROCM)
+            matmul_rocm_float32(a, b, c);
+            return c;
 #else
-            throw std::runtime_error("ROCm backend was not compiled");
+            throw std::runtime_error("ROCm matmul requested but ROCm backend is not enabled");
 #endif
-        }
 
-        return out;
+        default:
+            throw std::runtime_error("unknown DeviceType in matmul");
+        }
     }
 
 }

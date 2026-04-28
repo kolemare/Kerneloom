@@ -1,78 +1,89 @@
 #include <core/tensor.hpp>
 
-#include <stdexcept>
+#include <core/copy.hpp>
+
+#include <utility>
 
 namespace kl
 {
 
-    Tensor::Tensor()
-        : shape_(0, 0), device_(Device::cpu()) {}
-
-    Tensor::Tensor(Shape2D shape, Device device)
-        : shape_(shape), device_(device), data_(shape.size(), 0.0f) {}
-
-    Tensor::Tensor(Shape2D shape, std::vector<float> data, Device device)
-        : shape_(shape), device_(device), data_(std::move(data))
+    Tensor::Tensor(
+        Shape shape,
+        DType dtype,
+        Device device,
+        Layout layout,
+        Storage storage)
+        : shape_(std::move(shape)),
+          dtype_(dtype),
+          device_(device),
+          layout_(layout),
+          storage_(storage),
+          buffer_(shape_.numel() * dtype_size(dtype_), device_)
     {
-        if (data_.size() != shape_.size())
-        {
-            throw std::runtime_error("Tensor data size does not match shape");
-        }
     }
 
-    const Shape2D &Tensor::shape() const
+    const Shape &Tensor::shape() const
     {
         return shape_;
     }
 
-    const Device &Tensor::device() const
+    DType Tensor::dtype() const
+    {
+        return dtype_;
+    }
+
+    Device Tensor::device() const
     {
         return device_;
     }
 
-    std::size_t Tensor::rows() const
+    Layout Tensor::layout() const
     {
-        return shape_.rows();
+        return layout_;
     }
 
-    std::size_t Tensor::cols() const
+    Storage Tensor::storage() const
     {
-        return shape_.cols();
+        return storage_;
     }
 
-    std::size_t Tensor::size() const
+    std::size_t Tensor::rank() const
     {
-        return shape_.size();
+        return shape_.rank();
     }
 
-    float *Tensor::data()
+    std::size_t Tensor::numel() const
     {
-        return data_.data();
+        return shape_.numel();
     }
 
-    const float *Tensor::data() const
+    std::size_t Tensor::nbytes() const
     {
-        return data_.data();
+        return buffer_.nbytes();
     }
 
-    std::vector<float> &Tensor::host_data()
+    void *Tensor::data()
     {
-        return data_;
+        return buffer_.data();
     }
 
-    const std::vector<float> &Tensor::host_data() const
+    const void *Tensor::data() const
     {
-        return data_;
+        return buffer_.data();
     }
 
-    float &Tensor::operator()(std::size_t row, std::size_t col)
+    Tensor Tensor::to(Device device) const
     {
-        return data_[row * cols() + col];
-    }
+        Tensor result(
+            shape_,
+            dtype_,
+            device,
+            layout_,
+            storage_);
 
-    const float &Tensor::operator()(std::size_t row, std::size_t col) const
-    {
-        return data_[row * cols() + col];
+        copy(result, *this);
+
+        return result;
     }
 
 }

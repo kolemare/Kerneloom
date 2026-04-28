@@ -1,27 +1,64 @@
 #include <core/shape.hpp>
 
+#include <numeric>
+#include <stdexcept>
+#include <utility>
+
 namespace kl
 {
 
-    Shape2D::Shape2D()
-        : rows_(0), cols_(0) {}
+    Shape::Shape() = default;
 
-    Shape2D::Shape2D(std::size_t rows, std::size_t cols)
-        : rows_(rows), cols_(cols) {}
-
-    std::size_t Shape2D::rows() const
+    Shape::Shape(std::initializer_list<std::size_t> dims)
+        : dims_(dims)
     {
-        return rows_;
     }
 
-    std::size_t Shape2D::cols() const
+    Shape::Shape(std::vector<std::size_t> dims)
+        : dims_(std::move(dims))
     {
-        return cols_;
     }
 
-    std::size_t Shape2D::size() const
+    std::size_t Shape::rank() const
     {
-        return rows_ * cols_;
+        return dims_.size();
+    }
+
+    std::size_t Shape::numel() const
+    {
+        if (dims_.empty())
+        {
+            return 1; // scalar
+        }
+
+        return std::accumulate(
+            dims_.begin(),
+            dims_.end(),
+            static_cast<std::size_t>(1),
+            [](std::size_t a, std::size_t b)
+            {
+                return a * b;
+            });
+    }
+
+    bool Shape::empty() const
+    {
+        return dims_.empty();
+    }
+
+    std::size_t Shape::operator[](std::size_t index) const
+    {
+        if (index >= dims_.size())
+        {
+            throw std::out_of_range("Shape dimension index out of range");
+        }
+
+        return dims_[index];
+    }
+
+    const std::vector<std::size_t> &Shape::dims() const
+    {
+        return dims_;
     }
 
 }

@@ -1,23 +1,33 @@
-#pragma once
+#ifndef KL_SHAPE_HPP
+#define KL_SHAPE_HPP
 
 #include <cstddef>
+#include <initializer_list>
+#include <vector>
 
 namespace kl
 {
 
-    class Shape2D
+    class Shape
     {
     public:
-        Shape2D();
-        Shape2D(std::size_t rows, std::size_t cols);
+        Shape();
+        Shape(std::initializer_list<std::size_t> dims);
+        explicit Shape(std::vector<std::size_t> dims);
 
-        std::size_t rows() const;
-        std::size_t cols() const;
-        std::size_t size() const;
+        std::size_t rank() const;
+        std::size_t numel() const;
+
+        bool empty() const;
+
+        std::size_t operator[](std::size_t index) const;
+
+        const std::vector<std::size_t> &dims() const;
 
     private:
-        std::size_t rows_;
-        std::size_t cols_;
+        std::vector<std::size_t> dims_;
     };
 
 }
+
+#endif // KL_SHAPE_HPP

@@ -1,78 +1,55 @@
-#include <kerneloom.hpp>
 #include <backend/backend.hpp>
+#include <core/device.hpp>
+#include <core/dtype.hpp>
+#include <core/tensor.hpp>
+#include <ops/matmul.hpp>
 
-#include <chrono>
-#include <cstddef>
+#include <cstdlib>
 #include <exception>
-#include <iomanip>
 #include <iostream>
 
 int main()
 {
     try
     {
-        const kl::Device device = kl::default_device();
+        kl::Device target = kl::default_device();
 
-        constexpr std::size_t N = 1 << 15;
+        kl::Tensor a_cpu(kl::Shape{2, 3}, kl::DType::Float32, kl::Device::cpu());
+        kl::Tensor b_cpu(kl::Shape{3, 2}, kl::DType::Float32, kl::Device::cpu());
 
-        const double gib_per_matrix =
-            static_cast<double>(N) *
-            static_cast<double>(N) *
-            sizeof(float) /
-            1024.0 / 1024.0 / 1024.0;
+        float *a = static_cast<float *>(a_cpu.data());
+        float *b = static_cast<float *>(b_cpu.data());
 
-        std::cout << "Kerneloom playground\n";
-        std::cout << "Backend: " << kl::to_string(device.type()) << "\n";
-        std::cout << "Matrix A: " << N << " x " << N << "\n";
-        std::cout << "Matrix B: " << N << " x " << N << "\n";
-        std::cout << "Matrix C: " << N << " x " << N << "\n\n";
+        a[0] = 1.0f;
+        a[1] = 2.0f;
+        a[2] = 3.0f;
+        a[3] = 4.0f;
+        a[4] = 5.0f;
+        a[5] = 6.0f;
 
-        std::cout << "Approx memory per matrix: "
-                  << std::fixed << std::setprecision(2)
-                  << gib_per_matrix << " GiB\n";
+        b[0] = 7.0f;
+        b[1] = 8.0f;
+        b[2] = 9.0f;
+        b[3] = 10.0f;
+        b[4] = 11.0f;
+        b[5] = 12.0f;
 
-        std::cout << "Approx host memory for A + B + C: "
-                  << gib_per_matrix * 3.0 << " GiB\n\n";
+        kl::Tensor a_target = a_cpu.to(target);
+        kl::Tensor b_target = b_cpu.to(target);
 
-        std::cout << "Allocating tensors...\n";
+        kl::Tensor c_target = kl::matmul(a_target, b_target);
+        kl::Tensor c_cpu = c_target.to(kl::Device::cpu());
 
-        kl::Tensor a(kl::Shape2D(N, N), device);
-        kl::Tensor b(kl::Shape2D(N, N), device);
+        const float *c = static_cast<const float *>(c_cpu.data());
 
-        std::cout << "Initializing tensors...\n";
+        std::cout << c[0] << ' ' << c[1] << '\n';
+        std::cout << c[2] << ' ' << c[3] << '\n';
 
-        for (std::size_t i = 0; i < a.size(); ++i)
-        {
-            a.data()[i] = 1.0f;
-        }
-
-        for (std::size_t i = 0; i < b.size(); ++i)
-        {
-            b.data()[i] = 1.0f;
-        }
-
-        std::cout << "Running matmul...\n";
-
-        const auto start = std::chrono::high_resolution_clock::now();
-
-        kl::Tensor c = kl::matmul(a, b);
-
-        const auto end = std::chrono::high_resolution_clock::now();
-
-        const std::chrono::duration<double> elapsed = end - start;
-
-        std::cout << "Done.\n";
-        std::cout << "Elapsed: " << elapsed.count() << " seconds\n";
-
-        std::cout << "Sanity check:\n";
-        std::cout << "C[0, 0] = " << c(0, 0) << "\n";
-        std::cout << "Expected: " << static_cast<float>(N) << "\n";
-
-        return 0;
+        return EXIT_SUCCESS;
     }
     catch (const std::exception &e)
     {
-        std::cerr << "Kerneloom error: " << e.what() << "\n";
-        return 1;
+        std::cerr << e.what() << '\n';
+        return EXIT_FAILURE;
     }
 }

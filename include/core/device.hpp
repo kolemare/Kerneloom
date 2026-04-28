@@ -1,4 +1,5 @@
-#pragma once
+#ifndef KL_DEVICE_HPP
+#define KL_DEVICE_HPP
 
 #include <string>
 
@@ -30,3 +31,5 @@ namespace kl
     std::string to_string(DeviceType type);
 
 }
+
+#endif // KL_DEVICE_HPP
