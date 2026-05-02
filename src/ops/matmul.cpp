@@ -1,13 +1,13 @@
 #include <ops/matmul.hpp>
 
-#include <kernels/cpu/matmul_cpu.hpp>
+#include <kernels/cpu/matmul_cpu_float32_naive.hpp>
 
 #if defined(KL_ENABLE_CUDA)
-#include <kernels/cuda/matmul_cuda.cuh>
+#include <kernels/cuda/matmul_cuda_float32_naive.cuh>
 #endif
 
 #if defined(KL_ENABLE_ROCM)
-#include <kernels/rocm/matmul_rocm.hiph>
+#include <kernels/rocm/matmul_rocm_float32_naive.hiph>
 #endif
 
 #include <stdexcept>
@@ -74,12 +74,12 @@ namespace kl
         switch (a.device().type())
         {
         case DeviceType::CPU:
-            matmul_cpu_float32(a, b, c);
+            matmul_cpu_float32_naive(a, b, c);
             return c;
 
         case DeviceType::CUDA:
 #if defined(KL_ENABLE_CUDA)
-            matmul_cuda_float32(a, b, c);
+            matmul_cuda_float32_naive(a, b, c);
             return c;
 #else
             throw std::runtime_error("CUDA matmul requested but CUDA backend is not enabled");
@@ -87,7 +87,7 @@ namespace kl
 
         case DeviceType::ROCM:
 #if defined(KL_ENABLE_ROCM)
-            matmul_rocm_float32(a, b, c);
+            matmul_rocm_float32_naive(a, b, c);
             return c;
 #else
             throw std::runtime_error("ROCm matmul requested but ROCm backend is not enabled");

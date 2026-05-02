@@ -1,0 +1,13 @@
+#ifndef KL_MATMUL_ROCM_FLOAT32_NAIVE_HIPH
+#define KL_MATMUL_ROCM_FLOAT32_NAIVE_HIPH
+
+#include <core/tensor.hpp>
+
+namespace kl
+{
+
+    void matmul_rocm_float32_naive(const Tensor &a, const Tensor &b, Tensor &c);
+
+}
+
+#endif // KL_MATMUL_ROCM_FLOAT32_NAIVE_HIPH

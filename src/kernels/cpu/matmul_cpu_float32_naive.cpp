@@ -1,9 +1,9 @@
-#include <kernels/cpu/matmul_cpu.hpp>
+#include <kernels/cpu/matmul_cpu_float32_naive.hpp>
 
 namespace kl
 {
 
-    void matmul_cpu_float32(const Tensor &a, const Tensor &b, Tensor &c)
+    void matmul_cpu_float32_naive(const Tensor &a, const Tensor &b, Tensor &c)
     {
         const std::size_t m = a.shape()[0];
         const std::size_t k = a.shape()[1];

@@ -1,6 +1,6 @@
-#include <kernels/cuda/matmul_cuda.cuh>
+#include <kernels/rocm/matmul_rocm_float32_naive.hiph>
 
-#include <cuda_runtime.h>
+#include <hip/hip_runtime.h>
 
 #include <stdexcept>
 #include <string>
@@ -11,16 +11,16 @@ namespace kl
     namespace
     {
 
-        void check_cuda(cudaError_t error, const char *message)
+        void check_hip(hipError_t error, const char *message)
         {
-            if (error != cudaSuccess)
+            if (error != hipSuccess)
             {
                 throw std::runtime_error(
-                    std::string(message) + ": " + cudaGetErrorString(error));
+                    std::string(message) + ": " + hipGetErrorString(error));
             }
         }
 
-        __global__ void matmul_cuda_float32_kernel(
+        __global__ void matmul_rocm_float32_kernel(
             const float *a,
             const float *b,
             float *c,
@@ -48,7 +48,7 @@ namespace kl
 
     }
 
-    void matmul_cuda_float32(const Tensor &a, const Tensor &b, Tensor &c)
+    void matmul_rocm_float32_naive(const Tensor &a, const Tensor &b, Tensor &c)
     {
         const std::size_t m = a.shape()[0];
         const std::size_t k = a.shape()[1];
@@ -65,7 +65,12 @@ namespace kl
             static_cast<unsigned int>((n + block_size - 1) / block_size),
             static_cast<unsigned int>((m + block_size - 1) / block_size));
 
-        matmul_cuda_float32_kernel<<<grid, block>>>(
+        hipLaunchKernelGGL(
+            matmul_rocm_float32_kernel,
+            grid,
+            block,
+            0,
+            0,
             a_data,
             b_data,
             c_data,
@@ -73,8 +78,8 @@ namespace kl
             k,
             n);
 
-        check_cuda(cudaGetLastError(), "CUDA matmul kernel launch failed");
-        check_cuda(cudaDeviceSynchronize(), "CUDA matmul synchronization failed");
+        check_hip(hipGetLastError(), "ROCm matmul kernel launch failed");
+        check_hip(hipDeviceSynchronize(), "ROCm matmul synchronization failed");
     }
 
 }
