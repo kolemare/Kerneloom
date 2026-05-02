@@ -15,6 +15,7 @@ def clean(ctx):
 
 @task
 def build(ctx, cuda=False, rocm=False, jobs=8):
+    clean(ctx)
     if cuda and rocm:
         raise ValueError("choose only one backend: --cuda or --rocm")
 

@@ -1,4 +1,4 @@
-#include <ops/matmul.hpp>
+#include <ops/matmul_naive.hpp>
 
 #include <kernels/cpu/matmul_cpu_float32_naive.hpp>
 
@@ -57,7 +57,7 @@ namespace kl
 
     }
 
-    Tensor matmul(const Tensor &a, const Tensor &b)
+    Tensor matmul_naive(const Tensor &a, const Tensor &b)
     {
         validate_matmul_inputs(a, b);
 

@@ -1,0 +1,16 @@
+#ifndef KL_CONV2D_ROCM_FLOAT32_NAIVE_HIPH
+#define KL_CONV2D_ROCM_FLOAT32_NAIVE_HIPH
+
+#include <core/tensor.hpp>
+
+namespace kl
+{
+
+    void conv2d_rocm_float32_naive(
+        const Tensor &input,
+        const Tensor &kernels,
+        Tensor &result);
+
+}
+
+#endif // KL_CONV2D_ROCM_FLOAT32_NAIVE_HIPH

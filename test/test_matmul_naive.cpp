@@ -2,7 +2,7 @@
 #include <core/device.hpp>
 #include <core/dtype.hpp>
 #include <core/tensor.hpp>
-#include <ops/matmul.hpp>
+#include <ops/matmul_naive.hpp>
 
 #include <cstdlib>
 #include <exception>
@@ -37,7 +37,7 @@ int main()
         kl::Tensor a_target = a_cpu.to(target);
         kl::Tensor b_target = b_cpu.to(target);
 
-        kl::Tensor c_target = kl::matmul(a_target, b_target);
+        kl::Tensor c_target = kl::matmul_naive(a_target, b_target);
         kl::Tensor c_cpu = c_target.to(kl::Device::cpu());
 
         const float *c = static_cast<const float *>(c_cpu.data());
