@@ -16,8 +16,8 @@ int main()
     {
         size_t batch_size = 32;    // N
         size_t input_channels = 3; // C
-        size_t input_h = 256;      // H
-        size_t input_w = 256;      // W
+        size_t input_h = 1 << 10;  // H
+        size_t input_w = 1 << 10;  // W
 
         size_t k_filters = 32;
         size_t k_channels = 3;

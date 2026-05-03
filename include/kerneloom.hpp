@@ -4,4 +4,4 @@
 #include <core/shape.hpp>
 #include <core/tensor.hpp>
 
-#include <ops/matmul.hpp>
+#include <ops/matmul_naive.hpp>
