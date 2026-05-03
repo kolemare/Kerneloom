@@ -2,7 +2,7 @@
 #include <core/device.hpp>
 #include <core/dtype.hpp>
 #include <core/tensor.hpp>
-#include <ops/matmul.hpp>
+#include <ops/conv2d_naive.hpp>
 
 #include <cstdlib>
 #include <exception>
@@ -14,10 +14,10 @@ int main()
 {
     try
     {
-        size_t batch_size = 32;     // N
-        size_t input_h = 256;       // C
-        size_t input_w = 256;       // H
-        size_t input_channels = 32; // W
+        size_t batch_size = 32;    // N
+        size_t input_channels = 3; // C
+        size_t input_h = 256;      // H
+        size_t input_w = 256;      // W
 
         size_t k_filters = 32;
         size_t k_channels = 3;
@@ -39,21 +39,20 @@ int main()
 
         for (int i = 0; i < k_filters * k_channels * k_h * k_w; i++)
         {
-            input_cpu[i] = 2;
+            kernels_cpu[i] = 2;
         }
 
         kl::Tensor input_target = input.to(target);
         kl::Tensor kernels_target = kernels.to(target);
 
-        /*
-        kl::Tensor result = kl::conv_d2(input_target, kernels_target);
+        kl::Tensor result = kl::conv2d_naive(input_target, kernels_target);
+
         kl::Tensor cpu_result = result.to(kl::Device::cpu());
 
-        const float *c = static_cast<const float *>(cpu_result.data());
+        const float *result_raw = static_cast<const float *>(cpu_result.data());
 
-        std::cout << c[0] << ' ' << c[1] << '\n';
-        std::cout << c[2] << ' ' << c[3] << '\n';
-        */
+        std::cout << result_raw[346] << ": " << result_raw[34] << ": " << result_raw[262] << std::endl;
+
         return EXIT_SUCCESS;
     }
     catch (const std::exception &e)
