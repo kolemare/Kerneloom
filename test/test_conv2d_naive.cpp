@@ -9,54 +9,70 @@
 #include <cstdlib>
 #include <exception>
 #include <iostream>
-#include <thread>
-#include <chrono>
 
 int main()
 {
     try
     {
-        size_t batch_size = 32;    // N
-        size_t input_channels = 3; // C
-        size_t input_h = 1 << 10;  // H
-        size_t input_w = 1 << 10;  // W
+        std::size_t batch_size = 32;    // N
+        std::size_t input_channels = 3; // C
+        std::size_t input_h = 1 << 10;  // H
+        std::size_t input_w = 1 << 10;  // W
 
-        size_t k_filters = 32;
-        size_t k_channels = 3;
-        size_t k_h = 3;
-        size_t k_w = 3;
+        std::size_t k_filters = 32; // K
+        std::size_t k_channels = input_channels;
+        std::size_t k_h = 3; // R
+        std::size_t k_w = 3; // S
 
         kl::Device target = kl::default_device();
 
-        kl::Tensor input(kl::Shape{batch_size, input_channels, input_h, input_w}, kl::DType::Float32, kl::Device::cpu());
-        kl::Tensor kernels(kl::Shape{k_filters, k_channels, k_h, k_w}, kl::DType::Float32, kl::Device::cpu());
+        kl::Tensor input(
+            kl::Shape{batch_size, input_channels, input_h, input_w},
+            kl::DType::Float32,
+            kl::Device::cpu(),
+            kl::Layout::NCHW);
+
+        kl::Tensor kernels(
+            kl::Shape{k_filters, k_channels, k_h, k_w},
+            kl::DType::Float32,
+            kl::Device::cpu(),
+            kl::Layout::NCHW);
 
         float *input_cpu = static_cast<float *>(input.data());
         float *kernels_cpu = static_cast<float *>(kernels.data());
 
-        for (int i = 0; i < batch_size * input_h * input_w * input_channels; i++)
+        for (std::size_t i = 0; i < batch_size * input_h * input_w * input_channels; i++)
         {
-            input_cpu[i] = 1;
+            input_cpu[i] = 1.0f;
         }
 
-        for (int i = 0; i < k_filters * k_channels * k_h * k_w; i++)
+        for (std::size_t i = 0; i < k_filters * k_channels * k_h * k_w; i++)
         {
-            kernels_cpu[i] = 2;
+            kernels_cpu[i] = 2.0f;
         }
 
         kl::Tensor input_target = input.to(target);
         kl::Tensor kernels_target = kernels.to(target);
 
-        kl::Tensor result = kl::conv2d_naive(input_target, kernels_target);
+        const std::size_t output_h = input_h - k_h + 1;
+        const std::size_t output_w = input_w - k_w + 1;
 
-        kl::Tensor cpu_result = result.to(kl::Device::cpu());
+        kl::Tensor result_target(
+            kl::Shape{batch_size, k_filters, output_h, output_w},
+            kl::DType::Float32,
+            target,
+            kl::Layout::NCHW,
+            kl::Storage::RowMajor);
+
+        kl::conv2d_naive(input_target, kernels_target, result_target);
+
+        kl::Tensor cpu_result = result_target.to(kl::Device::cpu());
 
         const float *result_raw = static_cast<const float *>(cpu_result.data());
 
-        std::cout << result_raw[346] << ": " << result_raw[34] << ": " << result_raw[262] << std::endl;
-
-        kl::Conv2dLayer layer = kl::Conv2dLayer(32, 4, 4, 4, kl::DType::Float32, kl::Device::cuda());
-        layer.forward(result);
+        std::cout << result_raw[346] << ": "
+                  << result_raw[34] << ": "
+                  << result_raw[262] << std::endl;
 
         return EXIT_SUCCESS;
     }

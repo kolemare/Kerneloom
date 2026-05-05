@@ -5,9 +5,12 @@
 
 namespace kl
 {
-    Tensor conv2d_naive(
+
+    void conv2d_naive(
         const Tensor &input,
-        const Tensor &kernels);
+        const Tensor &kernels,
+        Tensor &result);
+
 }
 
 #endif // KL_CONV2D_NAIVE_HPP

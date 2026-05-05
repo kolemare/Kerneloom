@@ -6,7 +6,10 @@
 namespace kl
 {
 
-    Tensor matmul_naive(const Tensor &a, const Tensor &b);
+    void matmul_naive(
+        const Tensor &a,
+        const Tensor &b,
+        Tensor &c);
 
 }
 

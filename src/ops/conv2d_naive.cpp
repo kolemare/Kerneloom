@@ -15,22 +15,24 @@
 namespace kl
 {
 
-    // input N, C, H, W
-    // kernels K, C, R, S
-
     namespace
     {
 
-        void validate_conv2d_inputs(const Tensor &input, const Tensor &kernels)
+        void validate_conv2d_inputs(
+            const Tensor &input,
+            const Tensor &kernels,
+            const Tensor &result)
         {
-            if (input.device().type() != kernels.device().type())
+            if (input.device().type() != kernels.device().type() ||
+                input.device().type() != result.device().type())
             {
-                throw std::runtime_error("conv2d expects both tensors on the same device");
+                throw std::runtime_error("conv2d expects input, kernels, and result on the same device");
             }
 
-            if (input.dtype() != input.dtype())
+            if (input.dtype() != kernels.dtype() ||
+                input.dtype() != result.dtype())
             {
-                throw std::runtime_error("conv2d expects tensors with the same dtype");
+                throw std::runtime_error("conv2d expects input, kernels, and result with the same dtype");
             }
 
             if (input.dtype() != DType::Float32)
@@ -38,47 +40,84 @@ namespace kl
                 throw std::runtime_error("conv2d currently supports only Float32 tensors");
             }
 
-            if (input.rank() != 4 || kernels.rank() != 4)
+            if (input.layout() != kl::Layout::NCHW || kernels.layout() != kl::Layout::NCHW)
             {
-                throw std::runtime_error("conv2d expects two rank-2 tensors");
+                throw std::runtime_error("conv2d expects NCHW layout for both input and kernels.");
+            }
+
+            if (input.rank() != 4)
+            {
+                throw std::runtime_error("conv2d expects input shape N x C x H x W");
+            }
+
+            if (kernels.rank() != 4)
+            {
+                throw std::runtime_error("conv2d expects kernel shape K x C x R x S");
+            }
+
+            if (result.rank() != 4)
+            {
+                throw std::runtime_error("conv2d expects result shape N x K x OH x OW");
             }
 
             if (input.storage() != Storage::RowMajor ||
-                input.storage() != Storage::RowMajor)
+                kernels.storage() != Storage::RowMajor ||
+                result.storage() != Storage::RowMajor)
             {
                 throw std::runtime_error("conv2d currently supports only RowMajor tensors");
+            }
+
+            const std::size_t N = input.shape()[0];
+            const std::size_t C = input.shape()[1];
+            const std::size_t H = input.shape()[2];
+            const std::size_t W = input.shape()[3];
+
+            const std::size_t K = kernels.shape()[0];
+            const std::size_t KC = kernels.shape()[1];
+            const std::size_t R = kernels.shape()[2];
+            const std::size_t S = kernels.shape()[3];
+
+            if (C != KC)
+            {
+                throw std::runtime_error("conv2d input channels must match kernel channels");
+            }
+
+            if (R > H || S > W)
+            {
+                throw std::runtime_error("conv2d kernel cannot be larger than input");
+            }
+
+            const std::size_t OH = H - R + 1;
+            const std::size_t OW = W - S + 1;
+
+            if (result.shape()[0] != N ||
+                result.shape()[1] != K ||
+                result.shape()[2] != OH ||
+                result.shape()[3] != OW)
+            {
+                throw std::runtime_error("conv2d result tensor has incorrect shape");
             }
         }
 
     }
 
-    Tensor conv2d_naive(const Tensor &input, const Tensor &kernels)
+    void conv2d_naive(
+        const Tensor &input,
+        const Tensor &kernels,
+        Tensor &result)
     {
-        validate_conv2d_inputs(input, kernels);
-
-        const std::size_t N = input.shape()[0];
-        const std::size_t K = kernels.shape()[0];
-
-        const std::size_t OH = input.shape()[2] - kernels.shape()[2] + 1;
-        const std::size_t OW = input.shape()[3] - kernels.shape()[3] + 1;
-
-        Tensor result(
-            Shape{N, K, OH, OW},
-            input.dtype(),
-            input.device(),
-            Layout::NCHW,
-            Storage::RowMajor);
+        validate_conv2d_inputs(input, kernels, result);
 
         switch (input.device().type())
         {
         case DeviceType::CPU:
             conv2d_cpu_float32_naive(input, kernels, result);
-            return result;
+            return;
 
         case DeviceType::CUDA:
 #if defined(KL_ENABLE_CUDA)
             conv2d_cuda_float32_naive(input, kernels, result);
-            return result;
+            return;
 #else
             throw std::runtime_error("CUDA conv2d requested but CUDA backend is not enabled");
 #endif
@@ -86,7 +125,7 @@ namespace kl
         case DeviceType::ROCM:
 #if defined(KL_ENABLE_ROCM)
             conv2d_rocm_float32_naive(input, kernels, result);
-            return result;
+            return;
 #else
             throw std::runtime_error("ROCm conv2d requested but ROCm backend is not enabled");
 #endif

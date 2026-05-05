@@ -37,7 +37,15 @@ int main()
         kl::Tensor a_target = a_cpu.to(target);
         kl::Tensor b_target = b_cpu.to(target);
 
-        kl::Tensor c_target = kl::matmul_naive(a_target, b_target);
+        kl::Tensor c_target(
+            kl::Shape{a_target.shape()[0], b_target.shape()[1]},
+            kl::DType::Float32,
+            target,
+            kl::Layout::Unknown,
+            kl::Storage::RowMajor);
+
+        kl::matmul_naive(a_target, b_target, c_target);
+
         kl::Tensor c_cpu = c_target.to(kl::Device::cpu());
 
         const float *c = static_cast<const float *>(c_cpu.data());
