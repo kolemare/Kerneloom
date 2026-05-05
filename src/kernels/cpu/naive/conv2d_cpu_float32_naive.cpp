@@ -1,4 +1,4 @@
-#include <kernels/cpu/conv2d_cpu_float32_naive.hpp>
+#include <kernels/cpu/naive/conv2d_cpu_float32_naive.hpp>
 
 namespace kl
 {

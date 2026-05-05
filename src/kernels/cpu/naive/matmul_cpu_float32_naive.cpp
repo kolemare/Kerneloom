@@ -1,4 +1,4 @@
-#include <kernels/cpu/matmul_cpu_float32_naive.hpp>
+#include <kernels/cpu/naive/matmul_cpu_float32_naive.hpp>
 
 namespace kl
 {

@@ -1,4 +1,4 @@
-#include <kernels/cpu/conv2d/conv2d_cpu_float32.hpp>
+#include <kernels/cpu/conv2d/conv2d_cpu_float32_general.hpp>
 
 #include <backend/cpu/cpu_parallel.hpp>
 
@@ -10,7 +10,7 @@ namespace kl
     namespace
     {
 
-        struct Conv2dCpuFloat32Task
+        struct Conv2dCpuFloat32GeneralTask
         {
             const float *input_data;
             const float *kernel_data;
@@ -103,7 +103,7 @@ namespace kl
 
     }
 
-    void conv2d_cpu_float32(
+    void conv2d_cpu_float32_general(
         const Tensor &input,
         const Tensor &kernels,
         const Tensor *bias,
@@ -133,7 +133,7 @@ namespace kl
 
         float *result_data = static_cast<float *>(result.data());
 
-        Conv2dCpuFloat32Task task{
+        Conv2dCpuFloat32GeneralTask task{
             input_data,
             kernel_data,
             bias_data,

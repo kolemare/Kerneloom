@@ -1,6 +1,6 @@
 #include <ops/conv2d_naive.hpp>
 
-#include <kernels/cpu/conv2d_cpu_float32_naive.hpp>
+#include <kernels/cpu/naive/conv2d_cpu_float32_naive.hpp>
 
 #if defined(KL_ENABLE_CUDA)
 #include <kernels/cuda/conv2d_cuda_float32_naive.cuh>

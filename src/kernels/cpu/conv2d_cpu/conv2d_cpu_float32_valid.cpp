@@ -1,4 +1,4 @@
-#include <kernels/cpu/conv2d/conv2d_cpu_float32.hpp>
+#include <kernels/cpu/conv2d/conv2d_cpu_float32_valid.hpp>
 
 #include <backend/cpu/cpu_parallel.hpp>
 
@@ -10,7 +10,7 @@ namespace kl
     namespace
     {
 
-        struct Conv2dCpuFloat32Task
+        struct Conv2dCpuFloat32ValidTask
         {
             const float *input_data;
             const float *kernel_data;
@@ -29,7 +29,7 @@ namespace kl
             std::size_t OH;
             std::size_t OW;
 
-            Conv2dOptions options;
+            bool use_bias;
 
             void operator()(std::size_t begin, std::size_t end) const
             {
@@ -48,7 +48,7 @@ namespace kl
                         {
                             float sum = 0.0f;
 
-                            if (options.use_bias && bias_data != nullptr)
+                            if (use_bias && bias_data != nullptr)
                             {
                                 sum = bias_data[k];
                             }
@@ -60,35 +60,15 @@ namespace kl
 
                                 for (std::size_t r = 0; r < R; ++r)
                                 {
-                                    const long ih =
-                                        static_cast<long>(oh * options.stride_h) +
-                                        static_cast<long>(r * options.dilation_h) -
-                                        static_cast<long>(options.padding_h);
-
-                                    if (ih < 0 || ih >= static_cast<long>(H))
-                                    {
-                                        continue;
-                                    }
-
                                     const std::size_t input_row_offset =
-                                        input_c_offset + static_cast<std::size_t>(ih) * W;
+                                        input_c_offset + (oh + r) * W;
 
                                     const std::size_t kernel_row_offset =
                                         kernel_c_offset + r * S;
 
                                     for (std::size_t s = 0; s < S; ++s)
                                     {
-                                        const long iw =
-                                            static_cast<long>(ow * options.stride_w) +
-                                            static_cast<long>(s * options.dilation_w) -
-                                            static_cast<long>(options.padding_w);
-
-                                        if (iw < 0 || iw >= static_cast<long>(W))
-                                        {
-                                            continue;
-                                        }
-
-                                        sum += input_data[input_row_offset + static_cast<std::size_t>(iw)] *
+                                        sum += input_data[input_row_offset + ow + s] *
                                                kernel_data[kernel_row_offset + s];
                                     }
                                 }
@@ -103,7 +83,7 @@ namespace kl
 
     }
 
-    void conv2d_cpu_float32(
+    void conv2d_cpu_float32_valid(
         const Tensor &input,
         const Tensor &kernels,
         const Tensor *bias,
@@ -133,7 +113,7 @@ namespace kl
 
         float *result_data = static_cast<float *>(result.data());
 
-        Conv2dCpuFloat32Task task{
+        Conv2dCpuFloat32ValidTask task{
             input_data,
             kernel_data,
             bias_data,
@@ -147,7 +127,7 @@ namespace kl
             S,
             OH,
             OW,
-            options};
+            options.use_bias};
 
         cpu_parallel_for(0, N * K, task);
     }

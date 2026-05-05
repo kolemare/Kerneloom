@@ -1,6 +1,6 @@
 #include <ops/matmul_naive.hpp>
 
-#include <kernels/cpu/matmul_cpu_float32_naive.hpp>
+#include <kernels/cpu/naive/matmul_cpu_float32_naive.hpp>
 
 #if defined(KL_ENABLE_CUDA)
 #include <kernels/cuda/matmul_cuda_float32_naive.cuh>
