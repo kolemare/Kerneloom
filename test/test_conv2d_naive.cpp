@@ -4,6 +4,8 @@
 #include <core/tensor.hpp>
 #include <ops/conv2d_naive.hpp>
 
+#include <cnn/conv2d_layer.hpp>
+
 #include <cstdlib>
 #include <exception>
 #include <iostream>
@@ -52,6 +54,9 @@ int main()
         const float *result_raw = static_cast<const float *>(cpu_result.data());
 
         std::cout << result_raw[346] << ": " << result_raw[34] << ": " << result_raw[262] << std::endl;
+
+        kl::Conv2dLayer layer = kl::Conv2dLayer(32, 4, 4, 4, kl::DType::Float32, kl::Device::cuda());
+        layer.forward(result);
 
         return EXIT_SUCCESS;
     }

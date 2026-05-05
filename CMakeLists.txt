@@ -13,6 +13,7 @@ file(GLOB_RECURSE KL_SOURCES CONFIGURE_DEPENDS
     src/core/*.cpp
     src/backend/*.cpp
     src/backend/cpu/*.cpp
+    src/cnn/*.cpp
     src/ops/*.cpp
     src/kernels/cpu/*.cpp
 )
