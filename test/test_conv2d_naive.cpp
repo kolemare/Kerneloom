@@ -4,7 +4,7 @@
 #include <core/tensor.hpp>
 #include <ops/conv2d_naive.hpp>
 
-#include <cnn/conv2d_layer.hpp>
+#include <cnn/layers/conv2d_layer.hpp>
 
 #include <cstdlib>
 #include <exception>

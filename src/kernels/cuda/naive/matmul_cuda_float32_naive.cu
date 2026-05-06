@@ -1,4 +1,4 @@
-#include <kernels/cuda/matmul_cuda_float32_naive.cuh>
+#include <kernels/cuda/naive/matmul_cuda_float32_naive.cuh>
 
 #include <cuda_runtime.h>
 

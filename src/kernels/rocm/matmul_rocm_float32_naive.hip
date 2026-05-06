@@ -1,4 +1,4 @@
-#include <kernels/rocm/matmul_rocm_float32_naive.hiph>
+#include <kernels/rocm/naive/matmul_rocm_float32_naive.hiph>
 
 #include <hip/hip_runtime.h>
 

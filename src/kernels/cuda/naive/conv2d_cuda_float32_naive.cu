@@ -1,4 +1,4 @@
-#include <kernels/cuda/conv2d_cuda_float32_naive.cuh>
+#include <kernels/cuda/naive/conv2d_cuda_float32_naive.cuh>
 
 #include <cuda_runtime.h>
 

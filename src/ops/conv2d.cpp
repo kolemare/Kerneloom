@@ -3,11 +3,11 @@
 #include <kernels/cpu/conv2d/conv2d_cpu_float32.hpp>
 
 #if defined(KL_ENABLE_CUDA)
-#include <kernels/cuda/conv2d_cuda_float32.cuh>
+#include <kernels/cuda/conv2d/conv2d_cuda_float32.cuh>
 #endif
 
 #if defined(KL_ENABLE_ROCM)
-#include <kernels/rocm/conv2d_rocm_float32.hiph>
+#include <kernels/rocm/conv2d/conv2d_rocm_float32.hiph>
 #endif
 
 #include <stdexcept>

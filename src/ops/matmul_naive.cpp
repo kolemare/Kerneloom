@@ -3,11 +3,11 @@
 #include <kernels/cpu/naive/matmul_cpu_float32_naive.hpp>
 
 #if defined(KL_ENABLE_CUDA)
-#include <kernels/cuda/matmul_cuda_float32_naive.cuh>
+#include <kernels/cuda/naive/matmul_cuda_float32_naive.cuh>
 #endif
 
 #if defined(KL_ENABLE_ROCM)
-#include <kernels/rocm/matmul_rocm_float32_naive.hiph>
+#include <kernels/rocm/naive/matmul_rocm_float32_naive.hiph>
 #endif
 
 #include <stdexcept>

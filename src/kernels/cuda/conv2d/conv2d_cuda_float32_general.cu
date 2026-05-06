@@ -1,4 +1,4 @@
-#include <kernels/cuda/conv2d_cuda_float32.cuh>
+#include <kernels/cuda/conv2d/conv2d_cuda_float32_general.cuh>
 
 #include <cuda_runtime.h>
 
@@ -19,7 +19,7 @@ namespace kl
             }
         }
 
-        __global__ void conv2d_cuda_float32_kernel(
+        __global__ void conv2d_cuda_float32_general_kernel(
             const float *input,
             const float *kernels,
             const float *bias,
@@ -114,7 +114,7 @@ namespace kl
 
     }
 
-    void conv2d_cuda_float32(
+    void conv2d_cuda_float32_general(
         const Tensor &input,
         const Tensor &kernels,
         const Tensor *bias,
@@ -135,6 +135,7 @@ namespace kl
 
         const float *input_data = static_cast<const float *>(input.data());
         const float *kernel_data = static_cast<const float *>(kernels.data());
+
         const float *bias_data = nullptr;
 
         if (bias != nullptr)
@@ -154,7 +155,7 @@ namespace kl
             static_cast<unsigned int>((OH + block_size - 1) / block_size),
             static_cast<unsigned int>(N * K));
 
-        conv2d_cuda_float32_kernel<<<grid, block>>>(
+        conv2d_cuda_float32_general_kernel<<<grid, block>>>(
             input_data,
             kernel_data,
             bias_data,
@@ -176,8 +177,8 @@ namespace kl
             options.dilation_w,
             use_bias);
 
-        check_cuda(cudaGetLastError(), "CUDA conv2d kernel launch failed");
-        check_cuda(cudaDeviceSynchronize(), "CUDA conv2d synchronization failed");
+        check_cuda(cudaGetLastError(), "CUDA conv2d general kernel launch failed");
+        check_cuda(cudaDeviceSynchronize(), "CUDA conv2d general synchronization failed");
     }
 
 }

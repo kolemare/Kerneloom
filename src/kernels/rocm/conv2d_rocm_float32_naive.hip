@@ -1,4 +1,4 @@
-#include <kernels/rocm/conv2d_rocm_float32_naive.hiph>
+#include <kernels/rocm/naive/conv2d_rocm_float32_naive.hiph>
 
 #include <hip/hip_runtime.h>
 
