@@ -14,12 +14,17 @@ def clean(ctx):
 
 
 @task
-def build(ctx, cuda=False, rocm=False, jobs=8):
+def build(ctx, cuda=False, rocm=False, debug=False, jobs=8):
     clean(ctx)
+
     if cuda and rocm:
         raise ValueError("choose only one backend: --cuda or --rocm")
 
-    cmake_args = []
+    build_type = "Debug" if debug else "Release"
+
+    cmake_args = [
+        f"-DCMAKE_BUILD_TYPE={build_type}"
+    ]
 
     if cuda:
         cmake_args.append("-DKL_ENABLE_CUDA=ON")
