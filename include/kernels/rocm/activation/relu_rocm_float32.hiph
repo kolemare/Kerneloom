@@ -1,0 +1,13 @@
+#ifndef KL_RELU_ROCM_FLOAT32_HIPH
+#define KL_RELU_ROCM_FLOAT32_HIPH
+
+#include <core/tensor.hpp>
+
+namespace kl
+{
+
+    void relu_rocm_float32(Tensor &tensor);
+
+}
+
+#endif // KL_RELU_ROCM_FLOAT32_HIPH
