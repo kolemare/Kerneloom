@@ -26,10 +26,13 @@ namespace kl
             Device device = Device::cpu(),
             Conv2dOptions options = {});
 
+        bool verify() const override;
+
         Tensor forward(const Tensor &input) override;
         Tensor backward(const Tensor &grad_output) override;
 
         const Tensor &weights() const;
+        const Tensor &bias() const;
         const Conv2dOptions &options() const;
 
     private:
@@ -43,6 +46,7 @@ namespace kl
         Conv2dOptions options_;
 
         Tensor weights_;
+        Tensor bias_;
 
         Shape last_input_shape_;
         bool has_last_input_shape_ = false;

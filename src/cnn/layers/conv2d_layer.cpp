@@ -3,10 +3,30 @@
 #include <core/layout.hpp>
 #include <core/storage.hpp>
 
+#include <ops/conv2d.hpp>
+
 #include <stdexcept>
 
 namespace kl
 {
+
+    namespace
+    {
+
+        std::size_t conv2d_output_size(
+            std::size_t input_size,
+            std::size_t kernel_size,
+            std::size_t padding,
+            std::size_t stride,
+            std::size_t dilation)
+        {
+            const std::size_t effective_kernel =
+                dilation * (kernel_size - 1) + 1;
+
+            return (input_size + 2 * padding - effective_kernel) / stride + 1;
+        }
+
+    }
 
     Conv2dLayer::Conv2dLayer(
         std::size_t input_channels,
@@ -28,73 +48,152 @@ namespace kl
               dtype,
               device,
               Layout::Unknown,
+              Storage::RowMajor),
+          bias_(
+              Shape{output_channels},
+              dtype,
+              device,
+              Layout::Unknown,
               Storage::RowMajor)
     {
     }
 
-    Tensor Conv2dLayer::forward(const Tensor &input)
+    bool Conv2dLayer::verify() const
     {
-        if (input.rank() != 4)
+        if (input_channels_ == 0)
         {
-            throw std::runtime_error("Conv2dLayer::forward expects input shape N x C x H x W");
+            return false;
         }
 
-        if (input.shape()[1] != input_channels_)
+        if (output_channels_ == 0)
         {
-            throw std::runtime_error("Conv2dLayer::forward input channels mismatch");
+            return false;
         }
 
-        if (input.dtype() != dtype_)
+        if (kernel_height_ == 0 || kernel_width_ == 0)
         {
-            throw std::runtime_error("Conv2dLayer::forward dtype mismatch");
-        }
-
-        if (input.device().type() != device_.type())
-        {
-            throw std::runtime_error("Conv2dLayer::forward device mismatch");
+            return false;
         }
 
         if (options_.stride_h == 0 || options_.stride_w == 0)
         {
-            throw std::runtime_error("Conv2dLayer::forward stride must be greater than zero");
+            return false;
         }
 
         if (options_.dilation_h == 0 || options_.dilation_w == 0)
         {
-            throw std::runtime_error("Conv2dLayer::forward dilation must be greater than zero");
+            return false;
         }
 
+        if (dtype_ != DType::Float32)
+        {
+            return false;
+        }
+
+        if (weights_.rank() != 4)
+        {
+            return false;
+        }
+
+        if (weights_.shape()[0] != output_channels_ ||
+            weights_.shape()[1] != input_channels_ ||
+            weights_.shape()[2] != kernel_height_ ||
+            weights_.shape()[3] != kernel_width_)
+        {
+            return false;
+        }
+
+        if (weights_.dtype() != dtype_)
+        {
+            return false;
+        }
+
+        if (weights_.device().type() != device_.type())
+        {
+            return false;
+        }
+
+        if (weights_.storage() != Storage::RowMajor)
+        {
+            return false;
+        }
+
+        if (options_.use_bias)
+        {
+            if (bias_.rank() != 1)
+            {
+                return false;
+            }
+
+            if (bias_.shape()[0] != output_channels_)
+            {
+                return false;
+            }
+
+            if (bias_.dtype() != dtype_)
+            {
+                return false;
+            }
+
+            if (bias_.device().type() != device_.type())
+            {
+                return false;
+            }
+
+            if (bias_.storage() != Storage::RowMajor)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    Tensor Conv2dLayer::forward(const Tensor &input)
+    {
         const std::size_t n = input.shape()[0];
         const std::size_t h = input.shape()[2];
         const std::size_t w = input.shape()[3];
 
-        const std::size_t effective_kernel_h =
-            options_.dilation_h * (kernel_height_ - 1) + 1;
+        const std::size_t output_height = conv2d_output_size(
+            h,
+            kernel_height_,
+            options_.padding_h,
+            options_.stride_h,
+            options_.dilation_h);
 
-        const std::size_t effective_kernel_w =
-            options_.dilation_w * (kernel_width_ - 1) + 1;
+        const std::size_t output_width = conv2d_output_size(
+            w,
+            kernel_width_,
+            options_.padding_w,
+            options_.stride_w,
+            options_.dilation_w);
 
-        if (effective_kernel_h > h + 2 * options_.padding_h ||
-            effective_kernel_w > w + 2 * options_.padding_w)
-        {
-            throw std::runtime_error("Conv2dLayer::forward effective kernel cannot be larger than padded input");
-        }
-
-        const std::size_t output_height =
-            (h + 2 * options_.padding_h - effective_kernel_h) / options_.stride_h + 1;
-
-        const std::size_t output_width =
-            (w + 2 * options_.padding_w - effective_kernel_w) / options_.stride_w + 1;
-
-        last_input_shape_ = input.shape();
-        has_last_input_shape_ = true;
-
-        return Tensor(
+        Tensor result(
             Shape{n, output_channels_, output_height, output_width},
             dtype_,
             device_,
             Layout::NCHW,
             Storage::RowMajor);
+
+        const Tensor *bias = nullptr;
+
+        if (options_.use_bias)
+        {
+            bias = &bias_;
+        }
+
+        conv2d(
+            input,
+            weights_,
+            bias,
+            result,
+            options_);
+
+        last_input_shape_ = input.shape();
+        has_last_input_shape_ = true;
+
+        return result;
     }
 
     Tensor Conv2dLayer::backward(const Tensor &grad_output)
@@ -106,15 +205,20 @@ namespace kl
 
         return Tensor(
             last_input_shape_,
-            dtype_,
-            device_,
-            Layout::NCHW,
-            Storage::RowMajor);
+            grad_output.dtype(),
+            grad_output.device(),
+            grad_output.layout(),
+            grad_output.storage());
     }
 
     const Tensor &Conv2dLayer::weights() const
     {
         return weights_;
+    }
+
+    const Tensor &Conv2dLayer::bias() const
+    {
+        return bias_;
     }
 
     const Conv2dOptions &Conv2dLayer::options() const

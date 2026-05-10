@@ -5,24 +5,6 @@
 namespace kl
 {
 
-    const char *activation_type_name(ActivationType type)
-    {
-        switch (type)
-        {
-        case ActivationType::ReLU:
-            return "ReLU";
-
-        case ActivationType::Sigmoid:
-            return "Sigmoid";
-
-        case ActivationType::Tanh:
-            return "Tanh";
-
-        default:
-            return "Unknown";
-        }
-    }
-
     ActivationLayer::ActivationLayer(ActivationType activation_type)
         : activation_type_(activation_type),
           last_dtype_(DType::Float32),
@@ -30,6 +12,20 @@ namespace kl
           last_layout_(Layout::Unknown),
           last_storage_(Storage::RowMajor)
     {
+    }
+
+    bool ActivationLayer::verify() const
+    {
+        switch (activation_type_)
+        {
+        case ActivationType::ReLU:
+        case ActivationType::Sigmoid:
+        case ActivationType::Tanh:
+            return true;
+
+        default:
+            return false;
+        }
     }
 
     Tensor ActivationLayer::forward(const Tensor &input)
@@ -41,12 +37,11 @@ namespace kl
         last_storage_ = input.storage();
         has_last_input_ = true;
 
-        return Tensor(
-            input.shape(),
-            input.dtype(),
-            input.device(),
-            input.layout(),
-            input.storage());
+        Tensor result = input.to(input.device());
+
+        activation(result, activation_type_);
+
+        return result;
     }
 
     Tensor ActivationLayer::backward(const Tensor &grad_output)

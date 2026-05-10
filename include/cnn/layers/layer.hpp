@@ -13,6 +13,7 @@ namespace kl
 
         virtual Tensor forward(const Tensor &input) = 0;
         virtual Tensor backward(const Tensor &grad_output) = 0;
+        virtual bool verify() const = 0;
     };
 
 }

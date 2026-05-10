@@ -1,7 +1,8 @@
-#ifndef KL_ACTIVATION_LAYER_HPP
-#define KL_ACTIVATION_LAYER_HPP
+#ifndef KL_AVGPOOL2D_LAYER_HPP
+#define KL_AVGPOOL2D_LAYER_HPP
 
 #include <cnn/layers/layer.hpp>
+#include <cnn/options/pooling2d_options.hpp>
 
 #include <core/device.hpp>
 #include <core/dtype.hpp>
@@ -10,25 +11,23 @@
 #include <core/storage.hpp>
 #include <core/tensor.hpp>
 
-#include <ops/activation.hpp>
-
 namespace kl
 {
 
-    class ActivationLayer final : public Layer
+    class AvgPool2dLayer final : public Layer
     {
     public:
-        explicit ActivationLayer(ActivationType activation_type);
+        explicit AvgPool2dLayer(Pooling2dOptions options = {});
 
         bool verify() const override;
 
         Tensor forward(const Tensor &input) override;
         Tensor backward(const Tensor &grad_output) override;
 
-        ActivationType activation_type() const;
+        const Pooling2dOptions &options() const;
 
     private:
-        ActivationType activation_type_;
+        Pooling2dOptions options_;
 
         Shape last_input_shape_;
         DType last_dtype_;
@@ -41,4 +40,4 @@ namespace kl
 
 }
 
-#endif // KL_ACTIVATION_LAYER_HPP
+#endif // KL_AVGPOOL2D_LAYER_HPP
