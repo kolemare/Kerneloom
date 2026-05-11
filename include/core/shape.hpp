@@ -22,6 +22,9 @@ namespace kl
 
         std::size_t operator[](std::size_t index) const;
 
+        bool operator==(const Shape &other) const;
+        bool operator!=(const Shape &other) const;
+
         const std::vector<std::size_t> &dims() const;
 
     private:

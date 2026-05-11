@@ -56,6 +56,16 @@ namespace kl
         return dims_[index];
     }
 
+    bool Shape::operator==(const Shape &other) const
+    {
+        return dims_ == other.dims_;
+    }
+
+    bool Shape::operator!=(const Shape &other) const
+    {
+        return !(*this == other);
+    }
+
     const std::vector<std::size_t> &Shape::dims() const
     {
         return dims_;
