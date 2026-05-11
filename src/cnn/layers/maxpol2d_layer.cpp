@@ -1,5 +1,8 @@
 #include <cnn/layers/maxpool2d_layer.hpp>
 
+#include <core/layout.hpp>
+#include <core/storage.hpp>
+
 #include <ops/maxpool2d.hpp>
 
 #include <stdexcept>
@@ -22,11 +25,7 @@ namespace kl
     }
 
     MaxPool2dLayer::MaxPool2dLayer(Pooling2dOptions options)
-        : options_(options),
-          last_dtype_(DType::Float32),
-          last_device_(Device::cpu()),
-          last_layout_(Layout::Unknown),
-          last_storage_(Storage::RowMajor)
+        : options_(options)
     {
     }
 
@@ -45,7 +44,9 @@ namespace kl
         return true;
     }
 
-    Tensor MaxPool2dLayer::forward(const Tensor &input)
+    Tensor &MaxPool2dLayer::forward(
+        Tensor &input,
+        TensorPool &pool)
     {
         const std::size_t n = input.shape()[0];
         const std::size_t c = input.shape()[1];
@@ -64,7 +65,7 @@ namespace kl
             options_.padding_w,
             options_.stride_w);
 
-        Tensor result(
+        Tensor &result = pool.request(
             Shape{n, c, output_h, output_w},
             input.dtype(),
             input.device(),
@@ -73,29 +74,28 @@ namespace kl
 
         maxpool2d(input, result, options_);
 
-        last_input_shape_ = input.shape();
-        last_dtype_ = input.dtype();
-        last_device_ = input.device();
-        last_layout_ = input.layout();
-        last_storage_ = input.storage();
-        has_last_input_ = true;
+        last_input_ = &input;
 
         return result;
     }
 
-    Tensor MaxPool2dLayer::backward(const Tensor &grad_output)
+    Tensor &MaxPool2dLayer::backward(
+        Tensor &grad_output,
+        TensorPool &pool)
     {
-        if (!has_last_input_)
+        if (last_input_ == nullptr)
         {
             throw std::runtime_error("MaxPool2dLayer::backward called before forward");
         }
 
-        return Tensor(
-            last_input_shape_,
+        Tensor &grad_input = pool.request(
+            last_input_->shape(),
             grad_output.dtype(),
             grad_output.device(),
             grad_output.layout(),
             grad_output.storage());
+
+        return grad_input;
     }
 
     const Pooling2dOptions &MaxPool2dLayer::options() const

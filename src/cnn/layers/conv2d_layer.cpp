@@ -60,12 +60,7 @@ namespace kl
 
     bool Conv2dLayer::verify() const
     {
-        if (input_channels_ == 0)
-        {
-            return false;
-        }
-
-        if (output_channels_ == 0)
+        if (input_channels_ == 0 || output_channels_ == 0)
         {
             return false;
         }
@@ -103,44 +98,20 @@ namespace kl
             return false;
         }
 
-        if (weights_.dtype() != dtype_)
-        {
-            return false;
-        }
-
-        if (weights_.device().type() != device_.type())
-        {
-            return false;
-        }
-
-        if (weights_.storage() != Storage::RowMajor)
+        if (weights_.dtype() != dtype_ ||
+            weights_.device().type() != device_.type() ||
+            weights_.storage() != Storage::RowMajor)
         {
             return false;
         }
 
         if (options_.use_bias)
         {
-            if (bias_.rank() != 1)
-            {
-                return false;
-            }
-
-            if (bias_.shape()[0] != output_channels_)
-            {
-                return false;
-            }
-
-            if (bias_.dtype() != dtype_)
-            {
-                return false;
-            }
-
-            if (bias_.device().type() != device_.type())
-            {
-                return false;
-            }
-
-            if (bias_.storage() != Storage::RowMajor)
+            if (bias_.rank() != 1 ||
+                bias_.shape()[0] != output_channels_ ||
+                bias_.dtype() != dtype_ ||
+                bias_.device().type() != device_.type() ||
+                bias_.storage() != Storage::RowMajor)
             {
                 return false;
             }
@@ -149,7 +120,9 @@ namespace kl
         return true;
     }
 
-    Tensor Conv2dLayer::forward(const Tensor &input)
+    Tensor &Conv2dLayer::forward(
+        Tensor &input,
+        TensorPool &pool)
     {
         const std::size_t n = input.shape()[0];
         const std::size_t h = input.shape()[2];
@@ -169,7 +142,7 @@ namespace kl
             options_.stride_w,
             options_.dilation_w);
 
-        Tensor result(
+        Tensor &result = pool.request(
             Shape{n, output_channels_, output_height, output_width},
             dtype_,
             device_,
@@ -190,25 +163,28 @@ namespace kl
             result,
             options_);
 
-        last_input_shape_ = input.shape();
-        has_last_input_shape_ = true;
+        last_input_ = &input;
 
         return result;
     }
 
-    Tensor Conv2dLayer::backward(const Tensor &grad_output)
+    Tensor &Conv2dLayer::backward(
+        Tensor &grad_output,
+        TensorPool &pool)
     {
-        if (!has_last_input_shape_)
+        if (last_input_ == nullptr)
         {
             throw std::runtime_error("Conv2dLayer::backward called before forward");
         }
 
-        return Tensor(
-            last_input_shape_,
+        Tensor &grad_input = pool.request(
+            last_input_->shape(),
             grad_output.dtype(),
             grad_output.device(),
             grad_output.layout(),
             grad_output.storage());
+
+        return grad_input;
     }
 
     const Tensor &Conv2dLayer::weights() const

@@ -8,6 +8,7 @@
 #include <core/dtype.hpp>
 #include <core/shape.hpp>
 #include <core/tensor.hpp>
+#include <core/tensor_pool.hpp>
 
 #include <cstddef>
 
@@ -28,8 +29,13 @@ namespace kl
 
         bool verify() const override;
 
-        Tensor forward(const Tensor &input) override;
-        Tensor backward(const Tensor &grad_output) override;
+        Tensor &forward(
+            Tensor &input,
+            TensorPool &pool) override;
+
+        Tensor &backward(
+            Tensor &grad_output,
+            TensorPool &pool) override;
 
         const Tensor &weights() const;
         const Tensor &bias() const;
@@ -48,8 +54,7 @@ namespace kl
         Tensor weights_;
         Tensor bias_;
 
-        Shape last_input_shape_;
-        bool has_last_input_shape_ = false;
+        const Tensor *last_input_ = nullptr;
     };
 
 }

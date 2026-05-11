@@ -3,12 +3,8 @@
 
 #include <cnn/layers/layer.hpp>
 
-#include <core/device.hpp>
-#include <core/dtype.hpp>
-#include <core/layout.hpp>
-#include <core/shape.hpp>
-#include <core/storage.hpp>
 #include <core/tensor.hpp>
+#include <core/tensor_pool.hpp>
 
 #include <ops/activation.hpp>
 
@@ -22,21 +18,20 @@ namespace kl
 
         bool verify() const override;
 
-        Tensor forward(const Tensor &input) override;
-        Tensor backward(const Tensor &grad_output) override;
+        Tensor &forward(
+            Tensor &input,
+            TensorPool &pool) override;
+
+        Tensor &backward(
+            Tensor &grad_output,
+            TensorPool &pool) override;
 
         ActivationType activation_type() const;
 
     private:
         ActivationType activation_type_;
 
-        Shape last_input_shape_;
-        DType last_dtype_;
-        Device last_device_;
-        Layout last_layout_;
-        Storage last_storage_;
-
-        bool has_last_input_ = false;
+        const Tensor *last_input_ = nullptr;
     };
 
 }

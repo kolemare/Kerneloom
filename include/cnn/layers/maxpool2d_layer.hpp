@@ -4,12 +4,8 @@
 #include <cnn/layers/layer.hpp>
 #include <cnn/options/pooling2d_options.hpp>
 
-#include <core/device.hpp>
-#include <core/dtype.hpp>
-#include <core/layout.hpp>
-#include <core/shape.hpp>
-#include <core/storage.hpp>
 #include <core/tensor.hpp>
+#include <core/tensor_pool.hpp>
 
 namespace kl
 {
@@ -21,21 +17,20 @@ namespace kl
 
         bool verify() const override;
 
-        Tensor forward(const Tensor &input) override;
-        Tensor backward(const Tensor &grad_output) override;
+        Tensor &forward(
+            Tensor &input,
+            TensorPool &pool) override;
+
+        Tensor &backward(
+            Tensor &grad_output,
+            TensorPool &pool) override;
 
         const Pooling2dOptions &options() const;
 
     private:
         Pooling2dOptions options_;
 
-        Shape last_input_shape_;
-        DType last_dtype_;
-        Device last_device_;
-        Layout last_layout_;
-        Storage last_storage_;
-
-        bool has_last_input_ = false;
+        const Tensor *last_input_ = nullptr;
     };
 
 }

@@ -6,11 +6,7 @@ namespace kl
 {
 
     ActivationLayer::ActivationLayer(ActivationType activation_type)
-        : activation_type_(activation_type),
-          last_dtype_(DType::Float32),
-          last_device_(Device::cpu()),
-          last_layout_(Layout::Unknown),
-          last_storage_(Storage::RowMajor)
+        : activation_type_(activation_type)
     {
     }
 
@@ -28,35 +24,36 @@ namespace kl
         }
     }
 
-    Tensor ActivationLayer::forward(const Tensor &input)
+    Tensor &ActivationLayer::forward(
+        Tensor &input,
+        TensorPool &pool)
     {
-        last_input_shape_ = input.shape();
-        last_dtype_ = input.dtype();
-        last_device_ = input.device();
-        last_layout_ = input.layout();
-        last_storage_ = input.storage();
-        has_last_input_ = true;
+        (void)pool;
 
-        Tensor result = input.to(input.device());
+        activation(input, activation_type_);
 
-        activation(result, activation_type_);
+        last_input_ = &input;
 
-        return result;
+        return input;
     }
 
-    Tensor ActivationLayer::backward(const Tensor &grad_output)
+    Tensor &ActivationLayer::backward(
+        Tensor &grad_output,
+        TensorPool &pool)
     {
-        if (!has_last_input_)
+        if (last_input_ == nullptr)
         {
             throw std::runtime_error("ActivationLayer::backward called before forward");
         }
 
-        return Tensor(
+        Tensor &grad_input = pool.request(
             grad_output.shape(),
             grad_output.dtype(),
             grad_output.device(),
             grad_output.layout(),
             grad_output.storage());
+
+        return grad_input;
     }
 
     ActivationType ActivationLayer::activation_type() const
