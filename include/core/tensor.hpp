@@ -42,6 +42,9 @@ namespace kl
         void *data();
         const void *data() const;
 
+        void reshape_inplace(Shape shape);
+        void set_layout(Layout layout);
+
         Tensor to(Device device) const;
 
     private:

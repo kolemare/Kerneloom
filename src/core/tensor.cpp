@@ -2,6 +2,7 @@
 
 #include <core/copy.hpp>
 
+#include <stdexcept>
 #include <utility>
 
 namespace kl
@@ -70,6 +71,21 @@ namespace kl
     const void *Tensor::data() const
     {
         return buffer_.data();
+    }
+
+    void Tensor::reshape_inplace(Shape shape)
+    {
+        if (shape.numel() != shape_.numel())
+        {
+            throw std::runtime_error("Tensor::reshape_inplace requires same number of elements");
+        }
+
+        shape_ = std::move(shape);
+    }
+
+    void Tensor::set_layout(Layout layout)
+    {
+        layout_ = layout;
     }
 
     Tensor Tensor::to(Device device) const
