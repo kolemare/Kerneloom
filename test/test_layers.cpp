@@ -2,7 +2,10 @@
 
 #include <cnn/layers/activation_layer.hpp>
 #include <cnn/layers/conv2d_layer.hpp>
+#include <cnn/layers/flatten_layer.hpp>
+#include <cnn/layers/linear_layer.hpp>
 #include <cnn/layers/maxpool2d_layer.hpp>
+
 #include <cnn/options/conv2d_options.hpp>
 #include <cnn/options/pooling2d_options.hpp>
 
@@ -36,7 +39,7 @@ int main()
 {
     const kl::Device target = kl::default_device();
 
-    const std::size_t batch_size = 8;
+    const std::size_t batch_size = 4;
     const std::size_t input_channels = 3;
     const std::size_t input_h = 1 << 12;
     const std::size_t input_w = 1 << 12;
@@ -69,6 +72,9 @@ int main()
     pool_options.padding_h = 0;
     pool_options.padding_w = 0;
 
+    const std::size_t flattened_features =
+        32 * (input_h / 8) * (input_w / 8);
+
     std::vector<std::unique_ptr<kl::Layer>> layers;
 
     layers.push_back(std::make_unique<kl::Conv2dLayer>(
@@ -91,6 +97,26 @@ int main()
         kl::ActivationType::ReLU));
     layers.push_back(std::make_unique<kl::MaxPool2dLayer>(
         pool_options));
+
+    layers.push_back(std::make_unique<kl::FlattenLayer>());
+
+    layers.push_back(std::make_unique<kl::LinearLayer>(
+        flattened_features,
+        256,
+        kl::DType::Float32,
+        target,
+        false));
+    layers.push_back(std::make_unique<kl::ActivationLayer>(
+        kl::ActivationType::ReLU));
+
+    layers.push_back(std::make_unique<kl::LinearLayer>(
+        256,
+        64,
+        kl::DType::Float32,
+        target,
+        false));
+    layers.push_back(std::make_unique<kl::ActivationLayer>(
+        kl::ActivationType::ReLU));
 
     kl::TensorPool pool;
 
@@ -116,6 +142,9 @@ int main()
                   << '\n';
 
         pool.reset();
+
+        input.reshape_inplace(
+            kl::Shape{batch_size, input_channels, input_h, input_w});
     }
 
     return EXIT_SUCCESS;
