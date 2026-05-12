@@ -19,6 +19,8 @@ namespace kl
 
         if (entry != nullptr)
         {
+            entry->tensor->reshape_inplace(shape);
+            entry->tensor->set_layout(layout);
             entry->active = true;
             return *entry->tensor;
         }
@@ -112,11 +114,12 @@ namespace kl
         Layout layout,
         Storage storage) const
     {
-        return tensor.shape() == shape &&
-               tensor.dtype() == dtype &&
+        (void)layout;
+
+        return tensor.dtype() == dtype &&
                tensor.device().type() == device.type() &&
-               tensor.layout() == layout &&
-               tensor.storage() == storage;
+               tensor.storage() == storage &&
+               tensor.nbytes() == shape.numel() * dtype_size(dtype);
     }
 
 }
