@@ -1,0 +1,17 @@
+#ifndef KL_LINEAR_ROCM_FLOAT32_HIPH
+#define KL_LINEAR_ROCM_FLOAT32_HIPH
+
+#include <core/tensor.hpp>
+
+namespace kl
+{
+
+    void linear_rocm_float32(
+        const Tensor &input,
+        const Tensor &weights,
+        const Tensor *bias,
+        Tensor &result);
+
+}
+
+#endif // KL_LINEAR_ROCM_FLOAT32_HIPH
