@@ -36,6 +36,12 @@ namespace kl
     {
     }
 
+    void LinearLayer::initialize(const InitializerType &type)
+    {
+        Initializer::initialize(weights(), type);
+        Initializer::initialize(bias(), type);
+    }
+
     bool LinearLayer::verify() const
     {
         if (input_features_ == 0 || output_features_ == 0)
@@ -135,12 +141,12 @@ namespace kl
         return grad_input;
     }
 
-    const Tensor &LinearLayer::weights() const
+    Tensor &LinearLayer::weights()
     {
         return weights_;
     }
 
-    const Tensor &LinearLayer::bias() const
+    Tensor &LinearLayer::bias()
     {
         return bias_;
     }

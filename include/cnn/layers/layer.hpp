@@ -3,6 +3,7 @@
 
 #include <core/tensor.hpp>
 #include <core/tensor_pool.hpp>
+#include <cnn/network/initializer.hpp>
 
 namespace kl
 {
@@ -14,6 +15,7 @@ namespace kl
 
         virtual Tensor &forward(Tensor &input, TensorPool &pool) = 0;
         virtual Tensor &backward(Tensor &grad_output, TensorPool &pool) = 0;
+        virtual void initialize(const InitializerType &type) = 0;
         virtual bool verify() const = 0;
     };
 

@@ -24,6 +24,8 @@ namespace kl
             Device device = Device::cpu(),
             bool use_bias = true);
 
+        void initialize(const InitializerType &type) override;
+
         bool verify() const override;
 
         Tensor &forward(
@@ -34,8 +36,8 @@ namespace kl
             Tensor &grad_output,
             TensorPool &pool) override;
 
-        const Tensor &weights() const;
-        const Tensor &bias() const;
+        Tensor &weights();
+        Tensor &bias();
 
         std::size_t input_features() const;
         std::size_t output_features() const;

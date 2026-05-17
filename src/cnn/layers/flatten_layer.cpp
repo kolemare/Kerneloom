@@ -6,6 +6,10 @@
 
 namespace kl
 {
+    void FlattenLayer::initialize(const InitializerType &type)
+    {
+        return;
+    }
 
     bool FlattenLayer::verify() const
     {

@@ -47,15 +47,21 @@ namespace kl
               Shape{output_channels, input_channels, kernel_height, kernel_width},
               dtype,
               device,
-              Layout::Unknown,
+              Layout::NCHW,
               Storage::RowMajor),
           bias_(
               Shape{output_channels},
               dtype,
               device,
-              Layout::Unknown,
+              Layout::NCHW,
               Storage::RowMajor)
     {
+    }
+
+    void Conv2dLayer::initialize(const InitializerType &type)
+    {
+        Initializer::initialize(weights(), type);
+        Initializer::initialize(bias(), type);
     }
 
     bool Conv2dLayer::verify() const
@@ -187,12 +193,12 @@ namespace kl
         return grad_input;
     }
 
-    const Tensor &Conv2dLayer::weights() const
+    Tensor &Conv2dLayer::weights()
     {
         return weights_;
     }
 
-    const Tensor &Conv2dLayer::bias() const
+    Tensor &Conv2dLayer::bias()
     {
         return bias_;
     }

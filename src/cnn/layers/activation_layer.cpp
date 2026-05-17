@@ -10,6 +10,11 @@ namespace kl
     {
     }
 
+    void ActivationLayer::initialize(const InitializerType &type)
+    {
+        return;
+    }
+
     bool ActivationLayer::verify() const
     {
         switch (activation_type_)

@@ -15,6 +15,8 @@ namespace kl
     public:
         explicit MaxPool2dLayer(Pooling2dOptions options = {});
 
+        void initialize(const InitializerType &type) override;
+
         bool verify() const override;
 
         Tensor &forward(

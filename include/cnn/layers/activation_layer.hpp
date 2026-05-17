@@ -16,6 +16,8 @@ namespace kl
     public:
         explicit ActivationLayer(ActivationType activation_type);
 
+        void initialize(const InitializerType &type) override;
+
         bool verify() const override;
 
         Tensor &forward(

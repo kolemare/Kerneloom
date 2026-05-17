@@ -27,6 +27,8 @@ namespace kl
             Device device = Device::cpu(),
             Conv2dOptions options = {});
 
+        void initialize(const InitializerType &type) override;
+
         bool verify() const override;
 
         Tensor &forward(
@@ -37,8 +39,8 @@ namespace kl
             Tensor &grad_output,
             TensorPool &pool) override;
 
-        const Tensor &weights() const;
-        const Tensor &bias() const;
+        Tensor &weights();
+        Tensor &bias();
         const Conv2dOptions &options() const;
 
     private:

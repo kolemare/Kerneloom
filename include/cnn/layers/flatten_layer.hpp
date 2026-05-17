@@ -15,6 +15,8 @@ namespace kl
     public:
         FlattenLayer() = default;
 
+        void initialize(const InitializerType &type) override;
+
         bool verify() const override;
 
         Tensor &forward(
