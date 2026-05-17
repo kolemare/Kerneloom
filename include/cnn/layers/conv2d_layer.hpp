@@ -32,6 +32,9 @@ namespace kl
 
         bool verify() const override;
 
+        Shape output_shape(
+            const Shape &input_shape) const override;
+
         Tensor &forward(
             Tensor &input,
             TensorPool &pool) override;
@@ -42,7 +45,16 @@ namespace kl
 
         Tensor &weights();
         Tensor &bias();
+
         const Conv2dOptions &options() const;
+
+    private:
+        std::size_t output_size(
+            std::size_t input_size,
+            std::size_t kernel_size,
+            std::size_t padding,
+            std::size_t stride,
+            std::size_t dilation) const;
 
     private:
         std::size_t input_channels_;

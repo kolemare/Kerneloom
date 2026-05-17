@@ -20,6 +20,9 @@ namespace kl
 
         bool verify() const override;
 
+        Shape output_shape(
+            const Shape &input_shape) const override;
+
         Tensor &forward(
             Tensor &input,
             TensorPool &pool) override;

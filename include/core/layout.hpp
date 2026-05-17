@@ -9,18 +9,7 @@ namespace kl
     enum class Layout
     {
         Unknown,
-
-        // 3D image/tensor layouts
-        CHW,
-        HWC,
-
-        // 4D image batch layouts
-        NCHW,
-        NHWC,
-
-        // 5D volume/video layouts
-        NCDHW,
-        NDHWC
+        NCHW
     };
 
     std::string_view layout_name(Layout layout);

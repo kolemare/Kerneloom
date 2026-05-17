@@ -6,19 +6,29 @@
 
 namespace kl
 {
+
     void FlattenLayer::initializeBiases(const InitializerType &type)
     {
-        return;
+        (void)type;
     }
 
     void FlattenLayer::initializeWeights(const InitializerType &type)
     {
-        return;
+        (void)type;
     }
 
     bool FlattenLayer::verify() const
     {
         return true;
+    }
+
+    Shape FlattenLayer::output_shape(
+        const Shape &input_shape) const
+    {
+        const std::size_t batch_size = input_shape[0];
+        const std::size_t features = input_shape.numel() / batch_size;
+
+        return Shape{batch_size, features};
     }
 
     Tensor &FlattenLayer::forward(
@@ -27,18 +37,10 @@ namespace kl
     {
         (void)pool;
 
-        if (input.rank() < 2)
-        {
-            throw std::runtime_error("FlattenLayer::forward expects rank >= 2");
-        }
-
-        const std::size_t batch_size = input.shape()[0];
-        const std::size_t features = input.numel() / batch_size;
-
         last_input_shape_ = input.shape();
         has_last_input_shape_ = true;
 
-        input.reshape_inplace(Shape{batch_size, features});
+        input.reshape_inplace(output_shape(input.shape()));
         input.set_layout(Layout::Unknown);
 
         return input;

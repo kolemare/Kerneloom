@@ -38,12 +38,15 @@ namespace kl
 
     void LinearLayer::initializeBiases(const InitializerType &type)
     {
-        Initializer::initialize(bias(), type);
+        if (use_bias_)
+        {
+            Initializer::initialize(bias_, type);
+        }
     }
 
     void LinearLayer::initializeWeights(const InitializerType &type)
     {
-        Initializer::initialize(weights(), type);
+        Initializer::initialize(weights_, type);
     }
 
     bool LinearLayer::verify() const
@@ -87,22 +90,20 @@ namespace kl
         return true;
     }
 
+    Shape LinearLayer::output_shape(
+        const Shape &input_shape) const
+    {
+        return Shape{
+            input_shape[0],
+            output_features_};
+    }
+
     Tensor &LinearLayer::forward(
         Tensor &input,
         TensorPool &pool)
     {
-        if (input.rank() != 2)
-        {
-            throw std::runtime_error("LinearLayer::forward expects input shape N x IN");
-        }
-
-        if (input.shape()[1] != input_features_)
-        {
-            throw std::runtime_error("LinearLayer::forward input feature mismatch");
-        }
-
         Tensor &result = pool.request(
-            Shape{input.shape()[0], output_features_},
+            output_shape(input.shape()),
             dtype_,
             device_,
             Layout::Unknown,

@@ -3,6 +3,7 @@
 
 #include <cnn/layers/layer.hpp>
 
+#include <core/shape.hpp>
 #include <core/tensor.hpp>
 #include <core/tensor_pool.hpp>
 
@@ -20,6 +21,9 @@ namespace kl
         void initializeWeights(const InitializerType &type) override;
 
         bool verify() const override;
+
+        Shape output_shape(
+            const Shape &input_shape) const override;
 
         Tensor &forward(
             Tensor &input,

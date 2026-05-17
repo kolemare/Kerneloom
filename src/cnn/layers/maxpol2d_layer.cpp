@@ -10,20 +10,6 @@
 namespace kl
 {
 
-    namespace
-    {
-
-        std::size_t pooling2d_output_size(
-            std::size_t input_size,
-            std::size_t kernel_size,
-            std::size_t padding,
-            std::size_t stride)
-        {
-            return (input_size + 2 * padding - kernel_size) / stride + 1;
-        }
-
-    }
-
     MaxPool2dLayer::MaxPool2dLayer(Pooling2dOptions options)
         : options_(options)
     {
@@ -31,12 +17,12 @@ namespace kl
 
     void MaxPool2dLayer::initializeBiases(const InitializerType &type)
     {
-        return;
+        (void)type;
     }
 
     void MaxPool2dLayer::initializeWeights(const InitializerType &type)
     {
-        return;
+        (void)type;
     }
 
     bool MaxPool2dLayer::verify() const
@@ -54,29 +40,34 @@ namespace kl
         return true;
     }
 
-    Tensor &MaxPool2dLayer::forward(
-        Tensor &input,
-        TensorPool &pool)
+    Shape MaxPool2dLayer::output_shape(
+        const Shape &input_shape) const
     {
-        const std::size_t n = input.shape()[0];
-        const std::size_t c = input.shape()[1];
-        const std::size_t h = input.shape()[2];
-        const std::size_t w = input.shape()[3];
-
-        const std::size_t output_h = pooling2d_output_size(
-            h,
+        const std::size_t output_height = output_size(
+            input_shape[2],
             options_.kernel_h,
             options_.padding_h,
             options_.stride_h);
 
-        const std::size_t output_w = pooling2d_output_size(
-            w,
+        const std::size_t output_width = output_size(
+            input_shape[3],
             options_.kernel_w,
             options_.padding_w,
             options_.stride_w);
 
+        return Shape{
+            input_shape[0],
+            input_shape[1],
+            output_height,
+            output_width};
+    }
+
+    Tensor &MaxPool2dLayer::forward(
+        Tensor &input,
+        TensorPool &pool)
+    {
         Tensor &result = pool.request(
-            Shape{n, c, output_h, output_w},
+            output_shape(input.shape()),
             input.dtype(),
             input.device(),
             Layout::NCHW,
@@ -111,6 +102,15 @@ namespace kl
     const Pooling2dOptions &MaxPool2dLayer::options() const
     {
         return options_;
+    }
+
+    std::size_t MaxPool2dLayer::output_size(
+        std::size_t input_size,
+        std::size_t kernel_size,
+        std::size_t padding,
+        std::size_t stride) const
+    {
+        return (input_size + 2 * padding - kernel_size) / stride + 1;
     }
 
 }

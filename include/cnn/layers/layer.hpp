@@ -13,10 +13,23 @@ namespace kl
     public:
         virtual ~Layer() = default;
 
-        virtual Tensor &forward(Tensor &input, TensorPool &pool) = 0;
-        virtual Tensor &backward(Tensor &grad_output, TensorPool &pool) = 0;
-        virtual void initializeBiases(const InitializerType &type) = 0;
-        virtual void initializeWeights(const InitializerType &type) = 0;
+        virtual Tensor &forward(
+            Tensor &input,
+            TensorPool &pool) = 0;
+
+        virtual Tensor &backward(
+            Tensor &grad_output,
+            TensorPool &pool) = 0;
+
+        virtual Shape output_shape(
+            const Shape &input_shape) const = 0;
+
+        virtual void initializeWeights(
+            const InitializerType &type) = 0;
+
+        virtual void initializeBiases(
+            const InitializerType &type) = 0;
+
         virtual bool verify() const = 0;
     };
 

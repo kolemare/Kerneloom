@@ -10,24 +10,6 @@
 namespace kl
 {
 
-    namespace
-    {
-
-        std::size_t conv2d_output_size(
-            std::size_t input_size,
-            std::size_t kernel_size,
-            std::size_t padding,
-            std::size_t stride,
-            std::size_t dilation)
-        {
-            const std::size_t effective_kernel =
-                dilation * (kernel_size - 1) + 1;
-
-            return (input_size + 2 * padding - effective_kernel) / stride + 1;
-        }
-
-    }
-
     Conv2dLayer::Conv2dLayer(
         std::size_t input_channels,
         std::size_t output_channels,
@@ -60,12 +42,12 @@ namespace kl
 
     void Conv2dLayer::initializeBiases(const InitializerType &type)
     {
-        Initializer::initialize(bias(), type);
+        Initializer::initialize(bias_, type);
     }
 
     void Conv2dLayer::initializeWeights(const InitializerType &type)
     {
-        Initializer::initialize(weights(), type);
+        Initializer::initialize(weights_, type);
     }
 
     bool Conv2dLayer::verify() const
@@ -130,30 +112,36 @@ namespace kl
         return true;
     }
 
-    Tensor &Conv2dLayer::forward(
-        Tensor &input,
-        TensorPool &pool)
+    Shape Conv2dLayer::output_shape(
+        const Shape &input_shape) const
     {
-        const std::size_t n = input.shape()[0];
-        const std::size_t h = input.shape()[2];
-        const std::size_t w = input.shape()[3];
-
-        const std::size_t output_height = conv2d_output_size(
-            h,
+        const std::size_t output_height = output_size(
+            input_shape[2],
             kernel_height_,
             options_.padding_h,
             options_.stride_h,
             options_.dilation_h);
 
-        const std::size_t output_width = conv2d_output_size(
-            w,
+        const std::size_t output_width = output_size(
+            input_shape[3],
             kernel_width_,
             options_.padding_w,
             options_.stride_w,
             options_.dilation_w);
 
+        return Shape{
+            input_shape[0],
+            output_channels_,
+            output_height,
+            output_width};
+    }
+
+    Tensor &Conv2dLayer::forward(
+        Tensor &input,
+        TensorPool &pool)
+    {
         Tensor &result = pool.request(
-            Shape{n, output_channels_, output_height, output_width},
+            output_shape(input.shape()),
             dtype_,
             device_,
             Layout::NCHW,
@@ -210,6 +198,19 @@ namespace kl
     const Conv2dOptions &Conv2dLayer::options() const
     {
         return options_;
+    }
+
+    std::size_t Conv2dLayer::output_size(
+        std::size_t input_size,
+        std::size_t kernel_size,
+        std::size_t padding,
+        std::size_t stride,
+        std::size_t dilation) const
+    {
+        const std::size_t effective_kernel =
+            dilation * (kernel_size - 1) + 1;
+
+        return (input_size + 2 * padding - effective_kernel) / stride + 1;
     }
 
 }

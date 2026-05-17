@@ -12,12 +12,12 @@ namespace kl
 
     void ActivationLayer::initializeBiases(const InitializerType &type)
     {
-        return;
+        (void)type;
     }
 
     void ActivationLayer::initializeWeights(const InitializerType &type)
     {
-        return;
+        (void)type;
     }
 
     bool ActivationLayer::verify() const
@@ -32,6 +32,12 @@ namespace kl
         default:
             return false;
         }
+    }
+
+    Shape ActivationLayer::output_shape(
+        const Shape &input_shape) const
+    {
+        return input_shape;
     }
 
     Tensor &ActivationLayer::forward(

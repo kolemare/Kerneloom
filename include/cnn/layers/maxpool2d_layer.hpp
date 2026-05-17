@@ -4,8 +4,11 @@
 #include <cnn/layers/layer.hpp>
 #include <cnn/options/pooling2d_options.hpp>
 
+#include <core/shape.hpp>
 #include <core/tensor.hpp>
 #include <core/tensor_pool.hpp>
+
+#include <cstddef>
 
 namespace kl
 {
@@ -20,6 +23,9 @@ namespace kl
 
         bool verify() const override;
 
+        Shape output_shape(
+            const Shape &input_shape) const override;
+
         Tensor &forward(
             Tensor &input,
             TensorPool &pool) override;
@@ -29,6 +35,13 @@ namespace kl
             TensorPool &pool) override;
 
         const Pooling2dOptions &options() const;
+
+    private:
+        std::size_t output_size(
+            std::size_t input_size,
+            std::size_t kernel_size,
+            std::size_t padding,
+            std::size_t stride) const;
 
     private:
         Pooling2dOptions options_;
