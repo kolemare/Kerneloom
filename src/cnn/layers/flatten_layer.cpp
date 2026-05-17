@@ -6,7 +6,12 @@
 
 namespace kl
 {
-    void FlattenLayer::initialize(const InitializerType &type)
+    void FlattenLayer::initializeBiases(const InitializerType &type)
+    {
+        return;
+    }
+
+    void FlattenLayer::initializeWeights(const InitializerType &type)
     {
         return;
     }

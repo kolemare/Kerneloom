@@ -29,7 +29,12 @@ namespace kl
     {
     }
 
-    void MaxPool2dLayer::initialize(const InitializerType &type)
+    void MaxPool2dLayer::initializeBiases(const InitializerType &type)
+    {
+        return;
+    }
+
+    void MaxPool2dLayer::initializeWeights(const InitializerType &type)
     {
         return;
     }

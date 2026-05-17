@@ -15,7 +15,8 @@ namespace kl
 
         virtual Tensor &forward(Tensor &input, TensorPool &pool) = 0;
         virtual Tensor &backward(Tensor &grad_output, TensorPool &pool) = 0;
-        virtual void initialize(const InitializerType &type) = 0;
+        virtual void initializeBiases(const InitializerType &type) = 0;
+        virtual void initializeWeights(const InitializerType &type) = 0;
         virtual bool verify() const = 0;
     };
 

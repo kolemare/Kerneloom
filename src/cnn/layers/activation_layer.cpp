@@ -10,7 +10,12 @@ namespace kl
     {
     }
 
-    void ActivationLayer::initialize(const InitializerType &type)
+    void ActivationLayer::initializeBiases(const InitializerType &type)
+    {
+        return;
+    }
+
+    void ActivationLayer::initializeWeights(const InitializerType &type)
     {
         return;
     }

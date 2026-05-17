@@ -27,7 +27,8 @@ namespace kl
             Device device = Device::cpu(),
             Conv2dOptions options = {});
 
-        void initialize(const InitializerType &type) override;
+        void initializeBiases(const InitializerType &type) override;
+        void initializeWeights(const InitializerType &type) override;
 
         bool verify() const override;
 

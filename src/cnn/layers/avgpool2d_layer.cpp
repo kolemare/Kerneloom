@@ -26,7 +26,12 @@ namespace kl
     {
     }
 
-    void AvgPool2dLayer::initialize(const InitializerType &type)
+    void AvgPool2dLayer::initializeBiases(const InitializerType &type)
+    {
+        return;
+    }
+
+    void AvgPool2dLayer::initializeWeights(const InitializerType &type)
     {
         return;
     }

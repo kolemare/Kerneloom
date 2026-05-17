@@ -36,10 +36,14 @@ namespace kl
     {
     }
 
-    void LinearLayer::initialize(const InitializerType &type)
+    void LinearLayer::initializeBiases(const InitializerType &type)
+    {
+        Initializer::initialize(bias(), type);
+    }
+
+    void LinearLayer::initializeWeights(const InitializerType &type)
     {
         Initializer::initialize(weights(), type);
-        Initializer::initialize(bias(), type);
     }
 
     bool LinearLayer::verify() const

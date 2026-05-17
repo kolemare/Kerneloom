@@ -20,7 +20,8 @@ namespace kl
     public:
         explicit AvgPool2dLayer(Pooling2dOptions options = {});
 
-        void initialize(const InitializerType &type) override;
+        void initializeBiases(const InitializerType &type) override;
+        void initializeWeights(const InitializerType &type) override;
 
         bool verify() const override;
 

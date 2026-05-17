@@ -24,7 +24,8 @@ namespace kl
             Device device = Device::cpu(),
             bool use_bias = true);
 
-        void initialize(const InitializerType &type) override;
+        void initializeBiases(const InitializerType &type) override;
+        void initializeWeights(const InitializerType &type) override;
 
         bool verify() const override;
 

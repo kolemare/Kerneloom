@@ -58,10 +58,14 @@ namespace kl
     {
     }
 
-    void Conv2dLayer::initialize(const InitializerType &type)
+    void Conv2dLayer::initializeBiases(const InitializerType &type)
+    {
+        Initializer::initialize(bias(), type);
+    }
+
+    void Conv2dLayer::initializeWeights(const InitializerType &type)
     {
         Initializer::initialize(weights(), type);
-        Initializer::initialize(bias(), type);
     }
 
     bool Conv2dLayer::verify() const
