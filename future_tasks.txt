@@ -1,0 +1,12 @@
+* Make TensorPool return by size => min max fit.
+* Make Ops Dispatcher for all 3 platforms
+* Make dispatcher class => ability to cache chosen operation if set
+* Linear => Optimization all 3 platforms
+* Conv2d => heavy optimizations (this shall be extended for each conv2d opt, ie. im2col + matmul, 1x1 cvonvolution, 3x3 Winogard)
+* Loss Functions
+* Optimizers
+* Image Loading (design this part of the system) buffer in RAM, buffer in DRAM => automatic buffer size calculator
+    after dummy inference and backpropagation => preloading images in ram and gpu memory for training or inference,
+    this part can be even make configurable
+* Bfloat16 gpu, Float16 gpu, Float64 all support for existing operations
+* Operations Profiling
