@@ -20,6 +20,11 @@ namespace kl
         (void)type;
     }
 
+    void ActivationLayer::prepareTraining()
+    {
+        return;
+    }
+
     bool ActivationLayer::verify() const
     {
         switch (activation_type_)

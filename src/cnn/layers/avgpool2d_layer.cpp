@@ -25,6 +25,11 @@ namespace kl
         (void)type;
     }
 
+    void AvgPool2dLayer::prepareTraining()
+    {
+        return;
+    }
+
     bool AvgPool2dLayer::verify() const
     {
         if (options_.kernel_h == 0 || options_.kernel_w == 0)

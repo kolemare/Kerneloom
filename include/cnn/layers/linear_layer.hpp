@@ -10,6 +10,7 @@
 #include <core/tensor_pool.hpp>
 
 #include <cstddef>
+#include <memory>
 
 namespace kl
 {
@@ -26,6 +27,7 @@ namespace kl
 
         void initializeBiases(const InitializerType &type) override;
         void initializeWeights(const InitializerType &type) override;
+        void prepareTraining() override;
 
         bool verify() const override;
 
@@ -43,9 +45,14 @@ namespace kl
         Tensor &weights();
         Tensor &bias();
 
+        Tensor &gradWeights();
+        Tensor &gradBias();
+
         std::size_t input_features() const;
         std::size_t output_features() const;
+
         bool use_bias() const;
+        bool hasBias() const;
 
     private:
         std::size_t input_features_;
@@ -56,7 +63,10 @@ namespace kl
         bool use_bias_;
 
         Tensor weights_;
-        Tensor bias_;
+        std::unique_ptr<Tensor> bias_;
+
+        std::unique_ptr<Tensor> grad_weights_;
+        std::unique_ptr<Tensor> grad_bias_;
 
         const Tensor *last_input_ = nullptr;
     };

@@ -22,6 +22,11 @@ namespace kl
         return true;
     }
 
+    void FlattenLayer::prepareTraining()
+    {
+        return;
+    }
+
     Shape FlattenLayer::output_shape(
         const Shape &input_shape) const
     {

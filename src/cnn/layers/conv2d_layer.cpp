@@ -30,24 +30,53 @@ namespace kl
               dtype,
               device,
               Layout::NCHW,
-              Storage::RowMajor),
-          bias_(
-              Shape{output_channels},
-              dtype,
-              device,
-              Layout::NCHW,
               Storage::RowMajor)
     {
+        if (options_.use_bias)
+        {
+            bias_ = std::make_unique<Tensor>(
+                Shape{output_channels},
+                dtype,
+                device,
+                Layout::Unknown,
+                Storage::RowMajor);
+        }
     }
 
     void Conv2dLayer::initializeBiases(const InitializerType &type)
     {
-        Initializer::initialize(bias_, type);
+        if (bias_ != nullptr)
+        {
+            Initializer::initialize(*bias_, type);
+        }
     }
 
     void Conv2dLayer::initializeWeights(const InitializerType &type)
     {
         Initializer::initialize(weights_, type);
+    }
+
+    void Conv2dLayer::prepareTraining()
+    {
+        if (grad_weights_ == nullptr)
+        {
+            grad_weights_ = std::make_unique<Tensor>(
+                weights_.shape(),
+                weights_.dtype(),
+                weights_.device(),
+                weights_.layout(),
+                weights_.storage());
+        }
+
+        if (bias_ != nullptr && grad_bias_ == nullptr)
+        {
+            grad_bias_ = std::make_unique<Tensor>(
+                bias_->shape(),
+                bias_->dtype(),
+                bias_->device(),
+                bias_->layout(),
+                bias_->storage());
+        }
     }
 
     bool Conv2dLayer::verify() const
@@ -99,14 +128,24 @@ namespace kl
 
         if (options_.use_bias)
         {
-            if (bias_.rank() != 1 ||
-                bias_.shape()[0] != output_channels_ ||
-                bias_.dtype() != dtype_ ||
-                bias_.device().type() != device_.type() ||
-                bias_.storage() != Storage::RowMajor)
+            if (bias_ == nullptr)
             {
                 return false;
             }
+
+            if (bias_->rank() != 1 ||
+                bias_->shape()[0] != output_channels_ ||
+                bias_->dtype() != dtype_ ||
+                bias_->device().type() != device_.type() ||
+                bias_->storage() != Storage::RowMajor)
+            {
+                return false;
+            }
+        }
+
+        if (!options_.use_bias && bias_ != nullptr)
+        {
+            return false;
         }
 
         return true;
@@ -149,9 +188,9 @@ namespace kl
 
         const Tensor *bias = nullptr;
 
-        if (options_.use_bias)
+        if (bias_ != nullptr)
         {
-            bias = &bias_;
+            bias = bias_.get();
         }
 
         conv2d(
@@ -192,7 +231,37 @@ namespace kl
 
     Tensor &Conv2dLayer::bias()
     {
-        return bias_;
+        if (bias_ == nullptr)
+        {
+            throw std::runtime_error("Conv2dLayer::bias requested but bias is disabled");
+        }
+
+        return *bias_;
+    }
+
+    Tensor &Conv2dLayer::gradWeights()
+    {
+        if (grad_weights_ == nullptr)
+        {
+            throw std::runtime_error("Conv2dLayer::gradWeights called before prepareTraining");
+        }
+
+        return *grad_weights_;
+    }
+
+    Tensor &Conv2dLayer::gradBias()
+    {
+        if (bias_ == nullptr)
+        {
+            throw std::runtime_error("Conv2dLayer::gradBias requested but bias is disabled");
+        }
+
+        if (grad_bias_ == nullptr)
+        {
+            throw std::runtime_error("Conv2dLayer::gradBias called before prepareTraining");
+        }
+
+        return *grad_bias_;
     }
 
     const Conv2dOptions &Conv2dLayer::options() const

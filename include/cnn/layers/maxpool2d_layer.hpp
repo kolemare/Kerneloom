@@ -20,6 +20,7 @@ namespace kl
 
         void initializeBiases(const InitializerType &type) override;
         void initializeWeights(const InitializerType &type) override;
+        void prepareTraining() override;
 
         bool verify() const override;
 

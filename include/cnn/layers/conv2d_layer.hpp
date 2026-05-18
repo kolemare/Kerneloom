@@ -11,6 +11,7 @@
 #include <core/tensor_pool.hpp>
 
 #include <cstddef>
+#include <memory>
 
 namespace kl
 {
@@ -29,6 +30,7 @@ namespace kl
 
         void initializeBiases(const InitializerType &type) override;
         void initializeWeights(const InitializerType &type) override;
+        void prepareTraining() override;
 
         bool verify() const override;
 
@@ -45,6 +47,9 @@ namespace kl
 
         Tensor &weights();
         Tensor &bias();
+
+        Tensor &gradWeights();
+        Tensor &gradBias();
 
         const Conv2dOptions &options() const;
 
@@ -67,7 +72,10 @@ namespace kl
         Conv2dOptions options_;
 
         Tensor weights_;
-        Tensor bias_;
+        std::unique_ptr<Tensor> bias_;
+
+        std::unique_ptr<Tensor> grad_weights_;
+        std::unique_ptr<Tensor> grad_bias_;
 
         const Tensor *last_input_ = nullptr;
     };

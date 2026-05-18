@@ -26,27 +26,53 @@ namespace kl
               dtype,
               device,
               Layout::Unknown,
-              Storage::RowMajor),
-          bias_(
-              Shape{output_features},
-              dtype,
-              device,
-              Layout::Unknown,
               Storage::RowMajor)
     {
+        if (use_bias_)
+        {
+            bias_ = std::make_unique<Tensor>(
+                Shape{output_features},
+                dtype,
+                device,
+                Layout::Unknown,
+                Storage::RowMajor);
+        }
     }
 
     void LinearLayer::initializeBiases(const InitializerType &type)
     {
-        if (use_bias_)
+        if (bias_ != nullptr)
         {
-            Initializer::initialize(bias_, type);
+            Initializer::initialize(*bias_, type);
         }
     }
 
     void LinearLayer::initializeWeights(const InitializerType &type)
     {
         Initializer::initialize(weights_, type);
+    }
+
+    void LinearLayer::prepareTraining()
+    {
+        if (grad_weights_ == nullptr)
+        {
+            grad_weights_ = std::make_unique<Tensor>(
+                weights_.shape(),
+                weights_.dtype(),
+                weights_.device(),
+                weights_.layout(),
+                weights_.storage());
+        }
+
+        if (bias_ != nullptr && grad_bias_ == nullptr)
+        {
+            grad_bias_ = std::make_unique<Tensor>(
+                bias_->shape(),
+                bias_->dtype(),
+                bias_->device(),
+                bias_->layout(),
+                bias_->storage());
+        }
     }
 
     bool LinearLayer::verify() const
@@ -77,14 +103,24 @@ namespace kl
 
         if (use_bias_)
         {
-            if (bias_.rank() != 1 ||
-                bias_.shape()[0] != output_features_ ||
-                bias_.dtype() != dtype_ ||
-                bias_.device().type() != device_.type() ||
-                bias_.storage() != Storage::RowMajor)
+            if (bias_ == nullptr)
             {
                 return false;
             }
+
+            if (bias_->rank() != 1 ||
+                bias_->shape()[0] != output_features_ ||
+                bias_->dtype() != dtype_ ||
+                bias_->device().type() != device_.type() ||
+                bias_->storage() != Storage::RowMajor)
+            {
+                return false;
+            }
+        }
+
+        if (!use_bias_ && bias_ != nullptr)
+        {
+            return false;
         }
 
         return true;
@@ -111,9 +147,9 @@ namespace kl
 
         const Tensor *bias = nullptr;
 
-        if (use_bias_)
+        if (bias_ != nullptr)
         {
-            bias = &bias_;
+            bias = bias_.get();
         }
 
         linear(
@@ -153,7 +189,37 @@ namespace kl
 
     Tensor &LinearLayer::bias()
     {
-        return bias_;
+        if (bias_ == nullptr)
+        {
+            throw std::runtime_error("LinearLayer::bias requested but bias is disabled");
+        }
+
+        return *bias_;
+    }
+
+    Tensor &LinearLayer::gradWeights()
+    {
+        if (grad_weights_ == nullptr)
+        {
+            throw std::runtime_error("LinearLayer::gradWeights called before prepareTraining");
+        }
+
+        return *grad_weights_;
+    }
+
+    Tensor &LinearLayer::gradBias()
+    {
+        if (bias_ == nullptr)
+        {
+            throw std::runtime_error("LinearLayer::gradBias requested but bias is disabled");
+        }
+
+        if (grad_bias_ == nullptr)
+        {
+            throw std::runtime_error("LinearLayer::gradBias called before prepareTraining");
+        }
+
+        return *grad_bias_;
     }
 
     std::size_t LinearLayer::input_features() const
@@ -171,4 +237,8 @@ namespace kl
         return use_bias_;
     }
 
+    bool LinearLayer::hasBias() const
+    {
+        return bias_ != nullptr;
+    }
 }

@@ -25,6 +25,11 @@ namespace kl
         (void)type;
     }
 
+    void MaxPool2dLayer::prepareTraining()
+    {
+        return;
+    }
+
     bool MaxPool2dLayer::verify() const
     {
         if (options_.kernel_h == 0 || options_.kernel_w == 0)

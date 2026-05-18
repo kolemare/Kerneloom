@@ -30,6 +30,8 @@ namespace kl
         virtual void initializeBiases(
             const InitializerType &type) = 0;
 
+        virtual void prepareTraining() = 0;
+
         virtual bool verify() const = 0;
     };
 
