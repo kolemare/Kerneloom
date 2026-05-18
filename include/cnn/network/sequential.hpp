@@ -70,8 +70,13 @@ namespace kl
         void initializeBiases(
             const InitializerType &type);
 
+        void prepareTraining();
+
         Tensor &forward(
             Tensor &input);
+
+        Tensor &backward(
+            Tensor &grad_output);
 
         bool verify() const;
 

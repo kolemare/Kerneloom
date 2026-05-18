@@ -56,15 +56,24 @@ int main()
         kl::DType::Float32,
         target);
 
-    cnn.addConvolutionLayer(32, 3);
+    kl::Conv2dOptions conv_options;
+    conv_options.stride_h = 1;
+    conv_options.stride_w = 1;
+    conv_options.padding_h = 1;
+    conv_options.padding_w = 1;
+    conv_options.dilation_h = 1;
+    conv_options.dilation_w = 1;
+    conv_options.use_bias = true;
+
+    cnn.addConvolutionLayer(32, 3, 3, conv_options);
     cnn.addActivationLayer(kl::ActivationType::ReLU);
     cnn.addMaxPoolingLayer(2);
 
-    cnn.addConvolutionLayer(64, 3);
+    cnn.addConvolutionLayer(64, 3, 3, conv_options);
     cnn.addActivationLayer(kl::ActivationType::ReLU);
     cnn.addMaxPoolingLayer(2);
 
-    cnn.addConvolutionLayer(64, 3);
+    cnn.addConvolutionLayer(64, 3, 3, conv_options);
     cnn.addActivationLayer(kl::ActivationType::ReLU);
     cnn.addMaxPoolingLayer(2);
 
@@ -81,8 +90,12 @@ int main()
 
     for (std::size_t run = 0; run < 2; ++run)
     {
+        cnn.reset();
+
         input.reshape_inplace(
             kl::Shape{batch_size, input_channels, input_h, input_w});
+
+        input.set_layout(kl::Layout::NCHW);
 
         const auto start = std::chrono::steady_clock::now();
 

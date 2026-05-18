@@ -116,16 +116,35 @@ namespace kl
         }
     }
 
+    void Sequential::prepareTraining()
+    {
+        for (std::unique_ptr<Layer> &layer : layers_)
+        {
+            layer->prepareTraining();
+        }
+    }
+
     Tensor &Sequential::forward(
         Tensor &input)
     {
-        pool_.reset();
-
         Tensor *current = &input;
 
         for (std::unique_ptr<Layer> &layer : layers_)
         {
             current = &layer->forward(*current, pool_);
+        }
+
+        return *current;
+    }
+
+    Tensor &Sequential::backward(
+        Tensor &grad_output)
+    {
+        Tensor *current = &grad_output;
+
+        for (std::size_t i = layers_.size(); i > 0; --i)
+        {
+            current = &layers_[i - 1]->backward(*current, pool_);
         }
 
         return *current;
