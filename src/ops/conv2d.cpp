@@ -1,13 +1,13 @@
 #include <ops/conv2d.hpp>
 
-#include <kernels/cpu/conv2d/conv2d_cpu_float32.hpp>
+#include <kernels/cpu/conv2d/conv2d_cpu_float32_dispatcher.hpp>
 
 #if defined(KL_ENABLE_CUDA)
-#include <kernels/cuda/conv2d/conv2d_cuda_float32.cuh>
+#include <kernels/cuda/conv2d/conv2d_cuda_float32_dispatcher.cuh>
 #endif
 
 #if defined(KL_ENABLE_ROCM)
-#include <kernels/rocm/conv2d/conv2d_rocm_float32.hiph>
+#include <kernels/rocm/conv2d/conv2d_rocm_float32_dispatcher.hiph>
 #endif
 
 #include <stdexcept>
@@ -155,12 +155,12 @@ namespace kl
         switch (input.device().type())
         {
         case DeviceType::CPU:
-            conv2d_cpu_float32(input, kernels, bias, result, options);
+            conv2d_cpu_float32_dispatcher(input, kernels, bias, result, options);
             return;
 
         case DeviceType::CUDA:
 #if defined(KL_ENABLE_CUDA)
-            conv2d_cuda_float32(input, kernels, bias, result, options);
+            conv2d_cuda_float32_dispatcher(input, kernels, bias, result, options);
             return;
 #else
             throw std::runtime_error("CUDA conv2d requested but CUDA backend is not enabled");
@@ -168,7 +168,7 @@ namespace kl
 
         case DeviceType::ROCM:
 #if defined(KL_ENABLE_ROCM)
-            conv2d_rocm_float32(input, kernels, bias, result, options);
+            conv2d_rocm_float32_dispatcher(input, kernels, bias, result, options);
             return;
 #else
             throw std::runtime_error("ROCm conv2d requested but ROCm backend is not enabled");

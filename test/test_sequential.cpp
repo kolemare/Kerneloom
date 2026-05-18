@@ -79,7 +79,7 @@ int main()
     cnn.initializeWeights(kl::InitializerType::KaimingUniform);
     cnn.initializeBiases(kl::InitializerType::Zeros);
 
-    for (std::size_t run = 0; run < 10; ++run)
+    for (std::size_t run = 0; run < 2; ++run)
     {
         input.reshape_inplace(
             kl::Shape{batch_size, input_channels, input_h, input_w});

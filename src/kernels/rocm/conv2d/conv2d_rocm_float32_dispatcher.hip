@@ -1,14 +1,14 @@
-#include <kernels/cpu/conv2d/conv2d_cpu_float32.hpp>
+#include <kernels/rocm/conv2d/conv2d_rocm_float32_dispatcher.hiph>
 
-#include <kernels/cpu/conv2d/conv2d_cpu_float32_general.hpp>
-#include <kernels/cpu/conv2d/conv2d_cpu_float32_padded.hpp>
-#include <kernels/cpu/conv2d/conv2d_cpu_float32_strided.hpp>
-#include <kernels/cpu/conv2d/conv2d_cpu_float32_valid.hpp>
+#include <kernels/rocm/conv2d/conv2d_rocm_float32_general.hiph>
+#include <kernels/rocm/conv2d/conv2d_rocm_float32_padded.hiph>
+#include <kernels/rocm/conv2d/conv2d_rocm_float32_strided.hiph>
+#include <kernels/rocm/conv2d/conv2d_rocm_float32_valid.hiph>
 
 namespace kl
 {
 
-    void conv2d_cpu_float32(
+    void conv2d_rocm_float32_dispatcher(
         const Tensor &input,
         const Tensor &kernels,
         const Tensor *bias,
@@ -39,23 +39,23 @@ namespace kl
 
         if (is_valid)
         {
-            conv2d_cpu_float32_valid(input, kernels, bias, result, options);
+            conv2d_rocm_float32_valid(input, kernels, bias, result, options);
             return;
         }
 
         if (is_padded)
         {
-            conv2d_cpu_float32_padded(input, kernels, bias, result, options);
+            conv2d_rocm_float32_padded(input, kernels, bias, result, options);
             return;
         }
 
         if (is_strided)
         {
-            conv2d_cpu_float32_strided(input, kernels, bias, result, options);
+            conv2d_rocm_float32_strided(input, kernels, bias, result, options);
             return;
         }
 
-        conv2d_cpu_float32_general(input, kernels, bias, result, options);
+        conv2d_rocm_float32_general(input, kernels, bias, result, options);
     }
 
 }
