@@ -5,7 +5,7 @@
 #include <core/tensor.hpp>
 
 #include <ops/activation.hpp>
-#include <ops/activation_backward.hpp>
+#include <ops/backward_activation.hpp>
 
 #include <cmath>
 #include <cstdlib>
@@ -74,7 +74,7 @@ namespace
         fill_tensor(activation_output, output_values);
         fill_tensor(grad, grad_values);
 
-        kl::activation_backward(
+        kl::backward_activation(
             activation_output,
             grad,
             kl::ActivationType::ReLU);
@@ -110,7 +110,7 @@ namespace
         fill_tensor(activation_output, output_values);
         fill_tensor(grad, grad_values);
 
-        kl::activation_backward(
+        kl::backward_activation(
             activation_output,
             grad,
             kl::ActivationType::Sigmoid);
@@ -146,7 +146,7 @@ namespace
         fill_tensor(activation_output, output_values);
         fill_tensor(grad, grad_values);
 
-        kl::activation_backward(
+        kl::backward_activation(
             activation_output,
             grad,
             kl::ActivationType::Tanh);

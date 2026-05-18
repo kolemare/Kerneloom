@@ -62,19 +62,19 @@ namespace kl
         Tensor &grad_output,
         TensorPool &pool)
     {
+        (void)pool;
+
         if (last_input_ == nullptr)
         {
             throw std::runtime_error("ActivationLayer::backward called before forward");
         }
 
-        Tensor &grad_input = pool.request(
-            grad_output.shape(),
-            grad_output.dtype(),
-            grad_output.device(),
-            grad_output.layout(),
-            grad_output.storage());
+        backward_activation(
+            *last_input_,
+            grad_output,
+            activation_type_);
 
-        return grad_input;
+        return grad_output;
     }
 
     ActivationType ActivationLayer::activation_type() const

@@ -8,6 +8,7 @@
 #include <core/tensor_pool.hpp>
 
 #include <ops/activation.hpp>
+#include <ops/backward_activation.hpp>
 
 namespace kl
 {

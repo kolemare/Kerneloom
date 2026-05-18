@@ -1,4 +1,4 @@
-#include <kernels/cpu/activation/tanh_backward_cpu_float32.hpp>
+#include <kernels/cpu/activation/backward_tanh_cpu_float32.hpp>
 
 #include <backend/cpu/cpu_parallel.hpp>
 
@@ -10,7 +10,7 @@ namespace kl
     namespace
     {
 
-        struct TanhBackwardCpuFloat32Task
+        struct BackwardTanhCpuFloat32Task
         {
             const float *activation_output;
             float *grad;
@@ -27,7 +27,7 @@ namespace kl
 
     }
 
-    void tanh_backward_cpu_float32(
+    void backward_tanh_cpu_float32(
         const Tensor &activation_output,
         Tensor &grad)
     {
@@ -37,7 +37,7 @@ namespace kl
         float *grad_data =
             static_cast<float *>(grad.data());
 
-        TanhBackwardCpuFloat32Task task{
+        BackwardTanhCpuFloat32Task task{
             activation_output_data,
             grad_data};
 

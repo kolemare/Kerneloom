@@ -1,5 +1,5 @@
-#ifndef KL_ACTIVATION_BACKWARD_HPP
-#define KL_ACTIVATION_BACKWARD_HPP
+#ifndef KL_BACKWARD_ACTIVATION_HPP
+#define KL_BACKWARD_ACTIVATION_HPP
 
 #include <core/tensor.hpp>
 
@@ -8,11 +8,11 @@
 namespace kl
 {
 
-    void activation_backward(
+    void backward_activation(
         const Tensor &activation_output,
         Tensor &grad,
         ActivationType type);
 
 }
 
-#endif // KL_ACTIVATION_BACKWARD_HPP
+#endif // KL_BACKWARD_ACTIVATION_HPP

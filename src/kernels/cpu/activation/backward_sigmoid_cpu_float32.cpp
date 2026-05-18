@@ -1,4 +1,4 @@
-#include <kernels/cpu/activation/relu_backward_cpu_float32.hpp>
+#include <kernels/cpu/activation/backward_sigmoid_cpu_float32.hpp>
 
 #include <backend/cpu/cpu_parallel.hpp>
 
@@ -10,7 +10,7 @@ namespace kl
     namespace
     {
 
-        struct ReluBackwardCpuFloat32Task
+        struct BackwardSigmoidCpuFloat32Task
         {
             const float *activation_output;
             float *grad;
@@ -19,17 +19,15 @@ namespace kl
             {
                 for (std::size_t i = begin; i < end; ++i)
                 {
-                    if (activation_output[i] <= 0.0f)
-                    {
-                        grad[i] = 0.0f;
-                    }
+                    const float y = activation_output[i];
+                    grad[i] *= y * (1.0f - y);
                 }
             }
         };
 
     }
 
-    void relu_backward_cpu_float32(
+    void backward_sigmoid_cpu_float32(
         const Tensor &activation_output,
         Tensor &grad)
     {
@@ -39,7 +37,7 @@ namespace kl
         float *grad_data =
             static_cast<float *>(grad.data());
 
-        ReluBackwardCpuFloat32Task task{
+        BackwardSigmoidCpuFloat32Task task{
             activation_output_data,
             grad_data};
 
