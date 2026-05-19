@@ -1,0 +1,15 @@
+#ifndef KL_BACKWARD_TANH_ROCM_FLOAT32_HIPH
+#define KL_BACKWARD_TANH_ROCM_FLOAT32_HIPH
+
+#include <core/tensor.hpp>
+
+namespace kl
+{
+
+    void backward_tanh_rocm_float32(
+        const Tensor &activation_output,
+        Tensor &grad);
+
+}
+
+#endif // KL_BACKWARD_TANH_ROCM_FLOAT32_HIPH

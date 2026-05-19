@@ -46,22 +46,46 @@ namespace
         return true;
     }
 
-    bool test_relu()
+    bool run_activation_backward_test(
+        kl::Device target,
+        kl::ActivationType type,
+        const float *activation_output_values,
+        const float *grad_values,
+        const float *expected_values,
+        std::size_t count)
     {
-        kl::Tensor activation_output(
-            kl::Shape{5},
+        kl::Tensor activation_output_cpu(
+            kl::Shape{count},
             kl::DType::Float32,
             kl::Device::cpu(),
             kl::Layout::Unknown,
             kl::Storage::RowMajor);
 
-        kl::Tensor grad(
-            kl::Shape{5},
+        kl::Tensor grad_cpu(
+            kl::Shape{count},
             kl::DType::Float32,
             kl::Device::cpu(),
             kl::Layout::Unknown,
             kl::Storage::RowMajor);
 
+        fill_tensor(activation_output_cpu, activation_output_values);
+        fill_tensor(grad_cpu, grad_values);
+
+        kl::Tensor activation_output = activation_output_cpu.to(target);
+        kl::Tensor grad = grad_cpu.to(target);
+
+        kl::backward_activation(
+            activation_output,
+            grad,
+            type);
+
+        kl::Tensor result_cpu = grad.to(kl::Device::cpu());
+
+        return check_tensor(result_cpu, expected_values);
+    }
+
+    bool test_relu(kl::Device target)
+    {
         const float output_values[5] = {
             0.0f, 1.0f, 0.0f, 3.0f, 5.0f};
 
@@ -71,33 +95,17 @@ namespace
         const float expected[5] = {
             0.0f, 1.0f, 0.0f, 2.0f, 3.0f};
 
-        fill_tensor(activation_output, output_values);
-        fill_tensor(grad, grad_values);
-
-        kl::backward_activation(
-            activation_output,
-            grad,
-            kl::ActivationType::ReLU);
-
-        return check_tensor(grad, expected);
+        return run_activation_backward_test(
+            target,
+            kl::ActivationType::ReLU,
+            output_values,
+            grad_values,
+            expected,
+            5);
     }
 
-    bool test_sigmoid()
+    bool test_sigmoid(kl::Device target)
     {
-        kl::Tensor activation_output(
-            kl::Shape{4},
-            kl::DType::Float32,
-            kl::Device::cpu(),
-            kl::Layout::Unknown,
-            kl::Storage::RowMajor);
-
-        kl::Tensor grad(
-            kl::Shape{4},
-            kl::DType::Float32,
-            kl::Device::cpu(),
-            kl::Layout::Unknown,
-            kl::Storage::RowMajor);
-
         const float output_values[4] = {
             0.25f, 0.5f, 0.75f, 1.0f};
 
@@ -107,33 +115,17 @@ namespace
         const float expected[4] = {
             0.75f, 1.0f, 0.75f, 0.0f};
 
-        fill_tensor(activation_output, output_values);
-        fill_tensor(grad, grad_values);
-
-        kl::backward_activation(
-            activation_output,
-            grad,
-            kl::ActivationType::Sigmoid);
-
-        return check_tensor(grad, expected);
+        return run_activation_backward_test(
+            target,
+            kl::ActivationType::Sigmoid,
+            output_values,
+            grad_values,
+            expected,
+            4);
     }
 
-    bool test_tanh()
+    bool test_tanh(kl::Device target)
     {
-        kl::Tensor activation_output(
-            kl::Shape{4},
-            kl::DType::Float32,
-            kl::Device::cpu(),
-            kl::Layout::Unknown,
-            kl::Storage::RowMajor);
-
-        kl::Tensor grad(
-            kl::Shape{4},
-            kl::DType::Float32,
-            kl::Device::cpu(),
-            kl::Layout::Unknown,
-            kl::Storage::RowMajor);
-
         const float output_values[4] = {
             0.0f, 0.5f, -0.5f, 1.0f};
 
@@ -143,36 +135,36 @@ namespace
         const float expected[4] = {
             2.0f, 1.5f, 3.0f, 0.0f};
 
-        fill_tensor(activation_output, output_values);
-        fill_tensor(grad, grad_values);
-
-        kl::backward_activation(
-            activation_output,
-            grad,
-            kl::ActivationType::Tanh);
-
-        return check_tensor(grad, expected);
+        return run_activation_backward_test(
+            target,
+            kl::ActivationType::Tanh,
+            output_values,
+            grad_values,
+            expected,
+            4);
     }
 
 }
 
 int main()
 {
+    const kl::Device target = kl::default_device();
+
     bool passed = true;
 
-    if (!test_relu())
+    if (!test_relu(target))
     {
         std::cout << "relu backward failed\n";
         passed = false;
     }
 
-    if (!test_sigmoid())
+    if (!test_sigmoid(target))
     {
         std::cout << "sigmoid backward failed\n";
         passed = false;
     }
 
-    if (!test_tanh())
+    if (!test_tanh(target))
     {
         std::cout << "tanh backward failed\n";
         passed = false;
@@ -183,7 +175,9 @@ int main()
         return EXIT_FAILURE;
     }
 
-    std::cout << "activation backward cpu test passed\n";
+    std::cout << "activation backward test passed on "
+              << kl::to_string(target.type())
+              << '\n';
 
     return EXIT_SUCCESS;
 }
