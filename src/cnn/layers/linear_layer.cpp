@@ -3,6 +3,7 @@
 #include <core/layout.hpp>
 #include <core/storage.hpp>
 
+#include <ops/backward_linear.hpp>
 #include <ops/linear.hpp>
 
 #include <stdexcept>
@@ -178,6 +179,21 @@ namespace kl
             grad_output.device(),
             grad_output.layout(),
             grad_output.storage());
+
+        Tensor *grad_bias = nullptr;
+
+        if (grad_bias_ != nullptr)
+        {
+            grad_bias = grad_bias_.get();
+        }
+
+        backward_linear(
+            *last_input_,
+            weights_,
+            grad_output,
+            grad_input,
+            *grad_weights_,
+            grad_bias);
 
         return grad_input;
     }
