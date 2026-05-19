@@ -1,3 +1,5 @@
+#include <backend/backend.hpp>
+
 #include <core/device.hpp>
 #include <core/dtype.hpp>
 #include <core/tensor.hpp>
@@ -56,43 +58,24 @@ namespace
 
 int main()
 {
-    kl::Tensor input(
+    const kl::Device target = kl::default_device();
+
+    kl::Tensor input_cpu(
         kl::Shape{2, 3},
         kl::DType::Float32,
         kl::Device::cpu(),
         kl::Layout::Unknown,
         kl::Storage::RowMajor);
 
-    kl::Tensor weights(
+    kl::Tensor weights_cpu(
         kl::Shape{4, 3},
         kl::DType::Float32,
         kl::Device::cpu(),
         kl::Layout::Unknown,
         kl::Storage::RowMajor);
 
-    kl::Tensor grad_output(
+    kl::Tensor grad_output_cpu(
         kl::Shape{2, 4},
-        kl::DType::Float32,
-        kl::Device::cpu(),
-        kl::Layout::Unknown,
-        kl::Storage::RowMajor);
-
-    kl::Tensor grad_input(
-        kl::Shape{2, 3},
-        kl::DType::Float32,
-        kl::Device::cpu(),
-        kl::Layout::Unknown,
-        kl::Storage::RowMajor);
-
-    kl::Tensor grad_weights(
-        kl::Shape{4, 3},
-        kl::DType::Float32,
-        kl::Device::cpu(),
-        kl::Layout::Unknown,
-        kl::Storage::RowMajor);
-
-    kl::Tensor grad_bias(
-        kl::Shape{4},
         kl::DType::Float32,
         kl::Device::cpu(),
         kl::Layout::Unknown,
@@ -112,9 +95,34 @@ int main()
         1.0f, 2.0f, 3.0f, 4.0f,
         5.0f, 6.0f, 7.0f, 8.0f};
 
-    fill_tensor(input, input_values);
-    fill_tensor(weights, weight_values);
-    fill_tensor(grad_output, grad_output_values);
+    fill_tensor(input_cpu, input_values);
+    fill_tensor(weights_cpu, weight_values);
+    fill_tensor(grad_output_cpu, grad_output_values);
+
+    kl::Tensor input = input_cpu.to(target);
+    kl::Tensor weights = weights_cpu.to(target);
+    kl::Tensor grad_output = grad_output_cpu.to(target);
+
+    kl::Tensor grad_input(
+        kl::Shape{2, 3},
+        kl::DType::Float32,
+        target,
+        kl::Layout::Unknown,
+        kl::Storage::RowMajor);
+
+    kl::Tensor grad_weights(
+        kl::Shape{4, 3},
+        kl::DType::Float32,
+        target,
+        kl::Layout::Unknown,
+        kl::Storage::RowMajor);
+
+    kl::Tensor grad_bias(
+        kl::Shape{4},
+        kl::DType::Float32,
+        target,
+        kl::Layout::Unknown,
+        kl::Storage::RowMajor);
 
     kl::backward_linear(
         input,
@@ -123,6 +131,10 @@ int main()
         grad_input,
         grad_weights,
         &grad_bias);
+
+    kl::Tensor grad_input_cpu = grad_input.to(kl::Device::cpu());
+    kl::Tensor grad_weights_cpu = grad_weights.to(kl::Device::cpu());
+    kl::Tensor grad_bias_cpu = grad_bias.to(kl::Device::cpu());
 
     const float expected_grad_input[6] = {
         8.0f, 9.0f, 8.0f,
@@ -139,19 +151,19 @@ int main()
 
     bool passed = true;
 
-    if (!check_tensor(grad_input, expected_grad_input))
+    if (!check_tensor(grad_input_cpu, expected_grad_input))
     {
         std::cout << "grad_input failed\n";
         passed = false;
     }
 
-    if (!check_tensor(grad_weights, expected_grad_weights))
+    if (!check_tensor(grad_weights_cpu, expected_grad_weights))
     {
         std::cout << "grad_weights failed\n";
         passed = false;
     }
 
-    if (!check_tensor(grad_bias, expected_grad_bias))
+    if (!check_tensor(grad_bias_cpu, expected_grad_bias))
     {
         std::cout << "grad_bias failed\n";
         passed = false;
@@ -162,7 +174,9 @@ int main()
         return EXIT_FAILURE;
     }
 
-    std::cout << "linear backward cpu test passed\n";
+    std::cout << "linear backward test passed on "
+              << kl::to_string(target.type())
+              << '\n';
 
     return EXIT_SUCCESS;
 }
