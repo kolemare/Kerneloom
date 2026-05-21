@@ -22,7 +22,7 @@ namespace kl
 
     void ActivationLayer::prepareTraining()
     {
-        return;
+        mode_ = LayerMode::Training;
     }
 
     bool ActivationLayer::verify() const

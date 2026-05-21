@@ -27,7 +27,7 @@ namespace kl
 
     void MaxPool2dLayer::prepareTraining()
     {
-        return;
+        mode_ = LayerMode::Training;
     }
 
     bool MaxPool2dLayer::verify() const

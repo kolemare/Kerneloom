@@ -58,6 +58,7 @@ namespace kl
 
     void Conv2dLayer::prepareTraining()
     {
+        mode_ = LayerMode::Training;
         if (grad_weights_ == nullptr)
         {
             grad_weights_ = std::make_unique<Tensor>(

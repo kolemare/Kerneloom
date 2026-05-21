@@ -27,7 +27,7 @@ namespace kl
 
     void AvgPool2dLayer::prepareTraining()
     {
-        return;
+        mode_ = LayerMode::Training;
     }
 
     bool AvgPool2dLayer::verify() const

@@ -24,7 +24,7 @@ namespace kl
 
     void FlattenLayer::prepareTraining()
     {
-        return;
+        mode_ = LayerMode::Training;
     }
 
     Shape FlattenLayer::output_shape(

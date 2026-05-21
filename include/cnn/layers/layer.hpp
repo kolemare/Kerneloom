@@ -1,12 +1,20 @@
 #ifndef KL_LAYER_HPP
 #define KL_LAYER_HPP
 
+#include <cnn/network/initializer.hpp>
+
+#include <core/shape.hpp>
 #include <core/tensor.hpp>
 #include <core/tensor_pool.hpp>
-#include <cnn/network/initializer.hpp>
 
 namespace kl
 {
+
+    enum class LayerMode
+    {
+        Inference,
+        Training
+    };
 
     class Layer
     {
@@ -33,6 +41,14 @@ namespace kl
         virtual void prepareTraining() = 0;
 
         virtual bool verify() const = 0;
+
+        LayerMode mode() const
+        {
+            return mode_;
+        }
+
+    protected:
+        LayerMode mode_ = LayerMode::Inference;
     };
 
 }
