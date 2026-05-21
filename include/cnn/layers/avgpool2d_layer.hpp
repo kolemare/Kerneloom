@@ -6,6 +6,7 @@
 
 #include <core/tensor.hpp>
 #include <core/tensor_pool.hpp>
+#include <cstddef>
 
 namespace kl
 {
@@ -44,7 +45,8 @@ namespace kl
     private:
         Pooling2dOptions options_;
 
-        const Tensor *last_input_ = nullptr;
+        Shape last_input_shape_;
+        bool has_last_input_shape_ = false;
     };
 
 }

@@ -80,7 +80,8 @@ namespace kl
 
         avgpool2d(input, result, options_);
 
-        last_input_ = &input;
+        last_input_shape_ = input.shape();
+        has_last_input_shape_ = true;
 
         return result;
     }
@@ -89,17 +90,17 @@ namespace kl
         Tensor &grad_output,
         TensorPool &pool)
     {
-        if (last_input_ == nullptr)
+        if (!has_last_input_shape_)
         {
             throw std::runtime_error("AvgPool2dLayer::backward called before forward");
         }
 
         Tensor &grad_input = pool.request(
-            last_input_->shape(),
+            last_input_shape_,
             grad_output.dtype(),
             grad_output.device(),
-            grad_output.layout(),
-            grad_output.storage());
+            Layout::NCHW,
+            Storage::RowMajor);
 
         return grad_input;
     }
