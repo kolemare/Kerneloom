@@ -21,6 +21,9 @@ namespace kl
         case DType::BFloat16:
             return 2;
 
+        case DType::Int32:
+            return 4;
+
         case DType::Int8:
             return 1;
 
@@ -48,6 +51,9 @@ namespace kl
         case DType::BFloat16:
             return "bfloat16";
 
+        case DType::Int32:
+            return "int32";
+
         case DType::Int8:
             return "int8";
 
@@ -69,7 +75,8 @@ namespace kl
 
     bool dtype_is_integer(DType dtype)
     {
-        return dtype == DType::Int8 ||
+        return dtype == DType::Int32 ||
+               dtype == DType::Int8 ||
                dtype == DType::UInt8;
     }
 

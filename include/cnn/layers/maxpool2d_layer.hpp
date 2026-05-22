@@ -9,6 +9,7 @@
 #include <core/tensor_pool.hpp>
 
 #include <cstddef>
+#include <memory>
 
 namespace kl
 {
@@ -35,9 +36,17 @@ namespace kl
             Tensor &grad_output,
             TensorPool &pool) override;
 
+        Tensor &indices();
+
+        bool hasIndices() const;
+
         const Pooling2dOptions &options() const;
 
     private:
+        void prepare_indices(
+            const Shape &shape,
+            Device device);
+
         std::size_t output_size(
             std::size_t input_size,
             std::size_t kernel_size,
@@ -47,7 +56,10 @@ namespace kl
     private:
         Pooling2dOptions options_;
 
-        const Tensor *last_input_ = nullptr;
+        Shape last_input_shape_;
+        bool has_last_input_shape_ = false;
+
+        std::unique_ptr<Tensor> indices_;
     };
 
 }

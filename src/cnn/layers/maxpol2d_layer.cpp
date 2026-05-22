@@ -4,6 +4,7 @@
 #include <core/storage.hpp>
 
 #include <ops/maxpool2d.hpp>
+#include <ops/maxpool2d_with_indices.hpp>
 
 #include <stdexcept>
 
@@ -71,16 +72,37 @@ namespace kl
         Tensor &input,
         TensorPool &pool)
     {
+        const Shape result_shape = output_shape(input.shape());
+
         Tensor &result = pool.request(
-            output_shape(input.shape()),
+            result_shape,
             input.dtype(),
             input.device(),
             Layout::NCHW,
             Storage::RowMajor);
 
-        maxpool2d(input, result, options_);
+        if (mode() == LayerMode::Training)
+        {
+            prepare_indices(
+                result_shape,
+                input.device());
 
-        last_input_ = &input;
+            maxpool2d_with_indices(
+                input,
+                result,
+                *indices_,
+                options_);
+        }
+        else
+        {
+            maxpool2d(
+                input,
+                result,
+                options_);
+        }
+
+        last_input_shape_ = input.shape();
+        has_last_input_shape_ = true;
 
         return result;
     }
@@ -89,24 +111,66 @@ namespace kl
         Tensor &grad_output,
         TensorPool &pool)
     {
-        if (last_input_ == nullptr)
+        if (!has_last_input_shape_)
         {
             throw std::runtime_error("MaxPool2dLayer::backward called before forward");
         }
 
+        if (mode() != LayerMode::Training)
+        {
+            throw std::runtime_error("MaxPool2dLayer::backward called while layer is not in training mode");
+        }
+
+        if (indices_ == nullptr)
+        {
+            throw std::runtime_error("MaxPool2dLayer::backward called without saved indices");
+        }
+
         Tensor &grad_input = pool.request(
-            last_input_->shape(),
+            last_input_shape_,
             grad_output.dtype(),
             grad_output.device(),
-            grad_output.layout(),
-            grad_output.storage());
+            Layout::NCHW,
+            Storage::RowMajor);
 
         return grad_input;
+    }
+
+    Tensor &MaxPool2dLayer::indices()
+    {
+        if (indices_ == nullptr)
+        {
+            throw std::runtime_error("MaxPool2dLayer::indices called before training forward");
+        }
+
+        return *indices_;
+    }
+
+    bool MaxPool2dLayer::hasIndices() const
+    {
+        return indices_ != nullptr;
     }
 
     const Pooling2dOptions &MaxPool2dLayer::options() const
     {
         return options_;
+    }
+
+    void MaxPool2dLayer::prepare_indices(
+        const Shape &shape,
+        Device device)
+    {
+        if (indices_ != nullptr && indices_->shape() == shape)
+        {
+            return;
+        }
+
+        indices_ = std::make_unique<Tensor>(
+            shape,
+            DType::Int32,
+            device,
+            Layout::NCHW,
+            Storage::RowMajor);
     }
 
     std::size_t MaxPool2dLayer::output_size(

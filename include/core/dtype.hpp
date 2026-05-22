@@ -2,7 +2,6 @@
 #define KL_DTYPE_HPP
 
 #include <cstddef>
-#include <cstdint>
 #include <string_view>
 
 namespace kl
@@ -15,6 +14,7 @@ namespace kl
         Float16,
         BFloat16,
 
+        Int32,
         Int8,
         UInt8
     };
