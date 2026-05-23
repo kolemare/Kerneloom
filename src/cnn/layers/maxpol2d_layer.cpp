@@ -3,6 +3,7 @@
 #include <core/layout.hpp>
 #include <core/storage.hpp>
 
+#include <ops/backward_maxpool2d.hpp>
 #include <ops/maxpool2d.hpp>
 #include <ops/maxpool2d_with_indices.hpp>
 
@@ -132,6 +133,11 @@ namespace kl
             grad_output.device(),
             Layout::NCHW,
             Storage::RowMajor);
+
+        backward_maxpool2d(
+            *indices_,
+            grad_output,
+            grad_input);
 
         return grad_input;
     }
