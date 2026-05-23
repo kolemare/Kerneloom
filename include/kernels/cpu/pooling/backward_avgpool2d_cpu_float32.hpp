@@ -1,0 +1,18 @@
+#ifndef KL_BACKWARD_AVGPOOL2D_CPU_FLOAT32_HPP
+#define KL_BACKWARD_AVGPOOL2D_CPU_FLOAT32_HPP
+
+#include <cnn/options/pooling2d_options.hpp>
+
+#include <core/tensor.hpp>
+
+namespace kl
+{
+
+    void backward_avgpool2d_cpu_float32(
+        const Tensor &grad_output,
+        Tensor &grad_input,
+        const Pooling2dOptions &options);
+
+}
+
+#endif // KL_BACKWARD_AVGPOOL2D_CPU_FLOAT32_HPP

@@ -4,6 +4,7 @@
 #include <core/storage.hpp>
 
 #include <ops/avgpool2d.hpp>
+#include <ops/backward_avgpool2d.hpp>
 
 #include <stdexcept>
 
@@ -78,7 +79,10 @@ namespace kl
             Layout::NCHW,
             Storage::RowMajor);
 
-        avgpool2d(input, result, options_);
+        avgpool2d(
+            input,
+            result,
+            options_);
 
         last_input_shape_ = input.shape();
         has_last_input_shape_ = true;
@@ -95,12 +99,22 @@ namespace kl
             throw std::runtime_error("AvgPool2dLayer::backward called before forward");
         }
 
+        if (mode() != LayerMode::Training)
+        {
+            throw std::runtime_error("AvgPool2dLayer::backward called while layer is not in training mode");
+        }
+
         Tensor &grad_input = pool.request(
             last_input_shape_,
             grad_output.dtype(),
             grad_output.device(),
             Layout::NCHW,
             Storage::RowMajor);
+
+        backward_avgpool2d(
+            grad_output,
+            grad_input,
+            options_);
 
         return grad_input;
     }
