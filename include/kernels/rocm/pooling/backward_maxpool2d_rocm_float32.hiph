@@ -1,0 +1,16 @@
+#ifndef KL_BACKWARD_MAXPOOL2D_ROCM_FLOAT32_HIPH
+#define KL_BACKWARD_MAXPOOL2D_ROCM_FLOAT32_HIPH
+
+#include <core/tensor.hpp>
+
+namespace kl
+{
+
+    void backward_maxpool2d_rocm_float32(
+        const Tensor &indices,
+        const Tensor &grad_output,
+        Tensor &grad_input);
+
+}
+
+#endif // KL_BACKWARD_MAXPOOL2D_ROCM_FLOAT32_HIPH
