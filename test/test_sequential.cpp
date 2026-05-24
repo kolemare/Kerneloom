@@ -2,6 +2,8 @@
 
 #include <cnn/network/initializer.hpp>
 #include <cnn/network/sequential.hpp>
+#include <cnn/optimizers/parameter.hpp>
+#include <cnn/optimizers/sgd_optimizer.hpp>
 #include <cnn/options/conv2d_options.hpp>
 
 #include <core/device.hpp>
@@ -33,10 +35,10 @@ int main()
 {
     const kl::Device target = kl::default_device();
 
-    const std::size_t batch_size = 64;
+    const std::size_t batch_size = 256;
     const std::size_t input_channels = 3;
-    const std::size_t input_h = 1 << 9;
-    const std::size_t input_w = 1 << 9;
+    const std::size_t input_h = 1 << 8;
+    const std::size_t input_w = 1 << 8;
 
     kl::Tensor input_cpu(
         kl::Shape{batch_size, input_channels, input_h, input_w},
@@ -92,10 +94,16 @@ int main()
         return EXIT_FAILURE;
     }
 
-    std::vector<kl::Parameter> parameters;
     cnn.initializeWeights(kl::InitializerType::KaimingUniform);
     cnn.initializeBiases(kl::InitializerType::Zeros);
     cnn.prepareTraining();
+
+    std::vector<kl::Parameter> parameters;
+    cnn.collectParameters(parameters);
+
+    kl::SGDOptimizer optimizer(0.001f);
+
+    std::cout << "parameters=" << parameters.size() << '\n';
 
     for (std::size_t run = 0; run < 10; ++run)
     {
@@ -123,6 +131,8 @@ int main()
 
         kl::Tensor &grad_input = cnn.backward(grad_output);
 
+        optimizer.step(parameters);
+
         const auto end = std::chrono::steady_clock::now();
 
         const auto duration_ms =
@@ -139,10 +149,6 @@ int main()
                   << grad_input.shape()[3]
                   << " | tensors=" << cnn.pooled_tensor_count()
                   << '\n';
-
-        cnn.collectParameters(parameters);
-        std::cout << "parameters=" << parameters.size() << '\n';
-        parameters.clear();
     }
 
     return EXIT_SUCCESS;
