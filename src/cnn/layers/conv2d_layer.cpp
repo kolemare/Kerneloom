@@ -3,6 +3,7 @@
 #include <core/layout.hpp>
 #include <core/storage.hpp>
 
+#include <ops/backward_conv2d.hpp>
 #include <ops/conv2d.hpp>
 
 #include <stdexcept>
@@ -59,6 +60,7 @@ namespace kl
     void Conv2dLayer::prepareTraining()
     {
         mode_ = LayerMode::Training;
+
         if (grad_weights_ == nullptr)
         {
             grad_weights_ = std::make_unique<Tensor>(
@@ -215,12 +217,43 @@ namespace kl
             throw std::runtime_error("Conv2dLayer::backward called before forward");
         }
 
+        if (mode_ != LayerMode::Training)
+        {
+            throw std::runtime_error("Conv2dLayer::backward called while layer is not in training mode");
+        }
+
+        if (grad_weights_ == nullptr)
+        {
+            throw std::runtime_error("Conv2dLayer::backward called before prepareTraining");
+        }
+
+        if (bias_ != nullptr && grad_bias_ == nullptr)
+        {
+            throw std::runtime_error("Conv2dLayer::backward called before prepareTraining");
+        }
+
         Tensor &grad_input = pool.request(
             last_input_->shape(),
             grad_output.dtype(),
             grad_output.device(),
-            grad_output.layout(),
-            grad_output.storage());
+            Layout::NCHW,
+            Storage::RowMajor);
+
+        Tensor *grad_bias = nullptr;
+
+        if (grad_bias_ != nullptr)
+        {
+            grad_bias = grad_bias_.get();
+        }
+
+        backward_conv2d(
+            *last_input_,
+            weights_,
+            grad_output,
+            grad_input,
+            *grad_weights_,
+            grad_bias,
+            options_);
 
         return grad_input;
     }
