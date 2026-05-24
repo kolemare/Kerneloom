@@ -2,10 +2,13 @@
 #define KL_LAYER_HPP
 
 #include <cnn/network/initializer.hpp>
+#include <cnn/optimizers/parameter.hpp>
 
 #include <core/shape.hpp>
 #include <core/tensor.hpp>
 #include <core/tensor_pool.hpp>
+
+#include <vector>
 
 namespace kl
 {
@@ -41,6 +44,12 @@ namespace kl
         virtual void prepareTraining() = 0;
 
         virtual bool verify() const = 0;
+
+        virtual void collectParameters(
+            std::vector<Parameter> &parameters)
+        {
+            (void)parameters;
+        }
 
         LayerMode mode() const
         {

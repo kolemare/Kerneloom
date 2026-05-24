@@ -51,6 +51,9 @@ namespace kl
         Tensor &gradWeights();
         Tensor &gradBias();
 
+        void collectParameters(
+            std::vector<Parameter> &parameters) override;
+
         const Conv2dOptions &options() const;
 
     private:

@@ -92,6 +92,7 @@ int main()
         return EXIT_FAILURE;
     }
 
+    std::vector<kl::Parameter> parameters;
     cnn.initializeWeights(kl::InitializerType::KaimingUniform);
     cnn.initializeBiases(kl::InitializerType::Zeros);
     cnn.prepareTraining();
@@ -138,6 +139,10 @@ int main()
                   << grad_input.shape()[3]
                   << " | tensors=" << cnn.pooled_tensor_count()
                   << '\n';
+
+        cnn.collectParameters(parameters);
+        std::cout << "parameters=" << parameters.size() << '\n';
+        parameters.clear();
     }
 
     return EXIT_SUCCESS;

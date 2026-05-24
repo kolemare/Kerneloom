@@ -54,6 +54,9 @@ namespace kl
         bool use_bias() const;
         bool hasBias() const;
 
+        void collectParameters(
+            std::vector<Parameter> &parameters) override;
+
     private:
         std::size_t input_features_;
         std::size_t output_features_;

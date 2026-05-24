@@ -3,6 +3,7 @@
 
 #include <cnn/layers/layer.hpp>
 #include <cnn/network/initializer.hpp>
+#include <cnn/optimizers/parameter.hpp>
 #include <cnn/options/conv2d_options.hpp>
 #include <cnn/options/pooling2d_options.hpp>
 
@@ -71,6 +72,9 @@ namespace kl
             const InitializerType &type);
 
         void prepareTraining();
+
+        void collectParameters(
+            std::vector<Parameter> &parameters);
 
         Tensor &forward(
             Tensor &input);

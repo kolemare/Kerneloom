@@ -298,6 +298,31 @@ namespace kl
         return *grad_bias_;
     }
 
+    void Conv2dLayer::collectParameters(
+        std::vector<Parameter> &parameters)
+    {
+        if (grad_weights_ == nullptr)
+        {
+            throw std::runtime_error("Conv2dLayer::collectParameters called before prepareTraining");
+        }
+
+        parameters.push_back(Parameter{
+            &weights_,
+            grad_weights_.get()});
+
+        if (bias_ != nullptr)
+        {
+            if (grad_bias_ == nullptr)
+            {
+                throw std::runtime_error("Conv2dLayer::collectParameters called before prepareTraining");
+            }
+
+            parameters.push_back(Parameter{
+                bias_.get(),
+                grad_bias_.get()});
+        }
+    }
+
     const Conv2dOptions &Conv2dLayer::options() const
     {
         return options_;

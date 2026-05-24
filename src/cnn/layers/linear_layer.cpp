@@ -258,4 +258,29 @@ namespace kl
     {
         return bias_ != nullptr;
     }
+
+    void LinearLayer::collectParameters(
+        std::vector<Parameter> &parameters)
+    {
+        if (grad_weights_ == nullptr)
+        {
+            throw std::runtime_error("LinearLayer::collectParameters called before prepareTraining");
+        }
+
+        parameters.push_back(Parameter{
+            &weights_,
+            grad_weights_.get()});
+
+        if (bias_ != nullptr)
+        {
+            if (grad_bias_ == nullptr)
+            {
+                throw std::runtime_error("LinearLayer::collectParameters called before prepareTraining");
+            }
+
+            parameters.push_back(Parameter{
+                bias_.get(),
+                grad_bias_.get()});
+        }
+    }
 }

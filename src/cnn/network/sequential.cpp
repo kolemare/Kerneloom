@@ -173,6 +173,15 @@ namespace kl
         return current_shape_;
     }
 
+    void Sequential::collectParameters(
+        std::vector<Parameter> &parameters)
+    {
+        for (std::unique_ptr<Layer> &layer : layers_)
+        {
+            layer->collectParameters(parameters);
+        }
+    }
+
     std::size_t Sequential::layer_count() const
     {
         return layers_.size();
