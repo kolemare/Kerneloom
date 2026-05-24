@@ -2,6 +2,7 @@
 
 #include <cnn/network/initializer.hpp>
 #include <cnn/network/sequential.hpp>
+#include <cnn/options/conv2d_options.hpp>
 
 #include <core/device.hpp>
 #include <core/dtype.hpp>
@@ -32,10 +33,10 @@ int main()
 {
     const kl::Device target = kl::default_device();
 
-    const std::size_t batch_size = 8;
+    const std::size_t batch_size = 64;
     const std::size_t input_channels = 3;
-    const std::size_t input_h = 1 << 11;
-    const std::size_t input_w = 1 << 11;
+    const std::size_t input_h = 1 << 9;
+    const std::size_t input_w = 1 << 9;
 
     kl::Tensor input_cpu(
         kl::Shape{batch_size, input_channels, input_h, input_w},
@@ -85,10 +86,17 @@ int main()
     cnn.addFullyConnectedLayer(10);
     cnn.addActivationLayer(kl::ActivationType::ReLU);
 
+    if (!cnn.verify())
+    {
+        std::cerr << "Sequential verification failed\n";
+        return EXIT_FAILURE;
+    }
+
     cnn.initializeWeights(kl::InitializerType::KaimingUniform);
     cnn.initializeBiases(kl::InitializerType::Zeros);
+    cnn.prepareTraining();
 
-    for (std::size_t run = 0; run < 2; ++run)
+    for (std::size_t run = 0; run < 10; ++run)
     {
         cnn.reset();
 
@@ -101,6 +109,19 @@ int main()
 
         kl::Tensor &output = cnn.forward(input);
 
+        kl::Tensor grad_output_cpu(
+            output.shape(),
+            output.dtype(),
+            kl::Device::cpu(),
+            output.layout(),
+            output.storage());
+
+        fill_tensor(grad_output_cpu, 1.0f);
+
+        kl::Tensor grad_output = grad_output_cpu.to(target);
+
+        kl::Tensor &grad_input = cnn.backward(grad_output);
+
         const auto end = std::chrono::steady_clock::now();
 
         const auto duration_ms =
@@ -110,6 +131,11 @@ int main()
                   << " | " << duration_ms << " ms"
                   << " | output_shape="
                   << output.shape()[0] << "x" << output.shape()[1]
+                  << " | grad_input_shape="
+                  << grad_input.shape()[0] << "x"
+                  << grad_input.shape()[1] << "x"
+                  << grad_input.shape()[2] << "x"
+                  << grad_input.shape()[3]
                   << " | tensors=" << cnn.pooled_tensor_count()
                   << '\n';
     }

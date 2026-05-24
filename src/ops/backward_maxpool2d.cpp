@@ -76,13 +76,6 @@ namespace kl
             {
                 throw std::runtime_error("backward_maxpool2d currently supports only RowMajor tensors");
             }
-
-            if (indices.layout() != Layout::NCHW ||
-                grad_output.layout() != Layout::NCHW ||
-                grad_input.layout() != Layout::NCHW)
-            {
-                throw std::runtime_error("backward_maxpool2d currently supports only NCHW layout");
-            }
         }
 
     }
