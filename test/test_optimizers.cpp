@@ -1,5 +1,7 @@
 #include <backend/backend.hpp>
 
+#include <cnn/optimizers/adam_optimizer.hpp>
+#include <cnn/optimizers/optimizer.hpp>
 #include <cnn/optimizers/parameter.hpp>
 #include <cnn/optimizers/sgd_optimizer.hpp>
 
@@ -7,11 +9,10 @@
 #include <core/dtype.hpp>
 #include <core/tensor.hpp>
 
-#include <ops/adam_update.hpp>
-
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
+#include <memory>
 #include <vector>
 
 namespace
@@ -26,18 +27,6 @@ namespace
         for (std::size_t i = 0; i < tensor.numel(); ++i)
         {
             data[i] = values[i];
-        }
-    }
-
-    void fill_tensor(
-        kl::Tensor &tensor,
-        float value)
-    {
-        float *data = static_cast<float *>(tensor.data());
-
-        for (std::size_t i = 0; i < tensor.numel(); ++i)
-        {
-            data[i] = value;
         }
     }
 
@@ -70,7 +59,8 @@ namespace
         return true;
     }
 
-    bool test_sgd(kl::Device target)
+    bool test_sgd(
+        kl::Device target)
     {
         kl::Tensor value_cpu(
             kl::Shape{4},
@@ -103,9 +93,11 @@ namespace
             &value,
             &grad});
 
-        kl::SGDOptimizer optimizer(0.5f);
+        std::unique_ptr<kl::Optimizer> optimizer =
+            std::make_unique<kl::SGDOptimizer>(0.5f);
 
-        optimizer.step(parameters);
+        optimizer->prepare(parameters);
+        optimizer->step(parameters);
 
         kl::Tensor result_cpu = value.to(kl::Device::cpu());
 
@@ -118,7 +110,7 @@ namespace
             return false;
         }
 
-        optimizer.step(parameters);
+        optimizer->step(parameters);
 
         result_cpu = value.to(kl::Device::cpu());
 
@@ -134,7 +126,8 @@ namespace
         return true;
     }
 
-    bool test_adam(kl::Device target)
+    bool test_adam(
+        kl::Device target)
     {
         kl::Tensor value_cpu(
             kl::Shape{4},
@@ -150,20 +143,6 @@ namespace
             kl::Layout::Unknown,
             kl::Storage::RowMajor);
 
-        kl::Tensor first_moment_cpu(
-            kl::Shape{4},
-            kl::DType::Float32,
-            kl::Device::cpu(),
-            kl::Layout::Unknown,
-            kl::Storage::RowMajor);
-
-        kl::Tensor second_moment_cpu(
-            kl::Shape{4},
-            kl::DType::Float32,
-            kl::Device::cpu(),
-            kl::Layout::Unknown,
-            kl::Storage::RowMajor);
-
         const float value_values[4] = {
             1.0f, 2.0f, 3.0f, 4.0f};
 
@@ -172,30 +151,20 @@ namespace
 
         fill_tensor(value_cpu, value_values);
         fill_tensor(grad_cpu, grad_values);
-        fill_tensor(first_moment_cpu, 0.0f);
-        fill_tensor(second_moment_cpu, 0.0f);
 
         kl::Tensor value = value_cpu.to(target);
         kl::Tensor grad = grad_cpu.to(target);
-        kl::Tensor first_moment = first_moment_cpu.to(target);
-        kl::Tensor second_moment = second_moment_cpu.to(target);
 
-        const float learning_rate = 0.001f;
-        const float beta1 = 0.9f;
-        const float beta2 = 0.999f;
-        const float epsilon = 1.0e-8f;
+        std::vector<kl::Parameter> parameters;
+        parameters.push_back(kl::Parameter{
+            &value,
+            &grad});
 
-        kl::adam_update(
-            value,
-            grad,
-            first_moment,
-            second_moment,
-            learning_rate,
-            beta1,
-            beta2,
-            epsilon,
-            beta1,
-            beta2);
+        std::unique_ptr<kl::Optimizer> optimizer =
+            std::make_unique<kl::AdamOptimizer>(0.001f);
+
+        optimizer->prepare(parameters);
+        optimizer->step(parameters);
 
         kl::Tensor result_cpu = value.to(kl::Device::cpu());
 
@@ -208,17 +177,7 @@ namespace
             return false;
         }
 
-        kl::adam_update(
-            value,
-            grad,
-            first_moment,
-            second_moment,
-            learning_rate,
-            beta1,
-            beta2,
-            epsilon,
-            beta1 * beta1,
-            beta2 * beta2);
+        optimizer->step(parameters);
 
         result_cpu = value.to(kl::Device::cpu());
 
