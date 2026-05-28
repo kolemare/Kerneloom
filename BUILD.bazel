@@ -1,0 +1,122 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
+load("@rules_cuda//cuda:defs.bzl", "cuda_library")
+load("//bazel:hip.bzl", "hip_static_library")
+
+package(default_visibility = ["//visibility:public"])
+
+COMMON_CPP_SRCS = glob([
+    "src/core/*.cpp",
+    "src/backend/*.cpp",
+    "src/backend/cpu/*.cpp",
+    "src/cnn/**/*.cpp",
+    "src/ops/*.cpp",
+])
+
+CPU_KERNEL_SRCS = glob([
+    "src/kernels/cpu/**/*.cpp",
+])
+
+CUDA_SRCS = glob([
+    "src/backend/cuda/*.cu",
+    "src/kernels/cuda/**/*.cu",
+])
+
+ROCM_SRCS = glob([
+    "src/backend/rocm/*.hip",
+    "src/kernels/rocm/**/*.hip",
+])
+
+COMMON_HDRS = glob([
+    "include/**/*.hpp",
+])
+
+CUDA_HDRS = glob([
+    "include/**/*.cuh",
+])
+
+ROCM_HDRS = glob([
+    "include/**/*.hiph",
+])
+
+cc_library(
+    name = "kerneloom_cpu_lib",
+    srcs = COMMON_CPP_SRCS + CPU_KERNEL_SRCS,
+    hdrs = COMMON_HDRS,
+    includes = ["include"],
+)
+
+cuda_library(
+    name = "kerneloom_cuda_objects",
+    srcs = CUDA_SRCS,
+    hdrs = COMMON_HDRS + CUDA_HDRS,
+    includes = ["include"],
+)
+
+cc_library(
+    name = "kerneloom_cuda_lib",
+    srcs = COMMON_CPP_SRCS + CPU_KERNEL_SRCS,
+    hdrs = COMMON_HDRS + CUDA_HDRS,
+    includes = ["include"],
+    defines = ["KL_ENABLE_CUDA"],
+    deps = [
+        ":kerneloom_cuda_objects",
+    ],
+)
+
+hip_static_library(
+    name = "kerneloom_rocm_objects",
+    srcs = ROCM_SRCS,
+    hdrs = COMMON_HDRS + ROCM_HDRS,
+)
+
+cc_library(
+    name = "kerneloom_rocm_lib",
+    srcs = COMMON_CPP_SRCS + CPU_KERNEL_SRCS,
+    hdrs = COMMON_HDRS + ROCM_HDRS,
+    includes = ["include"],
+    defines = ["KL_ENABLE_ROCM"],
+    deps = [
+        ":kerneloom_rocm_objects",
+    ],
+    linkopts = [
+        "-L/opt/rocm/lib",
+        "-lamdhip64",
+        "-Wl,-rpath,/opt/rocm/lib",
+    ],
+)
+
+cc_binary(
+    name = "test_optimizers_cpu",
+    srcs = ["test/test_optimizers.cpp"],
+    deps = [":kerneloom_cpu_lib"],
+)
+
+cc_binary(
+    name = "test_optimizers_cuda",
+    srcs = ["test/test_optimizers.cpp"],
+    deps = [":kerneloom_cuda_lib"],
+)
+
+cc_binary(
+    name = "test_optimizers_rocm",
+    srcs = ["test/test_optimizers.cpp"],
+    deps = [":kerneloom_rocm_lib"],
+)
+
+cc_binary(
+    name = "kerneloom_cpu",
+    srcs = ["test/test_optimizers.cpp"],
+    deps = [":kerneloom_cpu_lib"],
+)
+
+cc_binary(
+    name = "kerneloom_cuda",
+    srcs = ["test/test_optimizers.cpp"],
+    deps = [":kerneloom_cuda_lib"],
+)
+
+cc_binary(
+    name = "kerneloom_rocm",
+    srcs = ["test/test_optimizers.cpp"],
+    deps = [":kerneloom_rocm_lib"],
+)

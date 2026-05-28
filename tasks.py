@@ -11,6 +11,7 @@ BINARY = BUILD_DIR / "kerneloom"
 def clean(ctx):
     if BUILD_DIR.exists():
         shutil.rmtree(BUILD_DIR)
+    ctx.run("bazel clean", pty=True)
 
 
 @task

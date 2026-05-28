@@ -1,2 +1,9 @@
 #Ignore the build directory
 build
+
+#Ignore bazel things
+bazel-bin
+bazel-Kerneloom
+bazel-out
+bazel-testlogs
+MODULE.bazel.lock
