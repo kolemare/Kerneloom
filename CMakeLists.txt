@@ -46,6 +46,6 @@ add_library(kerneloom_lib ${KL_SOURCES})
 
 target_include_directories(kerneloom_lib PUBLIC include)
 
-add_executable(kerneloom test/test_sequential.cpp)
+add_executable(kerneloom test/test_optimizers.cpp)
 
 target_link_libraries(kerneloom PRIVATE kerneloom_lib)
