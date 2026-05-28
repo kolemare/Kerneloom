@@ -1,0 +1,23 @@
+#ifndef KL_ADAM_UPDATE_ROCM_FLOAT32_HIPH
+#define KL_ADAM_UPDATE_ROCM_FLOAT32_HIPH
+
+#include <core/tensor.hpp>
+
+namespace kl
+{
+
+    void adam_update_rocm_float32(
+        Tensor &value,
+        const Tensor &grad,
+        Tensor &first_moment,
+        Tensor &second_moment,
+        float learning_rate,
+        float beta1,
+        float beta2,
+        float epsilon,
+        float beta1_power,
+        float beta2_power);
+
+}
+
+#endif // KL_ADAM_UPDATE_ROCM_FLOAT32_HIPH
