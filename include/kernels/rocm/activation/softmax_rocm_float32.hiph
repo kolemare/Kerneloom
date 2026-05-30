@@ -1,0 +1,14 @@
+#ifndef KL_SOFTMAX_ROCM_FLOAT32_HIPH
+#define KL_SOFTMAX_ROCM_FLOAT32_HIPH
+
+#include <core/tensor.hpp>
+
+namespace kl
+{
+
+    void softmax_rocm_float32(
+        Tensor &tensor);
+
+}
+
+#endif // KL_SOFTMAX_ROCM_FLOAT32_HIPH
