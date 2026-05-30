@@ -2,6 +2,14 @@
 
 #include <kernels/cpu/losses/backward_binary_cross_entropy_cpu_float32.hpp>
 
+#if defined(KL_ENABLE_CUDA)
+#include <kernels/cuda/losses/backward_binary_cross_entropy_cuda_float32.cuh>
+#endif
+
+#if defined(KL_ENABLE_ROCM)
+#include <kernels/rocm/losses/backward_binary_cross_entropy_rocm_float32.hiph>
+#endif
+
 #include <stdexcept>
 
 namespace kl
@@ -41,6 +49,12 @@ namespace kl
             {
                 throw std::runtime_error(
                     "backward_binary_cross_entropy expects tensors with the same shape");
+            }
+
+            if (prediction.numel() == 0)
+            {
+                throw std::runtime_error(
+                    "backward_binary_cross_entropy expects non-empty tensors");
             }
 
             if (prediction.storage() != Storage::RowMajor ||
@@ -88,12 +102,30 @@ namespace kl
             return;
 
         case DeviceType::CUDA:
+#if defined(KL_ENABLE_CUDA)
+            backward_binary_cross_entropy_cuda_float32(
+                prediction,
+                target,
+                grad_prediction,
+                reduction);
+            return;
+#else
             throw std::runtime_error(
-                "CUDA backward_binary_cross_entropy is not implemented yet");
+                "CUDA backward_binary_cross_entropy requested but CUDA backend is not enabled");
+#endif
 
         case DeviceType::ROCM:
+#if defined(KL_ENABLE_ROCM)
+            backward_binary_cross_entropy_rocm_float32(
+                prediction,
+                target,
+                grad_prediction,
+                reduction);
+            return;
+#else
             throw std::runtime_error(
-                "ROCm backward_binary_cross_entropy is not implemented yet");
+                "ROCm backward_binary_cross_entropy requested but ROCm backend is not enabled");
+#endif
 
         default:
             throw std::runtime_error(

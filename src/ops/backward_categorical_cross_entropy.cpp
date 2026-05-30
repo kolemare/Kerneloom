@@ -2,6 +2,14 @@
 
 #include <kernels/cpu/losses/backward_categorical_cross_entropy_cpu_float32.hpp>
 
+#if defined(KL_ENABLE_CUDA)
+#include <kernels/cuda/losses/backward_categorical_cross_entropy_cuda_float32.cuh>
+#endif
+
+#if defined(KL_ENABLE_ROCM)
+#include <kernels/rocm/losses/backward_categorical_cross_entropy_rocm_float32.hiph>
+#endif
+
 #include <stdexcept>
 
 namespace kl
@@ -45,6 +53,13 @@ namespace kl
             {
                 throw std::runtime_error(
                     "backward_categorical_cross_entropy expects prediction shape N x C");
+            }
+
+            if (prediction.shape()[0] == 0 ||
+                prediction.shape()[1] == 0)
+            {
+                throw std::runtime_error(
+                    "backward_categorical_cross_entropy expects non-empty prediction");
             }
 
             if (target.rank() != 1)
@@ -110,12 +125,30 @@ namespace kl
             return;
 
         case DeviceType::CUDA:
+#if defined(KL_ENABLE_CUDA)
+            backward_categorical_cross_entropy_cuda_float32(
+                prediction,
+                target,
+                grad_prediction,
+                reduction);
+            return;
+#else
             throw std::runtime_error(
-                "CUDA backward_categorical_cross_entropy is not implemented yet");
+                "CUDA backward_categorical_cross_entropy requested but CUDA backend is not enabled");
+#endif
 
         case DeviceType::ROCM:
+#if defined(KL_ENABLE_ROCM)
+            backward_categorical_cross_entropy_rocm_float32(
+                prediction,
+                target,
+                grad_prediction,
+                reduction);
+            return;
+#else
             throw std::runtime_error(
-                "ROCm backward_categorical_cross_entropy is not implemented yet");
+                "ROCm backward_categorical_cross_entropy requested but ROCm backend is not enabled");
+#endif
 
         default:
             throw std::runtime_error(
