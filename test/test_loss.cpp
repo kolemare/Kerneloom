@@ -1,4 +1,5 @@
 #include <cnn/losses/binary_cross_entropy_loss.hpp>
+#include <cnn/losses/categorical_cross_entropy_loss.hpp>
 #include <cnn/losses/loss.hpp>
 #include <cnn/losses/mse_loss.hpp>
 #include <cnn/losses/reduction.hpp>
@@ -9,6 +10,7 @@
 #include <core/tensor_pool.hpp>
 
 #include <cmath>
+#include <cstdint>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
@@ -22,6 +24,19 @@ namespace
     {
         float *data =
             static_cast<float *>(tensor.data());
+
+        for (std::size_t i = 0; i < tensor.numel(); ++i)
+        {
+            data[i] = values[i];
+        }
+    }
+
+    void fill_tensor(
+        kl::Tensor &tensor,
+        const std::int32_t *values)
+    {
+        std::int32_t *data =
+            static_cast<std::int32_t *>(tensor.data());
 
         for (std::size_t i = 0; i < tensor.numel(); ++i)
         {
@@ -188,12 +203,101 @@ namespace
                    0.5753641f);
     }
 
+    bool test_categorical_cross_entropy(
+        kl::Reduction reduction,
+        const float *expected_grad,
+        float expected_loss)
+    {
+        kl::Tensor prediction(
+            kl::Shape{2, 3},
+            kl::DType::Float32,
+            kl::Device::cpu(),
+            kl::Layout::Unknown,
+            kl::Storage::RowMajor);
+
+        kl::Tensor target(
+            kl::Shape{2},
+            kl::DType::Int32,
+            kl::Device::cpu(),
+            kl::Layout::Unknown,
+            kl::Storage::RowMajor);
+
+        const float prediction_values[6] = {
+            0.1f, 0.7f, 0.2f,
+            0.6f, 0.3f, 0.1f};
+
+        const std::int32_t target_values[2] = {
+            1, 0};
+
+        fill_tensor(
+            prediction,
+            prediction_values);
+
+        fill_tensor(
+            target,
+            target_values);
+
+        kl::TensorPool pool;
+
+        std::unique_ptr<kl::Loss> loss =
+            std::make_unique<kl::CategoricalCrossEntropyLoss>(
+                reduction);
+
+        kl::Tensor &loss_value =
+            loss->forward(
+                prediction,
+                target,
+                pool);
+
+        if (!check_tensor(
+                loss_value,
+                &expected_loss))
+        {
+            std::cout << "categorical cross entropy forward failed\n";
+            return false;
+        }
+
+        kl::Tensor &grad_prediction =
+            loss->backward(pool);
+
+        if (!check_tensor(
+                grad_prediction,
+                expected_grad))
+        {
+            std::cout << "categorical cross entropy backward failed\n";
+            return false;
+        }
+
+        return true;
+    }
+
+    bool test_categorical_cross_entropy()
+    {
+        const float expected_mean_grad[6] = {
+            0.0f, -0.7142857f, 0.0f,
+            -0.8333333f, 0.0f, 0.0f};
+
+        const float expected_sum_grad[6] = {
+            0.0f, -1.4285714f, 0.0f,
+            -1.6666667f, 0.0f, 0.0f};
+
+        return test_categorical_cross_entropy(
+                   kl::Reduction::Mean,
+                   expected_mean_grad,
+                   0.4337503f) &&
+               test_categorical_cross_entropy(
+                   kl::Reduction::Sum,
+                   expected_sum_grad,
+                   0.8675006f);
+    }
+
 }
 
 int main()
 {
     if (!test_mse() ||
-        !test_binary_cross_entropy())
+        !test_binary_cross_entropy() ||
+        !test_categorical_cross_entropy())
     {
         return EXIT_FAILURE;
     }
