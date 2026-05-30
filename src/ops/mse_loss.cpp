@@ -2,6 +2,14 @@
 
 #include <kernels/cpu/losses/mse_loss_cpu_float32.hpp>
 
+#if defined(KL_ENABLE_CUDA)
+#include <kernels/cuda/losses/mse_loss_cuda_float32.cuh>
+#endif
+
+#if defined(KL_ENABLE_ROCM)
+#include <kernels/rocm/losses/mse_loss_rocm_float32.hiph>
+#endif
+
 #include <stdexcept>
 
 namespace kl
@@ -19,36 +27,48 @@ namespace kl
             if (prediction.device().type() != target.device().type() ||
                 prediction.device().type() != result.device().type())
             {
-                throw std::runtime_error("mse_loss expects tensors on the same device");
+                throw std::runtime_error(
+                    "mse_loss expects tensors on the same device");
             }
 
             if (prediction.dtype() != target.dtype() ||
                 prediction.dtype() != result.dtype())
             {
-                throw std::runtime_error("mse_loss expects tensors with the same dtype");
+                throw std::runtime_error(
+                    "mse_loss expects tensors with the same dtype");
             }
 
             if (prediction.dtype() != DType::Float32)
             {
-                throw std::runtime_error("mse_loss currently supports only Float32 tensors");
+                throw std::runtime_error(
+                    "mse_loss currently supports only Float32 tensors");
             }
 
             if (prediction.shape() != target.shape())
             {
-                throw std::runtime_error("mse_loss expects prediction and target with the same shape");
+                throw std::runtime_error(
+                    "mse_loss expects prediction and target with the same shape");
+            }
+
+            if (prediction.numel() == 0)
+            {
+                throw std::runtime_error(
+                    "mse_loss expects non-empty tensors");
             }
 
             if (prediction.storage() != Storage::RowMajor ||
                 target.storage() != Storage::RowMajor ||
                 result.storage() != Storage::RowMajor)
             {
-                throw std::runtime_error("mse_loss currently supports only RowMajor tensors");
+                throw std::runtime_error(
+                    "mse_loss currently supports only RowMajor tensors");
             }
 
             if (result.rank() != 1 ||
                 result.shape()[0] != 1)
             {
-                throw std::runtime_error("mse_loss result must have shape {1}");
+                throw std::runtime_error(
+                    "mse_loss result must have shape {1}");
             }
 
             switch (reduction)
@@ -58,7 +78,8 @@ namespace kl
                 return;
 
             default:
-                throw std::runtime_error("unknown Reduction in mse_loss");
+                throw std::runtime_error(
+                    "unknown Reduction in mse_loss");
             }
         }
 
@@ -87,13 +108,34 @@ namespace kl
             return;
 
         case DeviceType::CUDA:
-            throw std::runtime_error("CUDA mse_loss is not implemented yet");
+#if defined(KL_ENABLE_CUDA)
+            mse_loss_cuda_float32(
+                prediction,
+                target,
+                result,
+                reduction);
+            return;
+#else
+            throw std::runtime_error(
+                "CUDA mse_loss requested but CUDA backend is not enabled");
+#endif
 
         case DeviceType::ROCM:
-            throw std::runtime_error("ROCm mse_loss is not implemented yet");
+#if defined(KL_ENABLE_ROCM)
+            mse_loss_rocm_float32(
+                prediction,
+                target,
+                result,
+                reduction);
+            return;
+#else
+            throw std::runtime_error(
+                "ROCm mse_loss requested but ROCm backend is not enabled");
+#endif
 
         default:
-            throw std::runtime_error("unknown DeviceType in mse_loss");
+            throw std::runtime_error(
+                "unknown DeviceType in mse_loss");
         }
     }
 
