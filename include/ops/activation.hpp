@@ -10,10 +10,12 @@ namespace kl
     {
         ReLU,
         Sigmoid,
-        Tanh
+        Tanh,
+        Softmax
     };
 
-    const char *activation_type_name(ActivationType type);
+    const char *activation_type_name(
+        ActivationType type);
 
     void activation(
         Tensor &tensor,

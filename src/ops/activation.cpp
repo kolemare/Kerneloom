@@ -2,17 +2,20 @@
 
 #include <kernels/cpu/activation/relu_cpu_float32.hpp>
 #include <kernels/cpu/activation/sigmoid_cpu_float32.hpp>
+#include <kernels/cpu/activation/softmax_cpu_float32.hpp>
 #include <kernels/cpu/activation/tanh_cpu_float32.hpp>
 
 #if defined(KL_ENABLE_CUDA)
 #include <kernels/cuda/activation/relu_cuda_float32.cuh>
 #include <kernels/cuda/activation/sigmoid_cuda_float32.cuh>
+#include <kernels/cuda/activation/softmax_cuda_float32.cuh>
 #include <kernels/cuda/activation/tanh_cuda_float32.cuh>
 #endif
 
 #if defined(KL_ENABLE_ROCM)
 #include <kernels/rocm/activation/relu_rocm_float32.hiph>
 #include <kernels/rocm/activation/sigmoid_rocm_float32.hiph>
+#include <kernels/rocm/activation/softmax_rocm_float32.hiph>
 #include <kernels/rocm/activation/tanh_rocm_float32.hiph>
 #endif
 
@@ -21,7 +24,8 @@
 namespace kl
 {
 
-    const char *activation_type_name(ActivationType type)
+    const char *activation_type_name(
+        ActivationType type)
     {
         switch (type)
         {
@@ -34,6 +38,9 @@ namespace kl
         case ActivationType::Tanh:
             return "Tanh";
 
+        case ActivationType::Softmax:
+            return "Softmax";
+
         default:
             return "Unknown";
         }
@@ -42,16 +49,35 @@ namespace kl
     namespace
     {
 
-        void validate_activation_tensor(const Tensor &tensor)
+        void validate_activation_tensor(
+            const Tensor &tensor,
+            ActivationType type)
         {
             if (tensor.dtype() != DType::Float32)
             {
-                throw std::runtime_error("activation currently supports only Float32 tensors");
+                throw std::runtime_error(
+                    "activation currently supports only Float32 tensors");
             }
 
             if (tensor.storage() != Storage::RowMajor)
             {
-                throw std::runtime_error("activation currently supports only RowMajor tensors");
+                throw std::runtime_error(
+                    "activation currently supports only RowMajor tensors");
+            }
+
+            if (type == ActivationType::Softmax)
+            {
+                if (tensor.rank() != 2)
+                {
+                    throw std::runtime_error(
+                        "Softmax activation currently expects tensor shape N x C");
+                }
+
+                if (tensor.shape()[1] == 0)
+                {
+                    throw std::runtime_error(
+                        "Softmax activation class count must be greater than zero");
+                }
             }
         }
 
@@ -73,8 +99,13 @@ namespace kl
                 tanh_cpu_float32(tensor);
                 return;
 
+            case ActivationType::Softmax:
+                softmax_cpu_float32(tensor);
+                return;
+
             default:
-                throw std::runtime_error("unknown CPU activation type");
+                throw std::runtime_error(
+                    "unknown CPU activation type");
             }
         }
 
@@ -97,8 +128,13 @@ namespace kl
                 tanh_cuda_float32(tensor);
                 return;
 
+            case ActivationType::Softmax:
+                softmax_cuda_float32(tensor);
+                return;
+
             default:
-                throw std::runtime_error("unknown CUDA activation type");
+                throw std::runtime_error(
+                    "unknown CUDA activation type");
             }
         }
 #endif
@@ -122,8 +158,13 @@ namespace kl
                 tanh_rocm_float32(tensor);
                 return;
 
+            case ActivationType::Softmax:
+                softmax_rocm_float32(tensor);
+                return;
+
             default:
-                throw std::runtime_error("unknown ROCm activation type");
+                throw std::runtime_error(
+                    "unknown ROCm activation type");
             }
         }
 #endif
@@ -134,32 +175,43 @@ namespace kl
         Tensor &tensor,
         ActivationType type)
     {
-        validate_activation_tensor(tensor);
+        validate_activation_tensor(
+            tensor,
+            type);
 
         switch (tensor.device().type())
         {
         case DeviceType::CPU:
-            activation_cpu_float32(tensor, type);
+            activation_cpu_float32(
+                tensor,
+                type);
             return;
 
         case DeviceType::CUDA:
 #if defined(KL_ENABLE_CUDA)
-            activation_cuda_float32(tensor, type);
+            activation_cuda_float32(
+                tensor,
+                type);
             return;
 #else
-            throw std::runtime_error("CUDA activation requested but CUDA backend is not enabled");
+            throw std::runtime_error(
+                "CUDA activation requested but CUDA backend is not enabled");
 #endif
 
         case DeviceType::ROCM:
 #if defined(KL_ENABLE_ROCM)
-            activation_rocm_float32(tensor, type);
+            activation_rocm_float32(
+                tensor,
+                type);
             return;
 #else
-            throw std::runtime_error("ROCm activation requested but ROCm backend is not enabled");
+            throw std::runtime_error(
+                "ROCm activation requested but ROCm backend is not enabled");
 #endif
 
         default:
-            throw std::runtime_error("unknown DeviceType in activation");
+            throw std::runtime_error(
+                "unknown DeviceType in activation");
         }
     }
 
