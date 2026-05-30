@@ -1,3 +1,4 @@
+#include <cnn/losses/binary_cross_entropy_loss.hpp>
 #include <cnn/losses/loss.hpp>
 #include <cnn/losses/mse_loss.hpp>
 #include <cnn/losses/reduction.hpp>
@@ -35,32 +36,6 @@ namespace
         return std::fabs(actual - expected) < 1.0e-5f;
     }
 
-    bool check_scalar(
-        const kl::Tensor &tensor,
-        float expected)
-    {
-        if (tensor.numel() != 1)
-        {
-            std::cout << "expected scalar tensor\n";
-            return false;
-        }
-
-        const float *data =
-            static_cast<const float *>(tensor.data());
-
-        if (!close_enough(data[0], expected))
-        {
-            std::cout << "scalar mismatch"
-                      << " | actual=" << data[0]
-                      << " | expected=" << expected
-                      << '\n';
-
-            return false;
-        }
-
-        return true;
-    }
-
     bool check_tensor(
         const kl::Tensor &tensor,
         const float *expected)
@@ -84,27 +59,28 @@ namespace
         return true;
     }
 
-    bool test_mse_mean()
+    bool test_loss(
+        const char *name,
+        std::unique_ptr<kl::Loss> loss,
+        const float *prediction_values,
+        const float *target_values,
+        const float *expected_grad,
+        std::size_t count,
+        float expected_loss)
     {
         kl::Tensor prediction(
-            kl::Shape{4},
+            kl::Shape{count},
             kl::DType::Float32,
             kl::Device::cpu(),
             kl::Layout::Unknown,
             kl::Storage::RowMajor);
 
         kl::Tensor target(
-            kl::Shape{4},
+            kl::Shape{count},
             kl::DType::Float32,
             kl::Device::cpu(),
             kl::Layout::Unknown,
             kl::Storage::RowMajor);
-
-        const float prediction_values[4] = {
-            1.0f, 2.0f, 3.0f, 4.0f};
-
-        const float target_values[4] = {
-            0.0f, 2.0f, 4.0f, 2.0f};
 
         fill_tensor(
             prediction,
@@ -116,121 +92,108 @@ namespace
 
         kl::TensorPool pool;
 
-        std::unique_ptr<kl::Loss> loss =
-            std::make_unique<kl::MSELoss>(
-                kl::Reduction::Mean);
-
         kl::Tensor &loss_value =
             loss->forward(
                 prediction,
                 target,
                 pool);
 
-        if (!check_scalar(loss_value, 1.5f))
+        if (!check_tensor(
+                loss_value,
+                &expected_loss))
         {
-            std::cout << "MSE mean forward failed\n";
+            std::cout << name << " forward failed\n";
             return false;
         }
 
         kl::Tensor &grad_prediction =
             loss->backward(pool);
 
-        const float expected_grad[4] = {
-            0.5f, 0.0f, -0.5f, 1.0f};
-
         if (!check_tensor(
                 grad_prediction,
                 expected_grad))
         {
-            std::cout << "MSE mean backward failed\n";
+            std::cout << name << " backward failed\n";
             return false;
         }
 
         return true;
     }
 
-    bool test_mse_sum()
+    bool test_mse()
     {
-        kl::Tensor prediction(
-            kl::Shape{4},
-            kl::DType::Float32,
-            kl::Device::cpu(),
-            kl::Layout::Unknown,
-            kl::Storage::RowMajor);
-
-        kl::Tensor target(
-            kl::Shape{4},
-            kl::DType::Float32,
-            kl::Device::cpu(),
-            kl::Layout::Unknown,
-            kl::Storage::RowMajor);
-
-        const float prediction_values[4] = {
+        const float prediction[4] = {
             1.0f, 2.0f, 3.0f, 4.0f};
 
-        const float target_values[4] = {
+        const float target[4] = {
             0.0f, 2.0f, 4.0f, 2.0f};
 
-        fill_tensor(
-            prediction,
-            prediction_values);
+        const float expected_mean_grad[4] = {
+            0.5f, 0.0f, -0.5f, 1.0f};
 
-        fill_tensor(
-            target,
-            target_values);
-
-        kl::TensorPool pool;
-
-        std::unique_ptr<kl::Loss> loss =
-            std::make_unique<kl::MSELoss>(
-                kl::Reduction::Sum);
-
-        kl::Tensor &loss_value =
-            loss->forward(
-                prediction,
-                target,
-                pool);
-
-        if (!check_scalar(loss_value, 6.0f))
-        {
-            std::cout << "MSE sum forward failed\n";
-            return false;
-        }
-
-        kl::Tensor &grad_prediction =
-            loss->backward(pool);
-
-        const float expected_grad[4] = {
+        const float expected_sum_grad[4] = {
             2.0f, 0.0f, -2.0f, 4.0f};
 
-        if (!check_tensor(
-                grad_prediction,
-                expected_grad))
-        {
-            std::cout << "MSE sum backward failed\n";
-            return false;
-        }
+        return test_loss(
+                   "MSE mean",
+                   std::make_unique<kl::MSELoss>(
+                       kl::Reduction::Mean),
+                   prediction,
+                   target,
+                   expected_mean_grad,
+                   4,
+                   1.5f) &&
+               test_loss(
+                   "MSE sum",
+                   std::make_unique<kl::MSELoss>(
+                       kl::Reduction::Sum),
+                   prediction,
+                   target,
+                   expected_sum_grad,
+                   4,
+                   6.0f);
+    }
 
-        return true;
+    bool test_binary_cross_entropy()
+    {
+        const float prediction[2] = {
+            0.25f, 0.75f};
+
+        const float target[2] = {
+            0.0f, 1.0f};
+
+        const float expected_mean_grad[2] = {
+            0.6666667f, -0.6666667f};
+
+        const float expected_sum_grad[2] = {
+            1.3333333f, -1.3333333f};
+
+        return test_loss(
+                   "binary cross entropy mean",
+                   std::make_unique<kl::BinaryCrossEntropyLoss>(
+                       kl::Reduction::Mean),
+                   prediction,
+                   target,
+                   expected_mean_grad,
+                   2,
+                   0.2876821f) &&
+               test_loss(
+                   "binary cross entropy sum",
+                   std::make_unique<kl::BinaryCrossEntropyLoss>(
+                       kl::Reduction::Sum),
+                   prediction,
+                   target,
+                   expected_sum_grad,
+                   2,
+                   0.5753641f);
     }
 
 }
 
 int main()
 {
-    bool passed = true;
-
-    if (!test_mse_mean())
-    {
-        passed = false;
-    }
-
-    if (!test_mse_sum())
-    {
-        passed = false;
-    }
-
-    if (!passed)
+    if (!test_mse() ||
+        !test_binary_cross_entropy())
     {
         return EXIT_FAILURE;
     }
