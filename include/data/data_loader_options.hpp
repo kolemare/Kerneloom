@@ -3,20 +3,42 @@
 
 #include <data/memory_policy.hpp>
 
+#include <core/dtype.hpp>
+
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <thread>
 
 namespace kl
 {
+
+    inline std::size_t default_loader_worker_count()
+    {
+        const std::size_t count =
+            std::thread::hardware_concurrency();
+
+        return std::max<std::size_t>(
+            1,
+            count / 2);
+    }
 
     struct DataLoaderOptions
     {
         std::size_t batch_size = 1;
 
+        DType input_dtype =
+            DType::Float32;
+
         bool shuffle = false;
         bool drop_last = false;
 
         std::uint32_t seed = 1337;
+
+        std::size_t loader_workers =
+            default_loader_worker_count();
+
+        std::size_t host_prefetch_batches = 4;
 
         MemoryPolicy memory;
     };

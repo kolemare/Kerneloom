@@ -3,6 +3,8 @@
 
 #include <data/image.hpp>
 
+#include <core/dtype.hpp>
+
 #include <cstddef>
 
 namespace kl
@@ -17,7 +19,8 @@ namespace kl
 
         void write_chw(
             const Image &image,
-            float *destination) const;
+            void *destination,
+            DType dtype) const;
 
         std::size_t output_width() const;
         std::size_t output_height() const;
