@@ -3,7 +3,6 @@
 
 #include <data/batch.hpp>
 #include <data/data_loader_options.hpp>
-#include <data/image_decoder.hpp>
 #include <data/image_sample.hpp>
 #include <data/image_transform.hpp>
 #include <data/internal/blocking_queue.hpp>
@@ -11,6 +10,7 @@
 #include <core/device.hpp>
 
 #include <atomic>
+#include <condition_variable>
 #include <cstddef>
 #include <exception>
 #include <map>
@@ -45,10 +45,35 @@ namespace kl
         std::size_t sample_count() const;
         std::size_t batch_count() const;
 
+        std::size_t host_prefetched_batch_count() const;
+
     private:
+        struct EpochState
+        {
+            EpochState(
+                std::size_t generation,
+                std::shared_ptr<
+                    const std::vector<std::size_t>>
+                    order,
+                std::size_t total_batches);
+
+            std::size_t generation;
+
+            std::shared_ptr<
+                const std::vector<std::size_t>>
+                order;
+
+            std::size_t total_batches;
+
+            std::atomic<std::size_t>
+                next_batch_to_prepare{0};
+        };
+
         struct PreparedBatch
         {
+            std::size_t generation;
             std::size_t index;
+
             Batch batch;
         };
 
@@ -58,6 +83,7 @@ namespace kl
         void worker_loop();
 
         Batch prepare_host_batch(
+            const std::vector<std::size_t> &order,
             std::size_t batch_index) const;
 
         Batch move_to_target_device(
@@ -70,7 +96,6 @@ namespace kl
 
     private:
         std::vector<ImageSample> samples_;
-        std::vector<std::size_t> order_;
 
         ImageTransform transform_;
 
@@ -78,11 +103,10 @@ namespace kl
         DataLoaderOptions options_;
 
         std::size_t epoch_ = 0;
+        std::size_t generation_ = 0;
+
         std::size_t next_batch_to_return_ = 0;
         std::size_t total_batches_ = 0;
-
-        std::atomic<std::size_t>
-            next_batch_to_prepare_{0};
 
         std::atomic<bool>
             stop_requested_{false};
@@ -96,6 +120,15 @@ namespace kl
 
         std::map<std::size_t, Batch>
             pending_batches_;
+
+        mutable std::mutex
+            epoch_mutex_;
+
+        std::condition_variable
+            epoch_cv_;
+
+        std::shared_ptr<EpochState>
+            current_epoch_;
 
         mutable std::mutex
             exception_mutex_;

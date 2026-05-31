@@ -1,5 +1,7 @@
 #include <data/data_loader.hpp>
 
+#include <data/image_decoder.hpp>
+
 #include <core/dtype.hpp>
 #include <core/layout.hpp>
 #include <core/shape.hpp>
@@ -8,15 +10,30 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
-#include <cstring>
 #include <numeric>
 #include <optional>
 #include <random>
 #include <stdexcept>
 #include <utility>
+#include <vector>
 
 namespace kl
 {
+
+    DataLoader::EpochState::EpochState(
+        std::size_t generation,
+        std::shared_ptr<
+            const std::vector<std::size_t>>
+            order,
+        std::size_t total_batches)
+        : generation(
+              generation),
+          order(
+              std::move(order)),
+          total_batches(
+              total_batches)
+    {
+    }
 
     DataLoader::DataLoader(
         std::vector<ImageSample> samples,
@@ -56,6 +73,13 @@ namespace kl
                 "DataLoader host prefetch batch count must be greater than zero");
         }
 
+        host_queue_ =
+            std::make_unique<
+                BlockingQueue<PreparedBatch>>(
+                options_
+                    .host_prefetch_batches);
+
+        start_workers();
         reset_epoch();
     }
 
@@ -66,14 +90,14 @@ namespace kl
 
     void DataLoader::reset_epoch()
     {
-        stop_workers();
+        rethrow_worker_exception();
 
-        order_.resize(
+        std::vector<std::size_t> order(
             samples_.size());
 
         std::iota(
-            order_.begin(),
-            order_.end(),
+            order.begin(),
+            order.end(),
             0);
 
         if (options_.shuffle)
@@ -84,42 +108,44 @@ namespace kl
                     epoch_));
 
             std::shuffle(
-                order_.begin(),
-                order_.end(),
+                order.begin(),
+                order.end(),
                 generator);
         }
 
         ++epoch_;
+        ++generation_;
 
         total_batches_ =
             batch_count();
 
-        next_batch_to_prepare_.store(
-            0);
-
         next_batch_to_return_ =
             0;
 
-        stop_requested_.store(
-            false);
-
         pending_batches_.clear();
+
+        host_queue_->clear();
+
+        std::shared_ptr<
+            const std::vector<std::size_t>>
+            shared_order =
+                std::make_shared<
+                    const std::vector<std::size_t>>(
+                    std::move(order));
 
         {
             std::lock_guard<std::mutex> lock(
-                exception_mutex_);
+                epoch_mutex_);
 
-            worker_exception_ =
-                nullptr;
+            current_epoch_ =
+                std::make_shared<EpochState>(
+                    generation_,
+                    std::move(
+                        shared_order),
+                    total_batches_);
         }
 
-        host_queue_ =
-            std::make_unique<
-                BlockingQueue<PreparedBatch>>(
-                options_
-                    .host_prefetch_batches);
-
-        start_workers();
+        epoch_cv_.notify_all();
     }
 
     bool DataLoader::has_next() const
@@ -130,6 +156,8 @@ namespace kl
 
     Batch DataLoader::next()
     {
+        rethrow_worker_exception();
+
         if (!has_next())
         {
             throw std::runtime_error(
@@ -168,6 +196,12 @@ namespace kl
 
                 throw std::runtime_error(
                     "DataLoader host queue closed before expected batch was produced");
+            }
+
+            if (prepared->generation !=
+                generation_)
+            {
+                continue;
             }
 
             if (prepared->index ==
@@ -210,20 +244,19 @@ namespace kl
                options_.batch_size;
     }
 
+    std::size_t
+    DataLoader::host_prefetched_batch_count() const
+    {
+        return host_queue_->size();
+    }
+
     void DataLoader::start_workers()
     {
-        const std::size_t worker_count =
-            std::min(
-                options_.loader_workers,
-                std::max<std::size_t>(
-                    1,
-                    total_batches_));
-
         workers_.reserve(
-            worker_count);
+            options_.loader_workers);
 
         for (std::size_t i = 0;
-             i < worker_count;
+             i < options_.loader_workers;
              ++i)
         {
             workers_.emplace_back(
@@ -239,10 +272,9 @@ namespace kl
         stop_requested_.store(
             true);
 
-        if (host_queue_ != nullptr)
-        {
-            host_queue_->close();
-        }
+        host_queue_->close();
+
+        epoch_cv_.notify_all();
 
         for (std::thread &worker :
              workers_)
@@ -254,36 +286,85 @@ namespace kl
         }
 
         workers_.clear();
-
-        host_queue_.reset();
     }
 
     void DataLoader::worker_loop()
     {
         try
         {
+            std::shared_ptr<EpochState>
+                previous_epoch;
+
             while (!stop_requested_.load())
             {
-                const std::size_t batch_index =
-                    next_batch_to_prepare_
-                        .fetch_add(1);
+                std::shared_ptr<EpochState>
+                    epoch;
 
-                if (batch_index >=
-                    total_batches_)
                 {
-                    return;
+                    std::unique_lock<std::mutex> lock(
+                        epoch_mutex_);
+
+                    epoch_cv_.wait(
+                        lock,
+                        [this, &previous_epoch]()
+                        {
+                            return stop_requested_.load() ||
+                                   current_epoch_ !=
+                                       previous_epoch;
+                        });
+
+                    if (stop_requested_.load())
+                    {
+                        return;
+                    }
+
+                    epoch =
+                        current_epoch_;
                 }
 
-                PreparedBatch prepared{
-                    batch_index,
-                    prepare_host_batch(
-                        batch_index)};
+                previous_epoch =
+                    epoch;
 
-                if (!host_queue_->push(
-                        std::move(
-                            prepared)))
+                while (!stop_requested_.load())
                 {
-                    return;
+                    const std::size_t batch_index =
+                        epoch
+                            ->next_batch_to_prepare
+                            .fetch_add(1);
+
+                    if (batch_index >=
+                        epoch->total_batches)
+                    {
+                        break;
+                    }
+
+                    Batch batch =
+                        prepare_host_batch(
+                            *epoch->order,
+                            batch_index);
+
+                    {
+                        std::lock_guard<std::mutex> lock(
+                            epoch_mutex_);
+
+                        if (current_epoch_ !=
+                            epoch)
+                        {
+                            break;
+                        }
+                    }
+
+                    PreparedBatch prepared{
+                        epoch->generation,
+                        batch_index,
+                        std::move(batch)};
+
+                    if (!host_queue_->push(
+                            std::move(
+                                prepared)))
+                    {
+                        return;
+                    }
                 }
             }
         }
@@ -296,10 +377,12 @@ namespace kl
                 true);
 
             host_queue_->close();
+            epoch_cv_.notify_all();
         }
     }
 
     Batch DataLoader::prepare_host_batch(
+        const std::vector<std::size_t> &order,
         std::size_t batch_index) const
     {
         const std::size_t begin =
@@ -363,8 +446,8 @@ namespace kl
              ++n)
         {
             const ImageSample &sample =
-                samples_[order_[begin +
-                                n]];
+                samples_[order[begin +
+                               n]];
 
             const Image image =
                 decoder.decode(

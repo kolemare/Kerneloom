@@ -51,6 +51,6 @@ target_include_directories(kerneloom_lib PUBLIC
     third_party
 )
 
-add_executable(kerneloom test/test_loss.cpp)
+add_executable(kerneloom test/test_dataloader.cpp)
 
 target_link_libraries(kerneloom PRIVATE kerneloom_lib)

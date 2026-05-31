@@ -87,6 +87,18 @@ namespace kl
             return value;
         }
 
+        void clear()
+        {
+            {
+                std::lock_guard<std::mutex> lock(
+                    mutex_);
+
+                queue_.clear();
+            }
+
+            push_cv_.notify_all();
+        }
+
         void close()
         {
             {
@@ -100,6 +112,14 @@ namespace kl
             pop_cv_.notify_all();
         }
 
+        std::size_t size() const
+        {
+            std::lock_guard<std::mutex> lock(
+                mutex_);
+
+            return queue_.size();
+        }
+
     private:
         std::size_t capacity_;
 
@@ -107,7 +127,8 @@ namespace kl
 
         bool closed_ = false;
 
-        std::mutex mutex_;
+        mutable std::mutex mutex_;
+
         std::condition_variable push_cv_;
         std::condition_variable pop_cv_;
     };
