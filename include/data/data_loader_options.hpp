@@ -40,6 +40,8 @@ namespace kl
 
         std::size_t host_prefetch_batches = 4;
 
+        std::size_t decoded_cache_bytes = 0;
+
         MemoryPolicy memory;
     };
 

@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <numeric>
 #include <optional>
 #include <random>
@@ -47,7 +48,11 @@ namespace kl
           device_(
               device),
           options_(
-              options)
+              options),
+          decoded_cache_(
+              std::make_shared<
+                  DecodedImageCache>(
+                  options.decoded_cache_bytes))
     {
         if (samples_.empty())
         {
@@ -250,6 +255,34 @@ namespace kl
         return host_queue_->size();
     }
 
+    std::size_t
+    DataLoader::decoded_cache_image_count() const
+    {
+        return decoded_cache_
+            ->image_count();
+    }
+
+    std::size_t
+    DataLoader::decoded_cache_used_bytes() const
+    {
+        return decoded_cache_
+            ->used_bytes();
+    }
+
+    std::uint64_t
+    DataLoader::decoded_cache_hit_count() const
+    {
+        return decoded_cache_
+            ->hit_count();
+    }
+
+    std::uint64_t
+    DataLoader::decoded_cache_miss_count() const
+    {
+        return decoded_cache_
+            ->miss_count();
+    }
+
     void DataLoader::start_workers()
     {
         workers_.reserve(
@@ -449,12 +482,25 @@ namespace kl
                 samples_[order[begin +
                                n]];
 
-            const Image image =
-                decoder.decode(
-                    sample.path);
+            std::shared_ptr<const Image>
+                image =
+                    decoded_cache_->find(
+                        sample.path);
+
+            if (image == nullptr)
+            {
+                image =
+                    std::make_shared<Image>(
+                        decoder.decode(
+                            sample.path));
+
+                decoded_cache_->insert(
+                    sample.path,
+                    image);
+            }
 
             transform_.write_chw(
-                image,
+                *image,
                 inputs_data +
                     n *
                         image_bytes,

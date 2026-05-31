@@ -6,12 +6,14 @@
 #include <data/image_sample.hpp>
 #include <data/image_transform.hpp>
 #include <data/internal/blocking_queue.hpp>
+#include <data/internal/decoded_image_cache.hpp>
 
 #include <core/device.hpp>
 
 #include <atomic>
 #include <condition_variable>
 #include <cstddef>
+#include <cstdint>
 #include <exception>
 #include <map>
 #include <memory>
@@ -46,6 +48,12 @@ namespace kl
         std::size_t batch_count() const;
 
         std::size_t host_prefetched_batch_count() const;
+
+        std::size_t decoded_cache_image_count() const;
+        std::size_t decoded_cache_used_bytes() const;
+
+        std::uint64_t decoded_cache_hit_count() const;
+        std::uint64_t decoded_cache_miss_count() const;
 
     private:
         struct EpochState
@@ -129,6 +137,9 @@ namespace kl
 
         std::shared_ptr<EpochState>
             current_epoch_;
+
+        std::shared_ptr<DecodedImageCache>
+            decoded_cache_;
 
         mutable std::mutex
             exception_mutex_;

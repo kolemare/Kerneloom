@@ -1,6 +1,6 @@
 #include <data/image_decoder.hpp>
 
-#include <stb/stb_image.h>
+#include <stb_image.h>
 
 #include <cstddef>
 #include <cstdint>
