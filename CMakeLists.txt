@@ -14,8 +14,10 @@ file(GLOB_RECURSE KL_SOURCES CONFIGURE_DEPENDS
     src/backend/*.cpp
     src/backend/cpu/*.cpp
     src/cnn/*.cpp
+    src/data/*.cpp
     src/ops/*.cpp
     src/kernels/cpu/*.cpp
+    src/third_party/*.cpp
 )
 
 if(KL_ENABLE_CUDA)
@@ -44,7 +46,10 @@ endif()
 
 add_library(kerneloom_lib ${KL_SOURCES})
 
-target_include_directories(kerneloom_lib PUBLIC include)
+target_include_directories(kerneloom_lib PUBLIC
+    include
+    third_party
+)
 
 add_executable(kerneloom test/test_loss.cpp)
 
