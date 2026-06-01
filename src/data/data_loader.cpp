@@ -1,6 +1,7 @@
 #include <data/data_loader.hpp>
 
 #include <data/image_decoder.hpp>
+#include <data/memory_planner.hpp>
 
 #include <core/dtype.hpp>
 #include <core/layout.hpp>
@@ -79,11 +80,7 @@ namespace kl
           device_(
               device),
           options_(
-              options),
-          decoded_cache_(
-              std::make_shared<
-                  DecodedImageCache>(
-                  options.decoded_cache_bytes))
+              options)
     {
         if (samples_.empty())
         {
@@ -103,6 +100,60 @@ namespace kl
                 "DataLoader worker count must be greater than zero");
         }
 
+        const std::size_t batch_bytes =
+            options_.batch_size *
+                transform_
+                    .output_numel() *
+                dtype_size(
+                    options_
+                        .input_dtype) +
+            options_.batch_size *
+                dtype_size(
+                    DType::Int32);
+
+        if (options_
+                .automatic_memory_planning)
+        {
+            memory_plan_ =
+                create_memory_plan(
+                    device_,
+                    batch_bytes,
+                    options_
+                        .memory);
+
+            options_.decoded_cache_bytes =
+                memory_plan_
+                    .decoded_cache_bytes;
+
+            options_.host_prefetch_batches =
+                memory_plan_
+                    .host_prefetch_batches;
+
+            options_.device_prefetch_batches =
+                memory_plan_
+                    .device_prefetch_batches;
+        }
+        else
+        {
+            memory_plan_.batch_bytes =
+                batch_bytes;
+
+            memory_plan_.decoded_cache_bytes =
+                options_
+                    .decoded_cache_bytes;
+
+            memory_plan_.host_prefetch_batches =
+                options_
+                    .host_prefetch_batches;
+
+            memory_plan_.device_prefetch_batches =
+                device_.type() ==
+                        DeviceType::CPU
+                    ? 0
+                    : options_
+                          .device_prefetch_batches;
+        }
+
         if (options_.host_prefetch_batches == 0)
         {
             throw std::runtime_error(
@@ -116,6 +167,12 @@ namespace kl
             throw std::runtime_error(
                 "DataLoader device prefetch batch count must be greater than zero");
         }
+
+        decoded_cache_ =
+            std::make_shared<
+                DecodedImageCache>(
+                options_
+                    .decoded_cache_bytes);
 
         host_queue_ =
             std::make_unique<
@@ -470,6 +527,12 @@ namespace kl
             ->available_count();
     }
 
+    const MemoryPlan &
+    DataLoader::memory_plan() const
+    {
+        return memory_plan_;
+    }
+
     void DataLoader::start_workers()
     {
         workers_.reserve(
@@ -804,7 +867,8 @@ namespace kl
                         ->find(
                             sample.path);
 
-            if (image == nullptr)
+            if (image ==
+                nullptr)
             {
                 image =
                     std::make_shared<Image>(

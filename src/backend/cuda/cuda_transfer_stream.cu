@@ -81,9 +81,10 @@ namespace kl
             return;
         }
 
-        cudaStreamDestroy(
-            reinterpret_cast<cudaStream_t>(
-                handle));
+        static_cast<void>(
+            cudaStreamDestroy(
+                reinterpret_cast<cudaStream_t>(
+                    handle)));
     }
 
     void cuda_transfer_stream_copy_async(

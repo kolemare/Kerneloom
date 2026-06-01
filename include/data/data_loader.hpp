@@ -9,6 +9,7 @@
 #include <data/internal/batch_storage_pool.hpp>
 #include <data/internal/blocking_queue.hpp>
 #include <data/internal/decoded_image_cache.hpp>
+#include <data/memory_plan.hpp>
 
 #include <core/device.hpp>
 #include <core/transfer_stream.hpp>
@@ -64,6 +65,8 @@ namespace kl
 
         std::size_t pooled_device_batch_count() const;
         std::size_t available_pooled_device_batch_count() const;
+
+        const MemoryPlan &memory_plan() const;
 
     private:
         struct EpochState
@@ -129,6 +132,8 @@ namespace kl
 
         Device device_;
         DataLoaderOptions options_;
+
+        MemoryPlan memory_plan_;
 
         std::size_t epoch_ = 0;
 

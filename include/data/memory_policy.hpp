@@ -2,21 +2,27 @@
 #define KL_MEMORY_POLICY_HPP
 
 #include <cstddef>
+#include <limits>
 
 namespace kl
 {
 
     struct MemoryPolicy
     {
-        float usable_vram_fraction = 0.30f;
-        float usable_pinned_ram_fraction = 0.05f;
-        float decoded_cache_ram_fraction = 0.40f;
+        float decoded_cache_ram_fraction =
+            0.40f;
 
-        std::size_t min_device_prefetch_batches = 2;
-        std::size_t max_device_prefetch_batches = 4;
+        float host_prefetch_ram_fraction =
+            0.10f;
 
-        std::size_t min_host_prefetch_batches = 4;
-        std::size_t max_host_prefetch_batches = 16;
+        float device_prefetch_vram_fraction =
+            0.50f;
+
+        std::size_t max_host_prefetch_batches =
+            std::numeric_limits<std::size_t>::max();
+
+        std::size_t max_device_prefetch_batches =
+            std::numeric_limits<std::size_t>::max();
     };
 
 }

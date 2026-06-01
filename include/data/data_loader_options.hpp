@@ -27,18 +27,26 @@ namespace kl
 
     struct DataLoaderOptions
     {
-        std::size_t batch_size = 1;
+        std::size_t batch_size =
+            1;
 
         DType input_dtype =
             DType::Float32;
 
-        bool shuffle = false;
-        bool drop_last = false;
+        bool shuffle =
+            false;
 
-        std::uint32_t seed = 1337;
+        bool drop_last =
+            false;
+
+        std::uint32_t seed =
+            1337;
 
         std::size_t loader_workers =
             default_loader_worker_count();
+
+        bool automatic_memory_planning =
+            true;
 
         std::size_t host_prefetch_batches =
             4;

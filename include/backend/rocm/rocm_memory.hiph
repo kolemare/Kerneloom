@@ -1,0 +1,13 @@
+#ifndef KL_ROCM_MEMORY_HIPH
+#define KL_ROCM_MEMORY_HIPH
+
+#include <cstddef>
+
+namespace kl
+{
+
+    std::size_t available_rocm_memory_bytes();
+
+}
+
+#endif // KL_ROCM_MEMORY_HIPH

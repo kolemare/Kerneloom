@@ -4,6 +4,7 @@
 #include <data/data_loader_options.hpp>
 #include <data/image_dataset.hpp>
 #include <data/image_transform.hpp>
+#include <data/memory_plan.hpp>
 
 #include <core/device.hpp>
 #include <core/dtype.hpp>
@@ -13,7 +14,6 @@
 #include <exception>
 #include <iostream>
 #include <thread>
-#include <vector>
 
 namespace
 {
@@ -22,13 +22,40 @@ namespace
         1024ULL *
         1024ULL;
 
-    constexpr std::size_t gibibyte =
-        1024ULL *
-        mebibyte;
-
     void print_stats(
         const kl::DataLoader &loader)
     {
+        const kl::MemoryPlan &plan =
+            loader.memory_plan();
+
+        std::cout
+            << "Available RAM MiB: "
+            << plan.available_ram_bytes /
+                   static_cast<double>(
+                       mebibyte)
+            << '\n';
+
+        std::cout
+            << "Available VRAM MiB: "
+            << plan.available_vram_bytes /
+                   static_cast<double>(
+                       mebibyte)
+            << '\n';
+
+        std::cout
+            << "Batch MiB: "
+            << plan.batch_bytes /
+                   static_cast<double>(
+                       mebibyte)
+            << '\n';
+
+        std::cout
+            << "Planned decoded cache MiB: "
+            << plan.decoded_cache_bytes /
+                   static_cast<double>(
+                       mebibyte)
+            << '\n';
+
         std::cout
             << "Host prefetched batches: "
             << loader
@@ -48,21 +75,9 @@ namespace
             << '\n';
 
         std::cout
-            << "Available pooled host batches: "
-            << loader
-                   .available_pooled_host_batch_count()
-            << '\n';
-
-        std::cout
             << "Allocated pooled device batches: "
             << loader
                    .pooled_device_batch_count()
-            << '\n';
-
-        std::cout
-            << "Available pooled device batches: "
-            << loader
-                   .available_pooled_device_batch_count()
             << '\n';
 
         std::cout
@@ -78,38 +93,6 @@ namespace
                    static_cast<double>(
                        mebibyte)
             << '\n';
-
-        std::cout
-            << "Decoded cache hits: "
-            << loader
-                   .decoded_cache_hit_count()
-            << '\n';
-
-        std::cout
-            << "Decoded cache misses: "
-            << loader
-                   .decoded_cache_miss_count()
-            << '\n';
-    }
-
-    void wait_and_print_stats(
-        const kl::DataLoader &loader,
-        const char *message,
-        std::size_t seconds)
-    {
-        std::cout
-            << '\n'
-            << message
-            << " | waiting "
-            << seconds
-            << " seconds...\n";
-
-        std::this_thread::sleep_for(
-            std::chrono::seconds(
-                seconds));
-
-        print_stats(
-            loader);
     }
 
 }
@@ -125,28 +108,27 @@ int main()
             "/media/WDGold/Temp/HaGRIDv2");
 
         kl::DataLoaderOptions options;
-        options.batch_size = 64;
+
+        options.batch_size =
+            64;
 
         options.input_dtype =
             kl::DType::Float32;
 
-        options.shuffle = true;
-        options.drop_last = true;
+        options.shuffle =
+            true;
 
-        options.loader_workers = 8;
+        options.drop_last =
+            true;
 
-        options.host_prefetch_batches =
-            64;
+        options.loader_workers =
+            8;
 
-        options.device_prefetch_batches =
-            3;
+        options.automatic_memory_planning =
+            true;
 
         options.pin_host_memory =
             true;
-
-        options.decoded_cache_bytes =
-            4ULL *
-            gibibyte;
 
         kl::DataLoader loader(
             dataset.samples(),
@@ -163,91 +145,26 @@ int main()
             << '\n';
 
         std::cout
-            << "Classes: "
-            << dataset.class_count()
-            << '\n';
-
-        std::cout
             << "Images: "
             << dataset.size()
             << '\n';
 
         std::cout
-            << "Batches: "
-            << loader.batch_count()
-            << '\n';
+            << "Loading for 3 minutes...\n";
 
-        wait_and_print_stats(
-            loader,
-            "Initial pipeline fill",
-            30);
+        std::this_thread::sleep_for(
+            std::chrono::minutes(
+                3));
 
-        std::vector<kl::Batch>
-            held_batches;
-
-        held_batches.push_back(
-            loader.next());
+        print_stats(
+            loader);
 
         std::cout
-            << "\nLoaded one batch on "
-            << kl::to_string(
-                   target.type())
-            << '\n';
+            << "Holding memory for 3 minutes...\n";
 
-        std::cout
-            << "First batch shape: "
-            << held_batches[0]
-                   .inputs()
-                   .shape()[0]
-            << "x"
-            << held_batches[0]
-                   .inputs()
-                   .shape()[1]
-            << "x"
-            << held_batches[0]
-                   .inputs()
-                   .shape()[2]
-            << "x"
-            << held_batches[0]
-                   .inputs()
-                   .shape()[3]
-            << '\n';
-
-        wait_and_print_stats(
-            loader,
-            "Pipeline refill while one batch is held",
-            15);
-
-        held_batches.clear();
-
-        wait_and_print_stats(
-            loader,
-            "After releasing held batch",
-            10);
-
-        std::cout
-            << "\nResetting epoch...\n";
-
-        loader.reset_epoch();
-
-        wait_and_print_stats(
-            loader,
-            "Pipeline refill after epoch reset",
-            30);
-
-        kl::Batch first_batch_new_epoch =
-            loader.next();
-
-        std::cout
-            << "\nLoaded first batch from new epoch\n";
-
-        wait_and_print_stats(
-            loader,
-            "Holding state for memory inspection",
-            30);
-
-        std::cout
-            << "\nDataLoader test passed\n";
+        std::this_thread::sleep_for(
+            std::chrono::minutes(
+                3));
 
         return EXIT_SUCCESS;
     }

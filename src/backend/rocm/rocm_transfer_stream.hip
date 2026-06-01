@@ -81,9 +81,10 @@ namespace kl
             return;
         }
 
-        hipStreamDestroy(
-            reinterpret_cast<hipStream_t>(
-                handle));
+        static_cast<void>(
+            hipStreamDestroy(
+                reinterpret_cast<hipStream_t>(
+                    handle)));
     }
 
     void rocm_transfer_stream_copy_async(
