@@ -5,9 +5,10 @@
 #include <data/data_loader_options.hpp>
 #include <data/image_sample.hpp>
 #include <data/image_transform.hpp>
+#include <data/internal/batch_storage.hpp>
+#include <data/internal/batch_storage_pool.hpp>
 #include <data/internal/blocking_queue.hpp>
 #include <data/internal/decoded_image_cache.hpp>
-#include <data/internal/host_batch_pool.hpp>
 
 #include <core/device.hpp>
 
@@ -86,7 +87,8 @@ namespace kl
             std::size_t generation;
             std::size_t index;
 
-            std::shared_ptr<Batch> batch;
+            std::shared_ptr<BatchStorage>
+                storage;
         };
 
         void start_workers();
@@ -94,12 +96,14 @@ namespace kl
 
         void worker_loop();
 
-        std::shared_ptr<Batch> prepare_host_batch(
+        std::shared_ptr<BatchStorage>
+        prepare_host_batch(
             const std::vector<std::size_t> &order,
             std::size_t batch_index) const;
 
         Batch move_to_target_device(
-            std::shared_ptr<Batch> batch) const;
+            std::shared_ptr<BatchStorage>
+                storage) const;
 
         void store_worker_exception(
             std::exception_ptr exception);
@@ -107,7 +111,8 @@ namespace kl
         void rethrow_worker_exception() const;
 
     private:
-        std::vector<ImageSample> samples_;
+        std::vector<ImageSample>
+            samples_;
 
         ImageTransform transform_;
 
@@ -117,8 +122,11 @@ namespace kl
         std::size_t epoch_ = 0;
         std::size_t generation_ = 0;
 
-        std::size_t next_batch_to_return_ = 0;
-        std::size_t total_batches_ = 0;
+        std::size_t next_batch_to_return_ =
+            0;
+
+        std::size_t total_batches_ =
+            0;
 
         std::atomic<bool>
             stop_requested_{false};
@@ -132,10 +140,10 @@ namespace kl
 
         std::map<
             std::size_t,
-            std::shared_ptr<Batch>>
+            std::shared_ptr<BatchStorage>>
             pending_batches_;
 
-        std::shared_ptr<HostBatchPool>
+        std::shared_ptr<BatchStoragePool>
             host_batch_pool_;
 
         mutable std::mutex

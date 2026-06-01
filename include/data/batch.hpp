@@ -1,15 +1,35 @@
 #ifndef KL_BATCH_HPP
 #define KL_BATCH_HPP
 
-#include <core/tensor.hpp>
+#include <data/internal/batch_storage.hpp>
+
+#include <memory>
 
 namespace kl
 {
 
-    struct Batch
+    class Batch
     {
-        Tensor inputs;
-        Tensor targets;
+    public:
+        Batch() = default;
+
+        explicit Batch(
+            std::shared_ptr<BatchStorage> storage);
+
+        Batch(
+            Tensor inputs,
+            Tensor targets);
+
+        Tensor &inputs();
+        const Tensor &inputs() const;
+
+        Tensor &targets();
+        const Tensor &targets() const;
+
+        bool empty() const;
+
+    private:
+        std::shared_ptr<BatchStorage> storage_;
     };
 
 }

@@ -178,19 +178,19 @@ int main()
         std::cout
             << "First batch shape: "
             << held_batches[0]
-                   .inputs
+                   .inputs()
                    .shape()[0]
             << "x"
             << held_batches[0]
-                   .inputs
+                   .inputs()
                    .shape()[1]
             << "x"
             << held_batches[0]
-                   .inputs
+                   .inputs()
                    .shape()[2]
             << "x"
             << held_batches[0]
-                   .inputs
+                   .inputs()
                    .shape()[3]
             << '\n';
 
@@ -203,7 +203,7 @@ int main()
 
         wait_and_print_stats(
             loader,
-            "After releasing held device batches",
+            "After releasing held batches",
             5);
 
         std::cout
@@ -228,7 +228,7 @@ int main()
             30);
 
         std::cout
-            << "\nDataLoader Phase 4 test passed\n";
+            << "\nDataLoader Phase 5A test passed\n";
 
         return EXIT_SUCCESS;
     }

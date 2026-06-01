@@ -13,14 +13,16 @@
 namespace kl
 {
 
-    inline std::size_t default_loader_worker_count()
+    inline std::size_t
+    default_loader_worker_count()
     {
         const std::size_t count =
             std::thread::hardware_concurrency();
 
         return std::max<std::size_t>(
             1,
-            count / 2);
+            count /
+                2);
     }
 
     struct DataLoaderOptions
@@ -38,11 +40,14 @@ namespace kl
         std::size_t loader_workers =
             default_loader_worker_count();
 
-        std::size_t host_prefetch_batches = 4;
+        std::size_t host_prefetch_batches =
+            4;
 
-        bool pin_host_memory = true;
+        bool pin_host_memory =
+            true;
 
-        std::size_t decoded_cache_bytes = 0;
+        std::size_t decoded_cache_bytes =
+            0;
 
         MemoryPolicy memory;
     };

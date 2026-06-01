@@ -115,25 +115,25 @@ namespace kl
                 options_
                     .host_prefetch_batches);
 
-        if (device_.type() !=
-            DeviceType::CPU)
-        {
-            host_batch_pool_ =
-                std::make_shared<
-                    HostBatchPool>(
-                    transform_
-                        .output_channels(),
-                    transform_
-                        .output_height(),
-                    transform_
-                        .output_width(),
+        host_batch_pool_ =
+            std::make_shared<
+                BatchStoragePool>(
+                options_
+                        .host_prefetch_batches +
                     options_
-                        .input_dtype,
-                    host_memory_type(
-                        device_,
-                        options_
-                            .pin_host_memory));
-        }
+                        .loader_workers,
+                transform_
+                    .output_channels(),
+                transform_
+                    .output_height(),
+                transform_
+                    .output_width(),
+                options_
+                    .input_dtype,
+                host_memory_type(
+                    device_,
+                    options_
+                        .pin_host_memory));
 
         start_workers();
         reset_epoch();
@@ -227,8 +227,8 @@ namespace kl
         if (pending !=
             pending_batches_.end())
         {
-            std::shared_ptr<Batch>
-                batch =
+            std::shared_ptr<BatchStorage>
+                storage =
                     std::move(
                         pending->second);
 
@@ -238,7 +238,7 @@ namespace kl
             ++next_batch_to_return_;
 
             return move_to_target_device(
-                std::move(batch));
+                std::move(storage));
         }
 
         while (true)
@@ -264,21 +264,21 @@ namespace kl
             if (prepared->index ==
                 next_batch_to_return_)
             {
-                std::shared_ptr<Batch>
-                    batch =
+                std::shared_ptr<BatchStorage>
+                    storage =
                         std::move(
-                            prepared->batch);
+                            prepared->storage);
 
                 ++next_batch_to_return_;
 
                 return move_to_target_device(
-                    std::move(batch));
+                    std::move(storage));
             }
 
             pending_batches_.emplace(
                 prepared->index,
                 std::move(
-                    prepared->batch));
+                    prepared->storage));
         }
     }
 
@@ -339,27 +339,15 @@ namespace kl
     std::size_t
     DataLoader::pooled_host_batch_count() const
     {
-        if (host_batch_pool_ ==
-            nullptr)
-        {
-            return 0;
-        }
-
         return host_batch_pool_
-            ->allocated_batch_count();
+            ->allocated_count();
     }
 
     std::size_t
     DataLoader::available_pooled_host_batch_count() const
     {
-        if (host_batch_pool_ ==
-            nullptr)
-        {
-            return 0;
-        }
-
         return host_batch_pool_
-            ->available_batch_count();
+            ->available_count();
     }
 
     void DataLoader::start_workers()
@@ -385,6 +373,8 @@ namespace kl
             true);
 
         host_queue_->close();
+
+        host_batch_pool_->close();
 
         epoch_cv_.notify_all();
 
@@ -420,7 +410,8 @@ namespace kl
                         lock,
                         [this, &previous_epoch]()
                         {
-                            return stop_requested_.load() ||
+                            return stop_requested_
+                                       .load() ||
                                    current_epoch_ !=
                                        previous_epoch;
                         });
@@ -450,8 +441,8 @@ namespace kl
                         break;
                     }
 
-                    std::shared_ptr<Batch>
-                        batch =
+                    std::shared_ptr<BatchStorage>
+                        storage =
                             prepare_host_batch(
                                 *epoch->order,
                                 batch_index);
@@ -470,7 +461,7 @@ namespace kl
                     PreparedBatch prepared{
                         epoch->generation,
                         batch_index,
-                        std::move(batch)};
+                        std::move(storage)};
 
                     if (!host_queue_->push(
                             std::move(
@@ -490,11 +481,13 @@ namespace kl
                 true);
 
             host_queue_->close();
+            host_batch_pool_->close();
+
             epoch_cv_.notify_all();
         }
     }
 
-    std::shared_ptr<Batch>
+    std::shared_ptr<BatchStorage>
     DataLoader::prepare_host_batch(
         const std::vector<std::size_t> &order,
         std::size_t batch_index) const
@@ -512,64 +505,21 @@ namespace kl
                 options_.batch_size,
                 remaining);
 
-        const std::size_t channels =
-            transform_
-                .output_channels();
-
-        const std::size_t height =
-            transform_
-                .output_height();
-
-        const std::size_t width =
-            transform_
-                .output_width();
-
-        std::shared_ptr<Batch>
-            batch;
-
-        if (host_batch_pool_ !=
-            nullptr)
-        {
-            batch =
+        std::shared_ptr<BatchStorage>
+            storage =
                 host_batch_pool_
                     ->acquire(
                         current_batch_size);
-        }
-        else
-        {
-            batch =
-                std::make_shared<Batch>(
-                    Batch{
-                        Tensor(
-                            Shape{
-                                current_batch_size,
-                                channels,
-                                height,
-                                width},
-                            options_
-                                .input_dtype,
-                            Device::cpu(),
-                            Layout::NCHW,
-                            Storage::RowMajor),
-
-                        Tensor(
-                            Shape{
-                                current_batch_size},
-                            DType::Int32,
-                            Device::cpu(),
-                            Layout::Unknown,
-                            Storage::RowMajor)});
-        }
 
         std::byte *inputs_data =
             static_cast<std::byte *>(
-                batch
+                storage
                     ->inputs
                     .data());
 
         std::int32_t *targets_data =
             static_cast<std::int32_t *>(
-                batch
+                storage
                     ->targets
                     .data());
 
@@ -596,8 +546,7 @@ namespace kl
                         ->find(
                             sample.path);
 
-            if (image ==
-                nullptr)
+            if (image == nullptr)
             {
                 image =
                     std::make_shared<Image>(
@@ -622,29 +571,29 @@ namespace kl
                 sample.label;
         }
 
-        return batch;
+        return storage;
     }
 
     Batch DataLoader::move_to_target_device(
-        std::shared_ptr<Batch> batch) const
+        std::shared_ptr<BatchStorage>
+            storage) const
     {
         if (device_.type() ==
             DeviceType::CPU)
         {
-            return std::move(
-                *batch);
+            return Batch(
+                std::move(storage));
         }
 
-        return Batch{
-            batch
+        return Batch(
+            storage
                 ->inputs
                 .to(
                     device_),
-
-            batch
+            storage
                 ->targets
                 .to(
-                    device_)};
+                    device_));
     }
 
     void DataLoader::store_worker_exception(
