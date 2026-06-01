@@ -3,6 +3,7 @@
 
 #include <data/internal/batch_storage.hpp>
 
+#include <core/device.hpp>
 #include <core/dtype.hpp>
 #include <core/memory_type.hpp>
 
@@ -27,7 +28,9 @@ namespace kl
             std::size_t height,
             std::size_t width,
             DType input_dtype,
-            MemoryType memory_type);
+            Device device,
+            MemoryType memory_type =
+                MemoryType::Default);
 
         std::shared_ptr<BatchStorage> acquire(
             std::size_t batch_size);
@@ -45,7 +48,8 @@ namespace kl
 
         void release(
             std::size_t batch_size,
-            std::unique_ptr<BatchStorage> storage) noexcept;
+            std::unique_ptr<BatchStorage>
+                storage) noexcept;
 
         bool has_available_storage() const;
 
@@ -57,6 +61,8 @@ namespace kl
         std::size_t width_;
 
         DType input_dtype_;
+
+        Device device_;
         MemoryType memory_type_;
 
         std::size_t allocated_count_ = 0;

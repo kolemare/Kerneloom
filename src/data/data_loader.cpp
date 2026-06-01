@@ -109,6 +109,14 @@ namespace kl
                 "DataLoader host prefetch batch count must be greater than zero");
         }
 
+        if (device_.type() !=
+                DeviceType::CPU &&
+            options_.device_prefetch_batches == 0)
+        {
+            throw std::runtime_error(
+                "DataLoader device prefetch batch count must be greater than zero");
+        }
+
         host_queue_ =
             std::make_unique<
                 BlockingQueue<PreparedBatch>>(
@@ -130,12 +138,52 @@ namespace kl
                     .output_width(),
                 options_
                     .input_dtype,
+                Device::cpu(),
                 host_memory_type(
                     device_,
                     options_
                         .pin_host_memory));
 
+        if (device_.type() !=
+            DeviceType::CPU)
+        {
+            device_queue_ =
+                std::make_unique<
+                    BlockingQueue<PreparedBatch>>(
+                    options_
+                        .device_prefetch_batches);
+
+            device_batch_pool_ =
+                std::make_shared<
+                    BatchStoragePool>(
+                    options_
+                            .device_prefetch_batches +
+                        1,
+                    transform_
+                        .output_channels(),
+                    transform_
+                        .output_height(),
+                    transform_
+                        .output_width(),
+                    options_
+                        .input_dtype,
+                    device_,
+                    MemoryType::Default);
+
+            transfer_stream_ =
+                std::make_unique<
+                    TransferStream>(
+                    device_);
+        }
+
         start_workers();
+
+        if (device_.type() !=
+            DeviceType::CPU)
+        {
+            start_transfer_worker();
+        }
+
         reset_epoch();
     }
 
@@ -170,7 +218,11 @@ namespace kl
         }
 
         ++epoch_;
-        ++generation_;
+
+        const std::size_t generation =
+            generation_
+                .fetch_add(1) +
+            1;
 
         total_batches_ =
             batch_count();
@@ -178,9 +230,19 @@ namespace kl
         next_batch_to_return_ =
             0;
 
-        pending_batches_.clear();
+        pending_host_batches_
+            .clear();
+
+        pending_device_batches_
+            .clear();
 
         host_queue_->clear();
+
+        if (device_queue_ !=
+            nullptr)
+        {
+            device_queue_->clear();
+        }
 
         std::shared_ptr<
             const std::vector<std::size_t>>
@@ -195,7 +257,7 @@ namespace kl
 
             current_epoch_ =
                 std::make_shared<EpochState>(
-                    generation_,
+                    generation,
                     std::move(
                         shared_order),
                     total_batches_);
@@ -220,24 +282,44 @@ namespace kl
                 "DataLoader::next called without remaining batch");
         }
 
+        if (device_.type() ==
+            DeviceType::CPU)
+        {
+            return next_from_queue(
+                *host_queue_,
+                pending_host_batches_);
+        }
+
+        return next_from_queue(
+            *device_queue_,
+            pending_device_batches_);
+    }
+
+    Batch DataLoader::next_from_queue(
+        BlockingQueue<PreparedBatch> &queue,
+        std::map<
+            std::size_t,
+            std::shared_ptr<BatchStorage>>
+            &pending_batches)
+    {
         const auto pending =
-            pending_batches_.find(
+            pending_batches.find(
                 next_batch_to_return_);
 
         if (pending !=
-            pending_batches_.end())
+            pending_batches.end())
         {
             std::shared_ptr<BatchStorage>
                 storage =
                     std::move(
                         pending->second);
 
-            pending_batches_.erase(
+            pending_batches.erase(
                 pending);
 
             ++next_batch_to_return_;
 
-            return move_to_target_device(
+            return Batch(
                 std::move(storage));
         }
 
@@ -245,18 +327,18 @@ namespace kl
         {
             std::optional<PreparedBatch>
                 prepared =
-                    host_queue_->pop();
+                    queue.pop();
 
             if (!prepared.has_value())
             {
                 rethrow_worker_exception();
 
                 throw std::runtime_error(
-                    "DataLoader host queue closed before expected batch was produced");
+                    "DataLoader queue closed before expected batch was produced");
             }
 
             if (prepared->generation !=
-                generation_)
+                generation_.load())
             {
                 continue;
             }
@@ -271,11 +353,11 @@ namespace kl
 
                 ++next_batch_to_return_;
 
-                return move_to_target_device(
+                return Batch(
                     std::move(storage));
             }
 
-            pending_batches_.emplace(
+            pending_batches.emplace(
                 prepared->index,
                 std::move(
                     prepared->storage));
@@ -306,6 +388,18 @@ namespace kl
     DataLoader::host_prefetched_batch_count() const
     {
         return host_queue_->size();
+    }
+
+    std::size_t
+    DataLoader::device_prefetched_batch_count() const
+    {
+        if (device_queue_ ==
+            nullptr)
+        {
+            return 0;
+        }
+
+        return device_queue_->size();
     }
 
     std::size_t
@@ -350,6 +444,32 @@ namespace kl
             ->available_count();
     }
 
+    std::size_t
+    DataLoader::pooled_device_batch_count() const
+    {
+        if (device_batch_pool_ ==
+            nullptr)
+        {
+            return 0;
+        }
+
+        return device_batch_pool_
+            ->allocated_count();
+    }
+
+    std::size_t
+    DataLoader::available_pooled_device_batch_count() const
+    {
+        if (device_batch_pool_ ==
+            nullptr)
+        {
+            return 0;
+        }
+
+        return device_batch_pool_
+            ->available_count();
+    }
+
     void DataLoader::start_workers()
     {
         workers_.reserve(
@@ -367,6 +487,16 @@ namespace kl
         }
     }
 
+    void DataLoader::start_transfer_worker()
+    {
+        transfer_worker_ =
+            std::thread(
+                [this]()
+                {
+                    transfer_worker_loop();
+                });
+    }
+
     void DataLoader::stop_workers()
     {
         stop_requested_.store(
@@ -374,7 +504,19 @@ namespace kl
 
         host_queue_->close();
 
+        if (device_queue_ !=
+            nullptr)
+        {
+            device_queue_->close();
+        }
+
         host_batch_pool_->close();
+
+        if (device_batch_pool_ !=
+            nullptr)
+        {
+            device_batch_pool_->close();
+        }
 
         epoch_cv_.notify_all();
 
@@ -388,6 +530,13 @@ namespace kl
         }
 
         workers_.clear();
+
+        if (transfer_worker_
+                .joinable())
+        {
+            transfer_worker_
+                .join();
+        }
     }
 
     void DataLoader::worker_loop()
@@ -474,14 +623,123 @@ namespace kl
         }
         catch (...)
         {
-            store_worker_exception(
-                std::current_exception());
+            if (!stop_requested_.load())
+            {
+                store_worker_exception(
+                    std::current_exception());
+            }
 
             stop_requested_.store(
                 true);
 
             host_queue_->close();
+
+            if (device_queue_ !=
+                nullptr)
+            {
+                device_queue_->close();
+            }
+
             host_batch_pool_->close();
+
+            if (device_batch_pool_ !=
+                nullptr)
+            {
+                device_batch_pool_->close();
+            }
+
+            epoch_cv_.notify_all();
+        }
+    }
+
+    void DataLoader::transfer_worker_loop()
+    {
+        try
+        {
+            while (!stop_requested_.load())
+            {
+                std::optional<PreparedBatch>
+                    prepared =
+                        host_queue_->pop();
+
+                if (!prepared.has_value())
+                {
+                    return;
+                }
+
+                if (prepared->generation !=
+                    generation_.load())
+                {
+                    continue;
+                }
+
+                const std::size_t batch_size =
+                    prepared
+                        ->storage
+                        ->inputs
+                        .shape()[0];
+
+                std::shared_ptr<BatchStorage>
+                    device_storage =
+                        device_batch_pool_
+                            ->acquire(
+                                batch_size);
+
+                transfer_stream_
+                    ->copy_async(
+                        device_storage
+                            ->inputs,
+                        prepared
+                            ->storage
+                            ->inputs);
+
+                transfer_stream_
+                    ->copy_async(
+                        device_storage
+                            ->targets,
+                        prepared
+                            ->storage
+                            ->targets);
+
+                transfer_stream_
+                    ->synchronize();
+
+                if (prepared->generation !=
+                    generation_.load())
+                {
+                    continue;
+                }
+
+                PreparedBatch ready{
+                    prepared->generation,
+                    prepared->index,
+                    std::move(
+                        device_storage)};
+
+                if (!device_queue_->push(
+                        std::move(
+                            ready)))
+                {
+                    return;
+                }
+            }
+        }
+        catch (...)
+        {
+            if (!stop_requested_.load())
+            {
+                store_worker_exception(
+                    std::current_exception());
+            }
+
+            stop_requested_.store(
+                true);
+
+            host_queue_->close();
+            device_queue_->close();
+
+            host_batch_pool_->close();
+            device_batch_pool_->close();
 
             epoch_cv_.notify_all();
         }
@@ -572,28 +830,6 @@ namespace kl
         }
 
         return storage;
-    }
-
-    Batch DataLoader::move_to_target_device(
-        std::shared_ptr<BatchStorage>
-            storage) const
-    {
-        if (device_.type() ==
-            DeviceType::CPU)
-        {
-            return Batch(
-                std::move(storage));
-        }
-
-        return Batch(
-            storage
-                ->inputs
-                .to(
-                    device_),
-            storage
-                ->targets
-                .to(
-                    device_));
     }
 
     void DataLoader::store_worker_exception(

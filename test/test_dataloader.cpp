@@ -36,6 +36,12 @@ namespace
             << '\n';
 
         std::cout
+            << "Device prefetched batches: "
+            << loader
+                   .device_prefetched_batch_count()
+            << '\n';
+
+        std::cout
             << "Allocated pooled host batches: "
             << loader
                    .pooled_host_batch_count()
@@ -45,6 +51,18 @@ namespace
             << "Available pooled host batches: "
             << loader
                    .available_pooled_host_batch_count()
+            << '\n';
+
+        std::cout
+            << "Allocated pooled device batches: "
+            << loader
+                   .pooled_device_batch_count()
+            << '\n';
+
+        std::cout
+            << "Available pooled device batches: "
+            << loader
+                   .available_pooled_device_batch_count()
             << '\n';
 
         std::cout
@@ -116,9 +134,15 @@ int main()
         options.drop_last = true;
 
         options.loader_workers = 8;
-        options.host_prefetch_batches = 64;
 
-        options.pin_host_memory = true;
+        options.host_prefetch_batches =
+            64;
+
+        options.device_prefetch_batches =
+            3;
+
+        options.pin_host_memory =
+            true;
 
         options.decoded_cache_bytes =
             4ULL *
@@ -155,22 +179,17 @@ int main()
 
         wait_and_print_stats(
             loader,
-            "Initial queue fill",
+            "Initial pipeline fill",
             30);
 
         std::vector<kl::Batch>
             held_batches;
 
-        for (std::size_t i = 0;
-             i < 8;
-             ++i)
-        {
-            held_batches.push_back(
-                loader.next());
-        }
+        held_batches.push_back(
+            loader.next());
 
         std::cout
-            << "\nLoaded 8 batches on "
+            << "\nLoaded one batch on "
             << kl::to_string(
                    target.type())
             << '\n';
@@ -196,15 +215,15 @@ int main()
 
         wait_and_print_stats(
             loader,
-            "Queue refill after consuming 8 batches",
+            "Pipeline refill while one batch is held",
             15);
 
         held_batches.clear();
 
         wait_and_print_stats(
             loader,
-            "After releasing held batches",
-            5);
+            "After releasing held batch",
+            10);
 
         std::cout
             << "\nResetting epoch...\n";
@@ -213,7 +232,7 @@ int main()
 
         wait_and_print_stats(
             loader,
-            "Queue refill after epoch reset",
+            "Pipeline refill after epoch reset",
             30);
 
         kl::Batch first_batch_new_epoch =
@@ -228,7 +247,7 @@ int main()
             30);
 
         std::cout
-            << "\nDataLoader Phase 5A test passed\n";
+            << "\nDataLoader test passed\n";
 
         return EXIT_SUCCESS;
     }

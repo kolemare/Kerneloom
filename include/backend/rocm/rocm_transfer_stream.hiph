@@ -1,0 +1,24 @@
+#ifndef KL_ROCM_TRANSFER_STREAM_HIPH
+#define KL_ROCM_TRANSFER_STREAM_HIPH
+
+#include <core/tensor.hpp>
+
+namespace kl
+{
+
+    void *rocm_transfer_stream_create();
+
+    void rocm_transfer_stream_destroy(
+        void *handle) noexcept;
+
+    void rocm_transfer_stream_copy_async(
+        void *handle,
+        Tensor &destination,
+        const Tensor &source);
+
+    void rocm_transfer_stream_synchronize(
+        void *handle);
+
+}
+
+#endif // KL_ROCM_TRANSFER_STREAM_HIPH

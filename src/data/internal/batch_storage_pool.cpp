@@ -1,6 +1,5 @@
 #include <data/internal/batch_storage_pool.hpp>
 
-#include <core/device.hpp>
 #include <core/layout.hpp>
 #include <core/shape.hpp>
 #include <core/storage.hpp>
@@ -17,6 +16,7 @@ namespace kl
         std::size_t height,
         std::size_t width,
         DType input_dtype,
+        Device device,
         MemoryType memory_type)
         : capacity_(
               capacity),
@@ -28,6 +28,8 @@ namespace kl
               width),
           input_dtype_(
               input_dtype),
+          device_(
+              device),
           memory_type_(
               memory_type)
     {
@@ -239,7 +241,7 @@ namespace kl
                         height_,
                         width_},
                     input_dtype_,
-                    Device::cpu(),
+                    device_,
                     Layout::NCHW,
                     Storage::RowMajor,
                     memory_type_),
@@ -248,7 +250,7 @@ namespace kl
                     Shape{
                         batch_size},
                     DType::Int32,
-                    Device::cpu(),
+                    device_,
                     Layout::Unknown,
                     Storage::RowMajor,
                     memory_type_)});
@@ -256,7 +258,8 @@ namespace kl
 
     void BatchStoragePool::release(
         std::size_t batch_size,
-        std::unique_ptr<BatchStorage> storage) noexcept
+        std::unique_ptr<BatchStorage>
+            storage) noexcept
     {
         if (storage == nullptr)
         {

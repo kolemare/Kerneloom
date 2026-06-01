@@ -43,6 +43,9 @@ namespace kl
         std::size_t host_prefetch_batches =
             4;
 
+        std::size_t device_prefetch_batches =
+            3;
+
         bool pin_host_memory =
             true;
 

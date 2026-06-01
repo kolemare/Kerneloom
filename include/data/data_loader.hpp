@@ -11,6 +11,7 @@
 #include <data/internal/decoded_image_cache.hpp>
 
 #include <core/device.hpp>
+#include <core/transfer_stream.hpp>
 
 #include <atomic>
 #include <condition_variable>
@@ -50,6 +51,7 @@ namespace kl
         std::size_t batch_count() const;
 
         std::size_t host_prefetched_batch_count() const;
+        std::size_t device_prefetched_batch_count() const;
 
         std::size_t decoded_cache_image_count() const;
         std::size_t decoded_cache_used_bytes() const;
@@ -59,6 +61,9 @@ namespace kl
 
         std::size_t pooled_host_batch_count() const;
         std::size_t available_pooled_host_batch_count() const;
+
+        std::size_t pooled_device_batch_count() const;
+        std::size_t available_pooled_device_batch_count() const;
 
     private:
         struct EpochState
@@ -96,14 +101,20 @@ namespace kl
 
         void worker_loop();
 
+        void start_transfer_worker();
+        void transfer_worker_loop();
+
+        Batch next_from_queue(
+            BlockingQueue<PreparedBatch> &queue,
+            std::map<
+                std::size_t,
+                std::shared_ptr<BatchStorage>>
+                &pending_batches);
+
         std::shared_ptr<BatchStorage>
         prepare_host_batch(
             const std::vector<std::size_t> &order,
             std::size_t batch_index) const;
-
-        Batch move_to_target_device(
-            std::shared_ptr<BatchStorage>
-                storage) const;
 
         void store_worker_exception(
             std::exception_ptr exception);
@@ -120,7 +131,9 @@ namespace kl
         DataLoaderOptions options_;
 
         std::size_t epoch_ = 0;
-        std::size_t generation_ = 0;
+
+        std::atomic<std::size_t>
+            generation_{0};
 
         std::size_t next_batch_to_return_ =
             0;
@@ -135,16 +148,34 @@ namespace kl
             BlockingQueue<PreparedBatch>>
             host_queue_;
 
+        std::unique_ptr<
+            BlockingQueue<PreparedBatch>>
+            device_queue_;
+
         std::vector<std::thread>
             workers_;
+
+        std::thread
+            transfer_worker_;
 
         std::map<
             std::size_t,
             std::shared_ptr<BatchStorage>>
-            pending_batches_;
+            pending_host_batches_;
+
+        std::map<
+            std::size_t,
+            std::shared_ptr<BatchStorage>>
+            pending_device_batches_;
 
         std::shared_ptr<BatchStoragePool>
             host_batch_pool_;
+
+        std::shared_ptr<BatchStoragePool>
+            device_batch_pool_;
+
+        std::unique_ptr<TransferStream>
+            transfer_stream_;
 
         mutable std::mutex
             epoch_mutex_;
