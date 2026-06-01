@@ -48,17 +48,13 @@ namespace kl
     }
 
     void CudaPinnedAllocator::deallocate(
-        void *ptr)
+        void *ptr) noexcept
     {
-        if (ptr == nullptr)
+        if (ptr != nullptr)
         {
-            return;
+            static_cast<void>(
+                cudaFreeHost(ptr));
         }
-
-        check_cuda(
-            cudaFreeHost(
-                ptr),
-            "cudaFreeHost failed");
     }
 
 }

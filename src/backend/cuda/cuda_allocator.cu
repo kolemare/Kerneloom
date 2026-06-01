@@ -35,14 +35,14 @@ namespace kl
         return ptr;
     }
 
-    void CudaAllocator::deallocate(void *ptr)
+    void CudaAllocator::deallocate(
+        void *ptr) noexcept
     {
-        if (ptr == nullptr)
+        if (ptr != nullptr)
         {
-            return;
+            static_cast<void>(
+                cudaFree(ptr));
         }
-
-        check_cuda(cudaFree(ptr), "cudaFree failed");
     }
 
 }

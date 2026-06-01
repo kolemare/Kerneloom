@@ -14,7 +14,7 @@ namespace kl
             std::size_t nbytes) override;
 
         void deallocate(
-            void *ptr) override;
+            void *ptr) noexcept override;
     };
 
 }

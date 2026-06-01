@@ -2,8 +2,6 @@
 
 #include <core/allocator.hpp>
 
-#include <utility>
-
 namespace kl
 {
 
@@ -25,7 +23,7 @@ namespace kl
                     nbytes_);
     }
 
-    Buffer::~Buffer()
+    Buffer::~Buffer() noexcept
     {
         release();
     }
@@ -35,8 +33,7 @@ namespace kl
         : data_(other.data_),
           nbytes_(other.nbytes_),
           device_(other.device_),
-          memory_type_(
-              other.memory_type_)
+          memory_type_(other.memory_type_)
     {
         other.data_ = nullptr;
         other.nbytes_ = 0;
@@ -111,7 +108,7 @@ namespace kl
                nbytes_ == 0;
     }
 
-    void Buffer::release()
+    void Buffer::release() noexcept
     {
         if (data_ == nullptr)
         {

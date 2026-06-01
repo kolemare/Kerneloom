@@ -35,14 +35,14 @@ namespace kl
         return ptr;
     }
 
-    void RocmAllocator::deallocate(void *ptr)
+    void RocmAllocator::deallocate(
+        void *ptr) noexcept
     {
-        if (ptr == nullptr)
+        if (ptr != nullptr)
         {
-            return;
+            static_cast<void>(
+                hipFree(ptr));
         }
-
-        check_hip(hipFree(ptr), "hipFree failed");
     }
 
 }

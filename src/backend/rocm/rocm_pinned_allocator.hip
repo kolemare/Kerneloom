@@ -48,17 +48,13 @@ namespace kl
     }
 
     void RocmPinnedAllocator::deallocate(
-        void *ptr)
+        void *ptr) noexcept
     {
-        if (ptr == nullptr)
+        if (ptr != nullptr)
         {
-            return;
+            static_cast<void>(
+                hipHostFree(ptr));
         }
-
-        check_hip(
-            hipHostFree(
-                ptr),
-            "hipHostFree failed");
     }
 
 }

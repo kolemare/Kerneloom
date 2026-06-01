@@ -18,7 +18,7 @@ namespace kl
             std::size_t nbytes) = 0;
 
         virtual void deallocate(
-            void *ptr) = 0;
+            void *ptr) noexcept = 0;
     };
 
     Allocator &allocator_for(

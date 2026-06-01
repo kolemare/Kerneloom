@@ -20,7 +20,7 @@ namespace kl
             MemoryType memory_type =
                 MemoryType::Default);
 
-        ~Buffer();
+        ~Buffer() noexcept;
 
         Buffer(const Buffer &) = delete;
         Buffer &operator=(const Buffer &) = delete;
@@ -39,7 +39,7 @@ namespace kl
         bool empty() const;
 
     private:
-        void release();
+        void release() noexcept;
 
     private:
         void *data_ = nullptr;

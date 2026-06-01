@@ -10,7 +10,7 @@ namespace kl
     {
     public:
         void *allocate(std::size_t nbytes) override;
-        void deallocate(void *ptr) override;
+        void deallocate(void *ptr) noexcept override;
     };
 
 }

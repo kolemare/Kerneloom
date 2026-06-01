@@ -23,7 +23,8 @@ namespace kl
         return ptr;
     }
 
-    void CpuAllocator::deallocate(void *ptr)
+    void CpuAllocator::deallocate(
+        void *ptr) noexcept
     {
         std::free(ptr);
     }
