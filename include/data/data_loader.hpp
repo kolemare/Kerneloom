@@ -7,6 +7,7 @@
 #include <data/image_transform.hpp>
 #include <data/internal/blocking_queue.hpp>
 #include <data/internal/decoded_image_cache.hpp>
+#include <data/internal/host_batch_pool.hpp>
 
 #include <core/device.hpp>
 
@@ -55,6 +56,9 @@ namespace kl
         std::uint64_t decoded_cache_hit_count() const;
         std::uint64_t decoded_cache_miss_count() const;
 
+        std::size_t pooled_host_batch_count() const;
+        std::size_t available_pooled_host_batch_count() const;
+
     private:
         struct EpochState
         {
@@ -82,7 +86,7 @@ namespace kl
             std::size_t generation;
             std::size_t index;
 
-            Batch batch;
+            std::shared_ptr<Batch> batch;
         };
 
         void start_workers();
@@ -90,12 +94,12 @@ namespace kl
 
         void worker_loop();
 
-        Batch prepare_host_batch(
+        std::shared_ptr<Batch> prepare_host_batch(
             const std::vector<std::size_t> &order,
             std::size_t batch_index) const;
 
         Batch move_to_target_device(
-            Batch batch) const;
+            std::shared_ptr<Batch> batch) const;
 
         void store_worker_exception(
             std::exception_ptr exception);
@@ -126,8 +130,13 @@ namespace kl
         std::vector<std::thread>
             workers_;
 
-        std::map<std::size_t, Batch>
+        std::map<
+            std::size_t,
+            std::shared_ptr<Batch>>
             pending_batches_;
+
+        std::shared_ptr<HostBatchPool>
+            host_batch_pool_;
 
         mutable std::mutex
             epoch_mutex_;

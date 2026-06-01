@@ -1,0 +1,22 @@
+#ifndef KL_ROCM_PINNED_ALLOCATOR_HIPH
+#define KL_ROCM_PINNED_ALLOCATOR_HIPH
+
+#include <core/allocator.hpp>
+
+namespace kl
+{
+
+    class RocmPinnedAllocator final
+        : public Allocator
+    {
+    public:
+        void *allocate(
+            std::size_t nbytes) override;
+
+        void deallocate(
+            void *ptr) override;
+    };
+
+}
+
+#endif // KL_ROCM_PINNED_ALLOCATOR_HIPH

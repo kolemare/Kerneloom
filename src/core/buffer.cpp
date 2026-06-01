@@ -9,11 +9,20 @@ namespace kl
 
     Buffer::Buffer() = default;
 
-    Buffer::Buffer(std::size_t nbytes, Device device)
+    Buffer::Buffer(
+        std::size_t nbytes,
+        Device device,
+        MemoryType memory_type)
         : nbytes_(nbytes),
-          device_(device)
+          device_(device),
+          memory_type_(memory_type)
     {
-        data_ = allocator_for(device_).allocate(nbytes_);
+        data_ =
+            allocator_for(
+                device_,
+                memory_type_)
+                .allocate(
+                    nbytes_);
     }
 
     Buffer::~Buffer()
@@ -21,29 +30,51 @@ namespace kl
         release();
     }
 
-    Buffer::Buffer(Buffer &&other) noexcept
+    Buffer::Buffer(
+        Buffer &&other) noexcept
         : data_(other.data_),
           nbytes_(other.nbytes_),
-          device_(other.device_)
+          device_(other.device_),
+          memory_type_(
+              other.memory_type_)
     {
         other.data_ = nullptr;
         other.nbytes_ = 0;
-        other.device_ = Device::cpu();
+
+        other.device_ =
+            Device::cpu();
+
+        other.memory_type_ =
+            MemoryType::Default;
     }
 
-    Buffer &Buffer::operator=(Buffer &&other) noexcept
+    Buffer &Buffer::operator=(
+        Buffer &&other) noexcept
     {
         if (this != &other)
         {
             release();
 
-            data_ = other.data_;
-            nbytes_ = other.nbytes_;
-            device_ = other.device_;
+            data_ =
+                other.data_;
+
+            nbytes_ =
+                other.nbytes_;
+
+            device_ =
+                other.device_;
+
+            memory_type_ =
+                other.memory_type_;
 
             other.data_ = nullptr;
             other.nbytes_ = 0;
-            other.device_ = Device::cpu();
+
+            other.device_ =
+                Device::cpu();
+
+            other.memory_type_ =
+                MemoryType::Default;
         }
 
         return *this;
@@ -69,20 +100,38 @@ namespace kl
         return device_;
     }
 
+    MemoryType Buffer::memory_type() const
+    {
+        return memory_type_;
+    }
+
     bool Buffer::empty() const
     {
-        return data_ == nullptr || nbytes_ == 0;
+        return data_ == nullptr ||
+               nbytes_ == 0;
     }
 
     void Buffer::release()
     {
-        if (data_ != nullptr)
+        if (data_ == nullptr)
         {
-            allocator_for(device_).deallocate(data_);
-            data_ = nullptr;
-            nbytes_ = 0;
-            device_ = Device::cpu();
+            return;
         }
+
+        allocator_for(
+            device_,
+            memory_type_)
+            .deallocate(
+                data_);
+
+        data_ = nullptr;
+        nbytes_ = 0;
+
+        device_ =
+            Device::cpu();
+
+        memory_type_ =
+            MemoryType::Default;
     }
 
 }

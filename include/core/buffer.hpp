@@ -2,6 +2,7 @@
 #define KL_BUFFER_HPP
 
 #include <core/device.hpp>
+#include <core/memory_type.hpp>
 
 #include <cstddef>
 
@@ -12,7 +13,13 @@ namespace kl
     {
     public:
         Buffer();
-        Buffer(std::size_t nbytes, Device device);
+
+        Buffer(
+            std::size_t nbytes,
+            Device device,
+            MemoryType memory_type =
+                MemoryType::Default);
+
         ~Buffer();
 
         Buffer(const Buffer &) = delete;
@@ -25,7 +32,9 @@ namespace kl
         const void *data() const;
 
         std::size_t nbytes() const;
+
         Device device() const;
+        MemoryType memory_type() const;
 
         bool empty() const;
 
@@ -34,8 +43,14 @@ namespace kl
 
     private:
         void *data_ = nullptr;
+
         std::size_t nbytes_ = 0;
-        Device device_ = Device::cpu();
+
+        Device device_ =
+            Device::cpu();
+
+        MemoryType memory_type_ =
+            MemoryType::Default;
     };
 
 }

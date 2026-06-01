@@ -4,6 +4,7 @@
 
 #include <core/dtype.hpp>
 #include <core/layout.hpp>
+#include <core/memory_type.hpp>
 #include <core/shape.hpp>
 #include <core/storage.hpp>
 
@@ -20,6 +21,36 @@
 
 namespace kl
 {
+
+    namespace
+    {
+
+        MemoryType host_memory_type(
+            Device device,
+            bool pin_host_memory)
+        {
+            if (!pin_host_memory)
+            {
+                return MemoryType::Default;
+            }
+
+            switch (device.type())
+            {
+            case DeviceType::CPU:
+                return MemoryType::Default;
+
+            case DeviceType::CUDA:
+                return MemoryType::CudaPinnedHost;
+
+            case DeviceType::ROCM:
+                return MemoryType::RocmPinnedHost;
+
+            default:
+                return MemoryType::Default;
+            }
+        }
+
+    }
 
     DataLoader::EpochState::EpochState(
         std::size_t generation,
@@ -83,6 +114,26 @@ namespace kl
                 BlockingQueue<PreparedBatch>>(
                 options_
                     .host_prefetch_batches);
+
+        if (device_.type() !=
+            DeviceType::CPU)
+        {
+            host_batch_pool_ =
+                std::make_shared<
+                    HostBatchPool>(
+                    transform_
+                        .output_channels(),
+                    transform_
+                        .output_height(),
+                    transform_
+                        .output_width(),
+                    options_
+                        .input_dtype,
+                    host_memory_type(
+                        device_,
+                        options_
+                            .pin_host_memory));
+        }
 
         start_workers();
         reset_epoch();
@@ -176,9 +227,10 @@ namespace kl
         if (pending !=
             pending_batches_.end())
         {
-            Batch batch =
-                std::move(
-                    pending->second);
+            std::shared_ptr<Batch>
+                batch =
+                    std::move(
+                        pending->second);
 
             pending_batches_.erase(
                 pending);
@@ -212,9 +264,10 @@ namespace kl
             if (prepared->index ==
                 next_batch_to_return_)
             {
-                Batch batch =
-                    std::move(
-                        prepared->batch);
+                std::shared_ptr<Batch>
+                    batch =
+                        std::move(
+                            prepared->batch);
 
                 ++next_batch_to_return_;
 
@@ -281,6 +334,32 @@ namespace kl
     {
         return decoded_cache_
             ->miss_count();
+    }
+
+    std::size_t
+    DataLoader::pooled_host_batch_count() const
+    {
+        if (host_batch_pool_ ==
+            nullptr)
+        {
+            return 0;
+        }
+
+        return host_batch_pool_
+            ->allocated_batch_count();
+    }
+
+    std::size_t
+    DataLoader::available_pooled_host_batch_count() const
+    {
+        if (host_batch_pool_ ==
+            nullptr)
+        {
+            return 0;
+        }
+
+        return host_batch_pool_
+            ->available_batch_count();
     }
 
     void DataLoader::start_workers()
@@ -371,10 +450,11 @@ namespace kl
                         break;
                     }
 
-                    Batch batch =
-                        prepare_host_batch(
-                            *epoch->order,
-                            batch_index);
+                    std::shared_ptr<Batch>
+                        batch =
+                            prepare_host_batch(
+                                *epoch->order,
+                                batch_index);
 
                     {
                         std::lock_guard<std::mutex> lock(
@@ -414,7 +494,8 @@ namespace kl
         }
     }
 
-    Batch DataLoader::prepare_host_batch(
+    std::shared_ptr<Batch>
+    DataLoader::prepare_host_batch(
         const std::vector<std::size_t> &order,
         std::size_t batch_index) const
     {
@@ -432,45 +513,72 @@ namespace kl
                 remaining);
 
         const std::size_t channels =
-            transform_.output_channels();
+            transform_
+                .output_channels();
 
         const std::size_t height =
-            transform_.output_height();
+            transform_
+                .output_height();
 
         const std::size_t width =
-            transform_.output_width();
+            transform_
+                .output_width();
 
-        Tensor inputs(
-            Shape{
-                current_batch_size,
-                channels,
-                height,
-                width},
-            options_.input_dtype,
-            Device::cpu(),
-            Layout::NCHW,
-            Storage::RowMajor);
+        std::shared_ptr<Batch>
+            batch;
 
-        Tensor targets(
-            Shape{
-                current_batch_size},
-            DType::Int32,
-            Device::cpu(),
-            Layout::Unknown,
-            Storage::RowMajor);
+        if (host_batch_pool_ !=
+            nullptr)
+        {
+            batch =
+                host_batch_pool_
+                    ->acquire(
+                        current_batch_size);
+        }
+        else
+        {
+            batch =
+                std::make_shared<Batch>(
+                    Batch{
+                        Tensor(
+                            Shape{
+                                current_batch_size,
+                                channels,
+                                height,
+                                width},
+                            options_
+                                .input_dtype,
+                            Device::cpu(),
+                            Layout::NCHW,
+                            Storage::RowMajor),
+
+                        Tensor(
+                            Shape{
+                                current_batch_size},
+                            DType::Int32,
+                            Device::cpu(),
+                            Layout::Unknown,
+                            Storage::RowMajor)});
+        }
 
         std::byte *inputs_data =
             static_cast<std::byte *>(
-                inputs.data());
+                batch
+                    ->inputs
+                    .data());
 
         std::int32_t *targets_data =
             static_cast<std::int32_t *>(
-                targets.data());
+                batch
+                    ->targets
+                    .data());
 
         const std::size_t image_bytes =
-            transform_.output_numel() *
+            transform_
+                .output_numel() *
             dtype_size(
-                options_.input_dtype);
+                options_
+                    .input_dtype);
 
         ImageDecoder decoder;
 
@@ -484,19 +592,22 @@ namespace kl
 
             std::shared_ptr<const Image>
                 image =
-                    decoded_cache_->find(
-                        sample.path);
+                    decoded_cache_
+                        ->find(
+                            sample.path);
 
-            if (image == nullptr)
+            if (image ==
+                nullptr)
             {
                 image =
                     std::make_shared<Image>(
                         decoder.decode(
                             sample.path));
 
-                decoded_cache_->insert(
-                    sample.path,
-                    image);
+                decoded_cache_
+                    ->insert(
+                        sample.path,
+                        image);
             }
 
             transform_.write_chw(
@@ -504,31 +615,36 @@ namespace kl
                 inputs_data +
                     n *
                         image_bytes,
-                options_.input_dtype);
+                options_
+                    .input_dtype);
 
             targets_data[n] =
                 sample.label;
         }
 
-        return Batch{
-            std::move(inputs),
-            std::move(targets)};
+        return batch;
     }
 
     Batch DataLoader::move_to_target_device(
-        Batch batch) const
+        std::shared_ptr<Batch> batch) const
     {
         if (device_.type() ==
             DeviceType::CPU)
         {
-            return batch;
+            return std::move(
+                *batch);
         }
 
         return Batch{
-            batch.inputs.to(
-                device_),
-            batch.targets.to(
-                device_)};
+            batch
+                ->inputs
+                .to(
+                    device_),
+
+            batch
+                ->targets
+                .to(
+                    device_)};
     }
 
     void DataLoader::store_worker_exception(

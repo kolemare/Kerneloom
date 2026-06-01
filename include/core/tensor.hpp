@@ -5,6 +5,7 @@
 #include <core/device.hpp>
 #include <core/dtype.hpp>
 #include <core/layout.hpp>
+#include <core/memory_type.hpp>
 #include <core/shape.hpp>
 #include <core/storage.hpp>
 
@@ -21,7 +22,9 @@ namespace kl
             DType dtype = DType::Float32,
             Device device = Device::cpu(),
             Layout layout = Layout::Unknown,
-            Storage storage = Storage::RowMajor);
+            Storage storage = Storage::RowMajor,
+            MemoryType memory_type =
+                MemoryType::Default);
 
         Tensor(const Tensor &) = delete;
         Tensor &operator=(const Tensor &) = delete;
@@ -30,10 +33,14 @@ namespace kl
         Tensor &operator=(Tensor &&other) noexcept = default;
 
         const Shape &shape() const;
+
         DType dtype() const;
         Device device() const;
+
         Layout layout() const;
         Storage storage() const;
+
+        MemoryType memory_type() const;
 
         std::size_t rank() const;
         std::size_t numel() const;
@@ -42,17 +49,26 @@ namespace kl
         void *data();
         const void *data() const;
 
-        void reshape_inplace(Shape shape);
-        void set_layout(Layout layout);
+        void reshape_inplace(
+            Shape shape);
 
-        Tensor to(Device device) const;
+        void set_layout(
+            Layout layout);
+
+        Tensor to(
+            Device device,
+            MemoryType memory_type =
+                MemoryType::Default) const;
 
     private:
         Shape shape_;
+
         DType dtype_;
         Device device_;
+
         Layout layout_;
         Storage storage_;
+
         Buffer buffer_;
     };
 

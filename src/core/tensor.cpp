@@ -13,13 +13,23 @@ namespace kl
         DType dtype,
         Device device,
         Layout layout,
-        Storage storage)
-        : shape_(std::move(shape)),
-          dtype_(dtype),
-          device_(device),
-          layout_(layout),
-          storage_(storage),
-          buffer_(shape_.numel() * dtype_size(dtype_), device_)
+        Storage storage,
+        MemoryType memory_type)
+        : shape_(
+              std::move(shape)),
+          dtype_(
+              dtype),
+          device_(
+              device),
+          layout_(
+              layout),
+          storage_(
+              storage),
+          buffer_(
+              shape_.numel() *
+                  dtype_size(dtype_),
+              device_,
+              memory_type)
     {
     }
 
@@ -48,6 +58,11 @@ namespace kl
         return storage_;
     }
 
+    MemoryType Tensor::memory_type() const
+    {
+        return buffer_.memory_type();
+    }
+
     std::size_t Tensor::rank() const
     {
         return shape_.rank();
@@ -73,31 +88,42 @@ namespace kl
         return buffer_.data();
     }
 
-    void Tensor::reshape_inplace(Shape shape)
+    void Tensor::reshape_inplace(
+        Shape shape)
     {
-        if (shape.numel() != shape_.numel())
+        if (shape.numel() !=
+            shape_.numel())
         {
-            throw std::runtime_error("Tensor::reshape_inplace requires same number of elements");
+            throw std::runtime_error(
+                "Tensor::reshape_inplace requires same number of elements");
         }
 
-        shape_ = std::move(shape);
+        shape_ =
+            std::move(shape);
     }
 
-    void Tensor::set_layout(Layout layout)
+    void Tensor::set_layout(
+        Layout layout)
     {
-        layout_ = layout;
+        layout_ =
+            layout;
     }
 
-    Tensor Tensor::to(Device device) const
+    Tensor Tensor::to(
+        Device device,
+        MemoryType memory_type) const
     {
         Tensor result(
             shape_,
             dtype_,
             device,
             layout_,
-            storage_);
+            storage_,
+            memory_type);
 
-        copy(result, *this);
+        copy(
+            result,
+            *this);
 
         return result;
     }

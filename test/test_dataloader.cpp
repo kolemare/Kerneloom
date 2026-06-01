@@ -36,6 +36,18 @@ namespace
             << '\n';
 
         std::cout
+            << "Allocated pooled host batches: "
+            << loader
+                   .pooled_host_batch_count()
+            << '\n';
+
+        std::cout
+            << "Available pooled host batches: "
+            << loader
+                   .available_pooled_host_batch_count()
+            << '\n';
+
+        std::cout
             << "Decoded cache images: "
             << loader
                    .decoded_cache_image_count()
@@ -68,6 +80,7 @@ namespace
         std::size_t seconds)
     {
         std::cout
+            << '\n'
             << message
             << " | waiting "
             << seconds
@@ -95,6 +108,7 @@ int main()
 
         kl::DataLoaderOptions options;
         options.batch_size = 64;
+
         options.input_dtype =
             kl::DType::Float32;
 
@@ -103,6 +117,8 @@ int main()
 
         options.loader_workers = 8;
         options.host_prefetch_batches = 64;
+
+        options.pin_host_memory = true;
 
         options.decoded_cache_bytes =
             4ULL *
@@ -154,7 +170,7 @@ int main()
         }
 
         std::cout
-            << "Loaded 8 batches on "
+            << "\nLoaded 8 batches on "
             << kl::to_string(
                    target.type())
             << '\n';
@@ -180,11 +196,18 @@ int main()
 
         wait_and_print_stats(
             loader,
-            "Queue refill after consuming batches",
+            "Queue refill after consuming 8 batches",
             15);
 
+        held_batches.clear();
+
+        wait_and_print_stats(
+            loader,
+            "After releasing held device batches",
+            5);
+
         std::cout
-            << "Resetting epoch...\n";
+            << "\nResetting epoch...\n";
 
         loader.reset_epoch();
 
@@ -197,17 +220,15 @@ int main()
             loader.next();
 
         std::cout
-            << "Loaded first batch from new epoch\n";
+            << "\nLoaded first batch from new epoch\n";
+
+        wait_and_print_stats(
+            loader,
+            "Holding state for memory inspection",
+            30);
 
         std::cout
-            << "Holding batches for memory inspection for 30 seconds...\n";
-
-        std::this_thread::sleep_for(
-            std::chrono::seconds(
-                30));
-
-        std::cout
-            << "DataLoader Phase 3 test passed\n";
+            << "\nDataLoader Phase 4 test passed\n";
 
         return EXIT_SUCCESS;
     }
