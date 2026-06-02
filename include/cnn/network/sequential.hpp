@@ -71,7 +71,11 @@ namespace kl
         void initializeBiases(
             const InitializerType &type);
 
+        void setMode(
+            LayerMode mode);
+
         void prepareTraining();
+        void prepareInference();
 
         void collectParameters(
             std::vector<Parameter> &parameters);
@@ -86,6 +90,8 @@ namespace kl
 
         const Shape &input_shape() const;
         const Shape &current_shape() const;
+
+        LayerMode mode() const;
 
         std::size_t layer_count() const;
         std::size_t pooled_tensor_count() const;
@@ -104,7 +110,12 @@ namespace kl
         DType dtype_;
         Device device_;
 
-        std::vector<std::unique_ptr<Layer>> layers_;
+        LayerMode mode_ =
+            LayerMode::Inference;
+
+        std::vector<std::unique_ptr<Layer>>
+            layers_;
+
         TensorPool pool_;
     };
 

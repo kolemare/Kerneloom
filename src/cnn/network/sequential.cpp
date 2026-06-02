@@ -6,6 +6,9 @@
 #include <cnn/layers/linear_layer.hpp>
 #include <cnn/layers/maxpool2d_layer.hpp>
 
+#include <stdexcept>
+#include <utility>
+
 namespace kl
 {
 
@@ -16,10 +19,18 @@ namespace kl
         std::size_t input_width,
         DType dtype,
         Device device)
-        : input_shape_(Shape{batch_size, input_channels, input_height, input_width}),
-          current_shape_(input_shape_),
-          dtype_(dtype),
-          device_(device)
+        : input_shape_(
+              Shape{
+                  batch_size,
+                  input_channels,
+                  input_height,
+                  input_width}),
+          current_shape_(
+              input_shape_),
+          dtype_(
+              dtype),
+          device_(
+              device)
     {
     }
 
@@ -40,21 +51,23 @@ namespace kl
         std::size_t kernel_width,
         Conv2dOptions options)
     {
-        addLayer(std::make_unique<Conv2dLayer>(
-            current_shape_[1],
-            output_channels,
-            kernel_height,
-            kernel_width,
-            dtype_,
-            device_,
-            options));
+        addLayer(
+            std::make_unique<Conv2dLayer>(
+                current_shape_[1],
+                output_channels,
+                kernel_height,
+                kernel_width,
+                dtype_,
+                device_,
+                options));
     }
 
     void Sequential::addActivationLayer(
         ActivationType activation_type)
     {
-        addLayer(std::make_unique<ActivationLayer>(
-            activation_type));
+        addLayer(
+            std::make_unique<ActivationLayer>(
+                activation_type));
     }
 
     void Sequential::addMaxPoolingLayer(
@@ -70,68 +83,148 @@ namespace kl
         std::size_t kernel_width)
     {
         Pooling2dOptions options;
-        options.kernel_h = kernel_height;
-        options.kernel_w = kernel_width;
-        options.stride_h = kernel_height;
-        options.stride_w = kernel_width;
-        options.padding_h = 0;
-        options.padding_w = 0;
 
-        addLayer(std::make_unique<MaxPool2dLayer>(
-            options));
+        options.kernel_h =
+            kernel_height;
+
+        options.kernel_w =
+            kernel_width;
+
+        options.stride_h =
+            kernel_height;
+
+        options.stride_w =
+            kernel_width;
+
+        options.padding_h =
+            0;
+
+        options.padding_w =
+            0;
+
+        addLayer(
+            std::make_unique<MaxPool2dLayer>(
+                options));
     }
 
     void Sequential::addFlattenLayer()
     {
-        addLayer(std::make_unique<FlattenLayer>());
+        addLayer(
+            std::make_unique<FlattenLayer>());
     }
 
     void Sequential::addFullyConnectedLayer(
         std::size_t output_features,
         bool use_bias)
     {
-        addLayer(std::make_unique<LinearLayer>(
-            current_shape_[1],
-            output_features,
-            dtype_,
-            device_,
-            use_bias));
+        addLayer(
+            std::make_unique<LinearLayer>(
+                current_shape_[1],
+                output_features,
+                dtype_,
+                device_,
+                use_bias));
     }
 
     void Sequential::initializeWeights(
         const InitializerType &type)
     {
-        for (std::unique_ptr<Layer> &layer : layers_)
+        for (std::unique_ptr<Layer> &layer :
+             layers_)
         {
-            layer->initializeWeights(type);
+            layer->initializeWeights(
+                type);
         }
     }
 
     void Sequential::initializeBiases(
         const InitializerType &type)
     {
-        for (std::unique_ptr<Layer> &layer : layers_)
+        for (std::unique_ptr<Layer> &layer :
+             layers_)
         {
-            layer->initializeBiases(type);
+            layer->initializeBiases(
+                type);
+        }
+    }
+
+    void Sequential::setMode(
+        LayerMode mode)
+    {
+        mode_ =
+            mode;
+
+        for (std::unique_ptr<Layer> &layer :
+             layers_)
+        {
+            layer->setMode(
+                mode_);
         }
     }
 
     void Sequential::prepareTraining()
     {
-        for (std::unique_ptr<Layer> &layer : layers_)
+        setMode(
+            LayerMode::Training);
+
+        for (std::unique_ptr<Layer> &layer :
+             layers_)
         {
             layer->prepareTraining();
+        }
+    }
+
+    void Sequential::prepareInference()
+    {
+        setMode(
+            LayerMode::Inference);
+    }
+
+    void Sequential::collectParameters(
+        std::vector<Parameter> &parameters)
+    {
+        for (std::unique_ptr<Layer> &layer :
+             layers_)
+        {
+            layer->collectParameters(
+                parameters);
         }
     }
 
     Tensor &Sequential::forward(
         Tensor &input)
     {
-        Tensor *current = &input;
-
-        for (std::unique_ptr<Layer> &layer : layers_)
+        if (input.shape() !=
+            input_shape_)
         {
-            current = &layer->forward(*current, pool_);
+            throw std::runtime_error(
+                "Sequential::forward input shape mismatch");
+        }
+
+        if (input.dtype() !=
+            dtype_)
+        {
+            throw std::runtime_error(
+                "Sequential::forward input dtype mismatch");
+        }
+
+        if (input.device().type() !=
+            device_.type())
+        {
+            throw std::runtime_error(
+                "Sequential::forward input device mismatch");
+        }
+
+        Tensor *current =
+            &input;
+
+        for (std::unique_ptr<Layer> &layer :
+             layers_)
+        {
+            current =
+                &layer->forward(
+                    *current,
+                    pool_);
         }
 
         return *current;
@@ -140,11 +233,26 @@ namespace kl
     Tensor &Sequential::backward(
         Tensor &grad_output)
     {
-        Tensor *current = &grad_output;
-
-        for (std::size_t i = layers_.size(); i > 0; --i)
+        if (mode_ !=
+            LayerMode::Training)
         {
-            current = &layers_[i - 1]->backward(*current, pool_);
+            throw std::runtime_error(
+                "Sequential::backward requires training mode");
+        }
+
+        Tensor *current =
+            &grad_output;
+
+        for (std::size_t i =
+                 layers_.size();
+             i > 0;
+             --i)
+        {
+            current =
+                &layers_[i - 1]
+                     ->backward(
+                         *current,
+                         pool_);
         }
 
         return *current;
@@ -152,7 +260,8 @@ namespace kl
 
     bool Sequential::verify() const
     {
-        for (const std::unique_ptr<Layer> &layer : layers_)
+        for (const std::unique_ptr<Layer> &layer :
+             layers_)
         {
             if (!layer->verify())
             {
@@ -173,13 +282,9 @@ namespace kl
         return current_shape_;
     }
 
-    void Sequential::collectParameters(
-        std::vector<Parameter> &parameters)
+    LayerMode Sequential::mode() const
     {
-        for (std::unique_ptr<Layer> &layer : layers_)
-        {
-            layer->collectParameters(parameters);
-        }
+        return mode_;
     }
 
     std::size_t Sequential::layer_count() const
@@ -205,8 +310,15 @@ namespace kl
     void Sequential::addLayer(
         std::unique_ptr<Layer> layer)
     {
-        current_shape_ = layer->output_shape(current_shape_);
-        layers_.push_back(std::move(layer));
+        layer->setMode(
+            mode_);
+
+        current_shape_ =
+            layer->output_shape(
+                current_shape_);
+
+        layers_.push_back(
+            std::move(layer));
     }
 
 }

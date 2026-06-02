@@ -51,6 +51,11 @@ namespace kl
             (void)parameters;
         }
 
+        void setMode(kl::LayerMode mode)
+        {
+            mode_ = mode;
+        }
+
         LayerMode mode() const
         {
             return mode_;
