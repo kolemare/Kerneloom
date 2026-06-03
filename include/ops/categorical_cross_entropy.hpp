@@ -14,6 +14,12 @@ namespace kl
         const Tensor &prediction,
         const Tensor &target,
         Tensor &result,
+        Reduction reduction);
+
+    void categorical_cross_entropy(
+        const Tensor &prediction,
+        const Tensor &target,
+        Tensor &result,
         Reduction reduction,
         std::size_t valid_sample_count);
 

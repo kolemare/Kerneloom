@@ -16,12 +16,14 @@ namespace kl
             cudaError_t error,
             const char *message)
         {
-            if (error != cudaSuccess)
+            if (error !=
+                cudaSuccess)
             {
                 throw std::runtime_error(
                     std::string(message) +
                     ": " +
-                    cudaGetErrorString(error));
+                    cudaGetErrorString(
+                        error));
             }
         }
 
@@ -33,10 +35,12 @@ namespace kl
             std::size_t count)
         {
             const std::size_t index =
-                blockIdx.x * blockDim.x +
+                blockIdx.x *
+                    blockDim.x +
                 threadIdx.x;
 
-            if (index >= count)
+            if (index >=
+                count)
             {
                 return;
             }
@@ -58,8 +62,17 @@ namespace kl
         const Tensor &prediction,
         const Tensor &target,
         Tensor &result,
-        Reduction reduction)
+        Reduction reduction,
+        std::size_t valid_sample_count)
     {
+        const std::size_t elements_per_sample =
+            prediction.numel() /
+            prediction.shape()[0];
+
+        const std::size_t count =
+            valid_sample_count *
+            elements_per_sample;
+
         const float *prediction_data =
             static_cast<const float *>(
                 prediction.data());
@@ -72,15 +85,15 @@ namespace kl
             static_cast<float *>(
                 result.data());
 
-        const std::size_t count =
-            prediction.numel();
+        float scale =
+            1.0f;
 
-        float scale = 1.0f;
-
-        if (reduction == Reduction::Mean)
+        if (reduction ==
+            Reduction::Mean)
         {
             scale /=
-                static_cast<float>(count);
+                static_cast<float>(
+                    count);
         }
 
         check_cuda(
@@ -98,7 +111,9 @@ namespace kl
 
         const dim3 grid(
             static_cast<unsigned int>(
-                (count + block_size - 1) /
+                (count +
+                 block_size -
+                 1) /
                 block_size));
 
         mse_loss_cuda_float32_kernel<<<

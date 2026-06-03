@@ -130,6 +130,20 @@ namespace kl
         const Tensor &prediction,
         const Tensor &target,
         Tensor &grad_prediction,
+        Reduction reduction)
+    {
+        backward_categorical_cross_entropy(
+            prediction,
+            target,
+            grad_prediction,
+            reduction,
+            prediction.shape()[0]);
+    }
+
+    void backward_categorical_cross_entropy(
+        const Tensor &prediction,
+        const Tensor &target,
+        Tensor &grad_prediction,
         Reduction reduction,
         std::size_t valid_sample_count)
     {

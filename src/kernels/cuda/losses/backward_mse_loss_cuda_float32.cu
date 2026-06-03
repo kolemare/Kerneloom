@@ -16,12 +16,14 @@ namespace kl
             cudaError_t error,
             const char *message)
         {
-            if (error != cudaSuccess)
+            if (error !=
+                cudaSuccess)
             {
                 throw std::runtime_error(
                     std::string(message) +
                     ": " +
-                    cudaGetErrorString(error));
+                    cudaGetErrorString(
+                        error));
             }
         }
 
@@ -33,10 +35,12 @@ namespace kl
             std::size_t count)
         {
             const std::size_t index =
-                blockIdx.x * blockDim.x +
+                blockIdx.x *
+                    blockDim.x +
                 threadIdx.x;
 
-            if (index >= count)
+            if (index >=
+                count)
             {
                 return;
             }
@@ -53,8 +57,17 @@ namespace kl
         const Tensor &prediction,
         const Tensor &target,
         Tensor &grad_prediction,
-        Reduction reduction)
+        Reduction reduction,
+        std::size_t valid_sample_count)
     {
+        const std::size_t elements_per_sample =
+            prediction.numel() /
+            prediction.shape()[0];
+
+        const std::size_t valid_element_count =
+            valid_sample_count *
+            elements_per_sample;
+
         const float *prediction_data =
             static_cast<const float *>(
                 prediction.data());
@@ -67,15 +80,29 @@ namespace kl
             static_cast<float *>(
                 grad_prediction.data());
 
-        const std::size_t count =
-            prediction.numel();
+        float scale =
+            2.0f;
 
-        float scale = 2.0f;
-
-        if (reduction == Reduction::Mean)
+        if (reduction ==
+            Reduction::Mean)
         {
             scale /=
-                static_cast<float>(count);
+                static_cast<float>(
+                    valid_element_count);
+        }
+
+        if (valid_element_count <
+            grad_prediction.numel())
+        {
+            check_cuda(
+                cudaMemset(
+                    grad_prediction_data +
+                        valid_element_count,
+                    0,
+                    (grad_prediction.numel() -
+                     valid_element_count) *
+                        sizeof(float)),
+                "CUDA padded MSE gradient initialization failed");
         }
 
         constexpr unsigned int block_size =
@@ -86,7 +113,9 @@ namespace kl
 
         const dim3 grid(
             static_cast<unsigned int>(
-                (count + block_size - 1) /
+                (valid_element_count +
+                 block_size -
+                 1) /
                 block_size));
 
         backward_mse_loss_cuda_float32_kernel<<<
@@ -96,7 +125,7 @@ namespace kl
             target_data,
             grad_prediction_data,
             scale,
-            count);
+            valid_element_count);
 
         check_cuda(
             cudaGetLastError(),

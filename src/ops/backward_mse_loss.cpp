@@ -22,44 +22,64 @@ namespace kl
             const Tensor &prediction,
             const Tensor &target,
             const Tensor &grad_prediction,
-            Reduction reduction)
+            Reduction reduction,
+            std::size_t valid_sample_count)
         {
-            if (prediction.device().type() != target.device().type() ||
-                prediction.device().type() != grad_prediction.device().type())
+            if (prediction.device().type() !=
+                    target.device().type() ||
+                prediction.device().type() !=
+                    grad_prediction.device().type())
             {
                 throw std::runtime_error(
                     "backward_mse_loss expects tensors on the same device");
             }
 
-            if (prediction.dtype() != target.dtype() ||
-                prediction.dtype() != grad_prediction.dtype())
+            if (prediction.dtype() !=
+                    target.dtype() ||
+                prediction.dtype() !=
+                    grad_prediction.dtype())
             {
                 throw std::runtime_error(
                     "backward_mse_loss expects tensors with the same dtype");
             }
 
-            if (prediction.dtype() != DType::Float32)
+            if (prediction.dtype() !=
+                DType::Float32)
             {
                 throw std::runtime_error(
                     "backward_mse_loss currently supports only Float32 tensors");
             }
 
-            if (prediction.shape() != target.shape() ||
-                prediction.shape() != grad_prediction.shape())
+            if (prediction.shape() !=
+                    target.shape() ||
+                prediction.shape() !=
+                    grad_prediction.shape())
             {
                 throw std::runtime_error(
                     "backward_mse_loss expects tensors with the same shape");
             }
 
-            if (prediction.numel() == 0)
+            if (prediction.rank() == 0 ||
+                prediction.numel() == 0)
             {
                 throw std::runtime_error(
-                    "backward_mse_loss expects non-empty tensors");
+                    "backward_mse_loss expects non-empty tensors with a batch dimension");
             }
 
-            if (prediction.storage() != Storage::RowMajor ||
-                target.storage() != Storage::RowMajor ||
-                grad_prediction.storage() != Storage::RowMajor)
+            if (valid_sample_count == 0 ||
+                valid_sample_count >
+                    prediction.shape()[0])
+            {
+                throw std::runtime_error(
+                    "backward_mse_loss valid sample count is out of range");
+            }
+
+            if (prediction.storage() !=
+                    Storage::RowMajor ||
+                target.storage() !=
+                    Storage::RowMajor ||
+                grad_prediction.storage() !=
+                    Storage::RowMajor)
             {
                 throw std::runtime_error(
                     "backward_mse_loss currently supports only RowMajor tensors");
@@ -85,11 +105,27 @@ namespace kl
         Tensor &grad_prediction,
         Reduction reduction)
     {
+        backward_mse_loss(
+            prediction,
+            target,
+            grad_prediction,
+            reduction,
+            prediction.shape()[0]);
+    }
+
+    void backward_mse_loss(
+        const Tensor &prediction,
+        const Tensor &target,
+        Tensor &grad_prediction,
+        Reduction reduction,
+        std::size_t valid_sample_count)
+    {
         validate_backward_mse_loss_inputs(
             prediction,
             target,
             grad_prediction,
-            reduction);
+            reduction,
+            valid_sample_count);
 
         switch (prediction.device().type())
         {
@@ -98,7 +134,8 @@ namespace kl
                 prediction,
                 target,
                 grad_prediction,
-                reduction);
+                reduction,
+                valid_sample_count);
             return;
 
         case DeviceType::CUDA:
@@ -107,7 +144,8 @@ namespace kl
                 prediction,
                 target,
                 grad_prediction,
-                reduction);
+                reduction,
+                valid_sample_count);
             return;
 #else
             throw std::runtime_error(
@@ -120,7 +158,8 @@ namespace kl
                 prediction,
                 target,
                 grad_prediction,
-                reduction);
+                reduction,
+                valid_sample_count);
             return;
 #else
             throw std::runtime_error(

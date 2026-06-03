@@ -5,6 +5,8 @@
 
 #include <core/tensor.hpp>
 
+#include <cstddef>
+
 namespace kl
 {
 
@@ -13,6 +15,13 @@ namespace kl
         const Tensor &target,
         Tensor &result,
         Reduction reduction);
+
+    void mse_loss(
+        const Tensor &prediction,
+        const Tensor &target,
+        Tensor &result,
+        Reduction reduction,
+        std::size_t valid_sample_count);
 
 }
 

@@ -132,6 +132,20 @@ namespace kl
         const Tensor &prediction,
         const Tensor &target,
         Tensor &result,
+        Reduction reduction)
+    {
+        categorical_cross_entropy(
+            prediction,
+            target,
+            result,
+            reduction,
+            prediction.shape()[0]);
+    }
+
+    void categorical_cross_entropy(
+        const Tensor &prediction,
+        const Tensor &target,
+        Tensor &result,
         Reduction reduction,
         std::size_t valid_sample_count)
     {
