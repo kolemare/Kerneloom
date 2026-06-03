@@ -16,12 +16,14 @@ namespace kl
             hipError_t error,
             const char *message)
         {
-            if (error != hipSuccess)
+            if (error !=
+                hipSuccess)
             {
                 throw std::runtime_error(
                     std::string(message) +
                     ": " +
-                    hipGetErrorString(error));
+                    hipGetErrorString(
+                        error));
             }
         }
 
@@ -33,10 +35,12 @@ namespace kl
             std::size_t count)
         {
             const std::size_t index =
-                blockIdx.x * blockDim.x +
+                blockIdx.x *
+                    blockDim.x +
                 threadIdx.x;
 
-            if (index >= count)
+            if (index >=
+                count)
             {
                 return;
             }
@@ -49,20 +53,26 @@ namespace kl
                     fmaxf(
                         prediction[index],
                         epsilon),
-                    1.0f - epsilon);
+                    1.0f -
+                        epsilon);
 
             const float target_value =
                 target[index];
 
             const float loss =
                 -target_value *
-                    logf(probability) -
-                (1.0f - target_value) *
-                    logf(1.0f - probability);
+                    logf(
+                        probability) -
+                (1.0f -
+                 target_value) *
+                    logf(
+                        1.0f -
+                        probability);
 
             atomicAdd(
                 result,
-                scale * loss);
+                scale *
+                    loss);
         }
 
     }
@@ -71,8 +81,17 @@ namespace kl
         const Tensor &prediction,
         const Tensor &target,
         Tensor &result,
-        Reduction reduction)
+        Reduction reduction,
+        std::size_t valid_sample_count)
     {
+        const std::size_t elements_per_sample =
+            prediction.numel() /
+            prediction.shape()[0];
+
+        const std::size_t count =
+            valid_sample_count *
+            elements_per_sample;
+
         const float *prediction_data =
             static_cast<const float *>(
                 prediction.data());
@@ -85,16 +104,15 @@ namespace kl
             static_cast<float *>(
                 result.data());
 
-        const std::size_t count =
-            prediction.numel();
-
         float scale =
             1.0f;
 
-        if (reduction == Reduction::Mean)
+        if (reduction ==
+            Reduction::Mean)
         {
             scale /=
-                static_cast<float>(count);
+                static_cast<float>(
+                    count);
         }
 
         check_hip(
@@ -112,7 +130,9 @@ namespace kl
 
         const dim3 grid(
             static_cast<unsigned int>(
-                (count + block_size - 1) /
+                (count +
+                 block_size -
+                 1) /
                 block_size));
 
         hipLaunchKernelGGL(

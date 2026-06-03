@@ -4,6 +4,8 @@
 #include <cnn/losses/loss.hpp>
 #include <cnn/losses/reduction.hpp>
 
+#include <cstddef>
+
 namespace kl
 {
 
@@ -11,12 +13,19 @@ namespace kl
     {
     public:
         explicit BinaryCrossEntropyLoss(
-            Reduction reduction = Reduction::Mean);
+            Reduction reduction =
+                Reduction::Mean);
 
         Tensor &forward(
             const Tensor &prediction,
             const Tensor &target,
             TensorPool &pool) override;
+
+        Tensor &forward(
+            const Tensor &prediction,
+            const Tensor &target,
+            TensorPool &pool,
+            std::size_t valid_sample_count) override;
 
         Tensor &backward(
             TensorPool &pool) override;
@@ -26,8 +35,14 @@ namespace kl
     private:
         Reduction reduction_;
 
-        const Tensor *last_prediction_ = nullptr;
-        const Tensor *last_target_ = nullptr;
+        const Tensor *last_prediction_ =
+            nullptr;
+
+        const Tensor *last_target_ =
+            nullptr;
+
+        std::size_t last_valid_sample_count_ =
+            0;
     };
 
 }

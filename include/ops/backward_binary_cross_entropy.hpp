@@ -5,6 +5,8 @@
 
 #include <core/tensor.hpp>
 
+#include <cstddef>
+
 namespace kl
 {
 
@@ -13,6 +15,13 @@ namespace kl
         const Tensor &target,
         Tensor &grad_prediction,
         Reduction reduction);
+
+    void backward_binary_cross_entropy(
+        const Tensor &prediction,
+        const Tensor &target,
+        Tensor &grad_prediction,
+        Reduction reduction,
+        std::size_t valid_sample_count);
 
 }
 

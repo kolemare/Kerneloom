@@ -22,43 +22,62 @@ namespace kl
             const Tensor &prediction,
             const Tensor &target,
             const Tensor &result,
-            Reduction reduction)
+            Reduction reduction,
+            std::size_t valid_sample_count)
         {
-            if (prediction.device().type() != target.device().type() ||
-                prediction.device().type() != result.device().type())
+            if (prediction.device().type() !=
+                    target.device().type() ||
+                prediction.device().type() !=
+                    result.device().type())
             {
                 throw std::runtime_error(
                     "binary_cross_entropy expects tensors on the same device");
             }
 
-            if (prediction.dtype() != target.dtype() ||
-                prediction.dtype() != result.dtype())
+            if (prediction.dtype() !=
+                    target.dtype() ||
+                prediction.dtype() !=
+                    result.dtype())
             {
                 throw std::runtime_error(
                     "binary_cross_entropy expects tensors with the same dtype");
             }
 
-            if (prediction.dtype() != DType::Float32)
+            if (prediction.dtype() !=
+                DType::Float32)
             {
                 throw std::runtime_error(
                     "binary_cross_entropy currently supports only Float32 tensors");
             }
 
-            if (prediction.shape() != target.shape())
+            if (prediction.shape() !=
+                target.shape())
             {
                 throw std::runtime_error(
                     "binary_cross_entropy expects prediction and target with the same shape");
             }
 
-            if (prediction.numel() == 0)
+            if (prediction.rank() == 0 ||
+                prediction.numel() == 0)
             {
                 throw std::runtime_error(
-                    "binary_cross_entropy expects non-empty tensors");
+                    "binary_cross_entropy expects non-empty tensors with a batch dimension");
             }
 
-            if (prediction.storage() != Storage::RowMajor ||
-                target.storage() != Storage::RowMajor ||
-                result.storage() != Storage::RowMajor)
+            if (valid_sample_count == 0 ||
+                valid_sample_count >
+                    prediction.shape()[0])
+            {
+                throw std::runtime_error(
+                    "binary_cross_entropy valid sample count is out of range");
+            }
+
+            if (prediction.storage() !=
+                    Storage::RowMajor ||
+                target.storage() !=
+                    Storage::RowMajor ||
+                result.storage() !=
+                    Storage::RowMajor)
             {
                 throw std::runtime_error(
                     "binary_cross_entropy currently supports only RowMajor tensors");
@@ -91,11 +110,27 @@ namespace kl
         Tensor &result,
         Reduction reduction)
     {
+        binary_cross_entropy(
+            prediction,
+            target,
+            result,
+            reduction,
+            prediction.shape()[0]);
+    }
+
+    void binary_cross_entropy(
+        const Tensor &prediction,
+        const Tensor &target,
+        Tensor &result,
+        Reduction reduction,
+        std::size_t valid_sample_count)
+    {
         validate_binary_cross_entropy_inputs(
             prediction,
             target,
             result,
-            reduction);
+            reduction,
+            valid_sample_count);
 
         switch (prediction.device().type())
         {
@@ -104,7 +139,8 @@ namespace kl
                 prediction,
                 target,
                 result,
-                reduction);
+                reduction,
+                valid_sample_count);
             return;
 
         case DeviceType::CUDA:
@@ -113,7 +149,8 @@ namespace kl
                 prediction,
                 target,
                 result,
-                reduction);
+                reduction,
+                valid_sample_count);
             return;
 #else
             throw std::runtime_error(
@@ -126,7 +163,8 @@ namespace kl
                 prediction,
                 target,
                 result,
-                reduction);
+                reduction,
+                valid_sample_count);
             return;
 #else
             throw std::runtime_error(

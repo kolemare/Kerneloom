@@ -5,6 +5,8 @@
 
 #include <core/tensor.hpp>
 
+#include <cstddef>
+
 namespace kl
 {
 
@@ -12,7 +14,8 @@ namespace kl
         const Tensor &prediction,
         const Tensor &target,
         Tensor &grad_prediction,
-        Reduction reduction);
+        Reduction reduction,
+        std::size_t valid_sample_count);
 
 }
 
