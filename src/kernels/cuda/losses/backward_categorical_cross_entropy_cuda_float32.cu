@@ -17,12 +17,14 @@ namespace kl
             cudaError_t error,
             const char *message)
         {
-            if (error != cudaSuccess)
+            if (error !=
+                cudaSuccess)
             {
                 throw std::runtime_error(
                     std::string(message) +
                     ": " +
-                    cudaGetErrorString(error));
+                    cudaGetErrorString(
+                        error));
             }
         }
 
@@ -31,14 +33,16 @@ namespace kl
             const std::int32_t *target,
             float *grad_prediction,
             float scale,
-            std::size_t batch_size,
+            std::size_t valid_sample_count,
             std::size_t class_count)
         {
             const std::size_t n =
-                blockIdx.x * blockDim.x +
+                blockIdx.x *
+                    blockDim.x +
                 threadIdx.x;
 
-            if (n >= batch_size)
+            if (n >=
+                valid_sample_count)
             {
                 return;
             }
@@ -58,7 +62,8 @@ namespace kl
                 1.0e-7f;
 
             const std::size_t index =
-                n * class_count +
+                n *
+                    class_count +
                 static_cast<std::size_t>(
                     target_class);
 
@@ -67,7 +72,8 @@ namespace kl
                     fmaxf(
                         prediction[index],
                         epsilon),
-                    1.0f - epsilon);
+                    1.0f -
+                        epsilon);
 
             grad_prediction[index] =
                 -scale /
@@ -80,11 +86,9 @@ namespace kl
         const Tensor &prediction,
         const Tensor &target,
         Tensor &grad_prediction,
-        Reduction reduction)
+        Reduction reduction,
+        std::size_t valid_sample_count)
     {
-        const std::size_t batch_size =
-            prediction.shape()[0];
-
         const std::size_t class_count =
             prediction.shape()[1];
 
@@ -103,11 +107,12 @@ namespace kl
         float scale =
             1.0f;
 
-        if (reduction == Reduction::Mean)
+        if (reduction ==
+            Reduction::Mean)
         {
             scale /=
                 static_cast<float>(
-                    batch_size);
+                    valid_sample_count);
         }
 
         check_cuda(
@@ -125,7 +130,7 @@ namespace kl
 
         const dim3 grid(
             static_cast<unsigned int>(
-                (batch_size +
+                (valid_sample_count +
                  block_size -
                  1) /
                 block_size));
@@ -137,7 +142,7 @@ namespace kl
             target_data,
             grad_prediction_data,
             scale,
-            batch_size,
+            valid_sample_count,
             class_count);
 
         check_cuda(

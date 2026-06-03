@@ -44,7 +44,8 @@ namespace kl
             loss_.forward(
                 prediction,
                 batch.targets(),
-                loss_pool_);
+                loss_pool_,
+                batch.valid_sample_count());
 
         Tensor &grad_prediction =
             loss_.backward(
