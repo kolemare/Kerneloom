@@ -5,6 +5,7 @@
 #include <cnn/network/sequential.hpp>
 #include <cnn/optimizers/optimizer.hpp>
 #include <cnn/optimizers/parameter.hpp>
+#include <cnn/training/training_progress.hpp>
 #include <cnn/training/training_result.hpp>
 
 #include <core/tensor_pool.hpp>
@@ -12,6 +13,7 @@
 #include <data/batch.hpp>
 #include <data/data_loader.hpp>
 
+#include <cstddef>
 #include <vector>
 
 namespace kl
@@ -29,7 +31,15 @@ namespace kl
             Batch &batch);
 
         TrainingEpochResult trainEpoch(
-            DataLoader &loader);
+            DataLoader &loader,
+            std::size_t epoch = 1,
+            std::size_t epoch_count = 1,
+            const TrainingCallback &callback = {});
+
+        std::vector<TrainingEpochResult> fit(
+            DataLoader &loader,
+            std::size_t epoch_count,
+            const TrainingCallback &callback = {});
 
     private:
         Sequential &model_;

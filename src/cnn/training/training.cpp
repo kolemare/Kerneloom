@@ -5,6 +5,7 @@
 #include <core/tensor.hpp>
 
 #include <stdexcept>
+#include <vector>
 
 namespace kl
 {
@@ -32,8 +33,6 @@ namespace kl
     TrainingResult Training::trainBatch(
         Batch &batch)
     {
-        model_.prepareTraining();
-
         model_.reset();
         loss_pool_.reset();
 
@@ -79,13 +78,19 @@ namespace kl
     }
 
     TrainingEpochResult Training::trainEpoch(
-        DataLoader &loader)
+        DataLoader &loader,
+        std::size_t epoch,
+        std::size_t epoch_count,
+        const TrainingCallback &callback)
     {
         float total_loss =
             0.0f;
 
-        std::size_t batch_count =
+        std::size_t batch_index =
             0;
+
+        const std::size_t batch_count =
+            loader.batch_count();
 
         while (loader.has_next())
         {
@@ -96,23 +101,91 @@ namespace kl
                 trainBatch(
                     batch);
 
+            ++batch_index;
+
             total_loss +=
                 result.loss;
 
-            ++batch_count;
+            if (callback)
+            {
+                callback(
+                    TrainingProgress{
+                        epoch,
+                        epoch_count,
+                        batch_index,
+                        batch_count,
+                        result.loss,
+                        total_loss /
+                            static_cast<float>(
+                                batch_index),
+                        false});
+            }
         }
 
-        if (batch_count == 0)
+        if (batch_index == 0)
         {
             throw std::runtime_error(
                 "Training::trainEpoch received no batches");
         }
 
-        return TrainingEpochResult{
+        const TrainingEpochResult result{
             total_loss /
                 static_cast<float>(
-                    batch_count),
-            batch_count};
+                    batch_index),
+            batch_index};
+
+        if (callback)
+        {
+            callback(
+                TrainingProgress{
+                    epoch,
+                    epoch_count,
+                    batch_index,
+                    batch_count,
+                    result.average_loss,
+                    result.average_loss,
+                    true});
+        }
+
+        return result;
+    }
+
+    std::vector<TrainingEpochResult>
+    Training::fit(
+        DataLoader &loader,
+        std::size_t epoch_count,
+        const TrainingCallback &callback)
+    {
+        if (epoch_count == 0)
+        {
+            throw std::runtime_error(
+                "Training::fit epoch count must be greater than zero");
+        }
+
+        std::vector<TrainingEpochResult>
+            results;
+
+        results.reserve(
+            epoch_count);
+
+        for (std::size_t epoch = 1;
+             epoch <= epoch_count;
+             ++epoch)
+        {
+            if (epoch > 1)
+            {
+                loader.reset_epoch();
+            }
+
+            results.push_back(
+                trainEpoch(
+                    loader,
+                    epoch,
+                    epoch_count,
+                    callback));
+        }
+
+        return results;
     }
 
 }

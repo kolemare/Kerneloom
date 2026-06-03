@@ -25,11 +25,11 @@ int main()
 {
     try
     {
-        const kl::Device target =
+        const kl::Device device =
             kl::default_device();
 
-        constexpr std::size_t batch_size = 80;
-        constexpr std::size_t epoch_count = 20;
+        constexpr std::size_t batch_size =
+            80;
 
         kl::Sequential cnn(
             batch_size,
@@ -37,25 +37,20 @@ int main()
             32,
             32,
             kl::DType::Float32,
-            target);
+            device);
 
         cnn.addConvolutionLayer(32, 3);
         cnn.addActivationLayer(kl::ActivationType::ReLU);
-        cnn.addMaxPoolingLayer(2, 2);
-
+        cnn.addMaxPoolingLayer(2);
         cnn.addConvolutionLayer(64, 3);
         cnn.addActivationLayer(kl::ActivationType::ReLU);
-        cnn.addMaxPoolingLayer(2, 2);
-
+        cnn.addMaxPoolingLayer(2);
         cnn.addConvolutionLayer(64, 3);
         cnn.addActivationLayer(kl::ActivationType::ReLU);
-        cnn.addMaxPoolingLayer(2, 2);
-
+        cnn.addMaxPoolingLayer(2);
         cnn.addFlattenLayer();
-
         cnn.addFullyConnectedLayer(128);
         cnn.addActivationLayer(kl::ActivationType::ReLU);
-
         cnn.addFullyConnectedLayer(10);
         cnn.addActivationLayer(kl::ActivationType::Softmax);
 
@@ -78,100 +73,60 @@ int main()
 
         kl::DataLoaderOptions options;
         options.batch_size = batch_size;
-        options.input_dtype = kl::DType::Float32;
         options.shuffle = true;
         options.drop_last = true;
-        options.loader_workers = 8;
-        options.automatic_memory_planning = true;
-        options.pin_host_memory = true;
 
         kl::DataLoader loader(
             dataset.samples(),
             kl::ImageTransform(32, 32),
-            target,
+            device,
             options);
 
-        std::cout
-            << "Device: "
-            << kl::to_string(target.type())
-            << " | Images: "
-            << dataset.size()
-            << " | Batches: "
-            << loader.batch_count()
-            << '\n';
-
-        for (std::size_t epoch = 0;
-             epoch < epoch_count;
-             ++epoch)
-        {
-            std::size_t batch_index =
-                0;
-
-            float total_loss =
-                0.0f;
-
-            while (loader.has_next())
+        training.fit(
+            loader,
+            20,
+            [](const kl::TrainingProgress &progress)
             {
-                kl::Batch batch =
-                    loader.next();
+                if (progress.epoch_complete)
+                {
+                    std::cout
+                        << '\r'
+                        << "epoch "
+                        << progress.epoch
+                        << "/"
+                        << progress.epoch_count
+                        << " | average_loss="
+                        << std::fixed
+                        << std::setprecision(6)
+                        << progress.average_loss
+                        << "                    "
+                        << '\n';
 
-                const kl::TrainingResult result =
-                    training.trainBatch(
-                        batch);
-
-                ++batch_index;
-
-                total_loss +=
-                    result.loss;
+                    return;
+                }
 
                 std::cout
                     << '\r'
                     << "epoch "
-                    << epoch + 1
+                    << progress.epoch
                     << "/"
-                    << epoch_count
+                    << progress.epoch_count
                     << " | batch "
-                    << batch_index
+                    << progress.batch
                     << "/"
-                    << loader.batch_count()
+                    << progress.batch_count
                     << " | loss="
                     << std::fixed
                     << std::setprecision(6)
-                    << result.loss
+                    << progress.batch_loss
                     << std::flush;
-            }
-
-            const float average_loss =
-                total_loss /
-                static_cast<float>(
-                    batch_index);
-
-            std::cout
-                << '\r'
-                << "epoch "
-                << epoch + 1
-                << "/"
-                << epoch_count
-                << " | average_loss="
-                << std::fixed
-                << std::setprecision(6)
-                << average_loss
-                << "                    "
-                << '\n';
-
-            if (epoch + 1 <
-                epoch_count)
-            {
-                loader.reset_epoch();
-            }
-        }
+            });
 
         return EXIT_SUCCESS;
     }
     catch (const std::exception &exception)
     {
         std::cerr
-            << '\n'
             << exception.what()
             << '\n';
 
