@@ -3,6 +3,8 @@
 
 #include <core/tensor.hpp>
 
+#include <cstddef>
+
 namespace kl
 {
 
@@ -10,6 +12,9 @@ namespace kl
     {
         Tensor inputs;
         Tensor targets;
+
+        std::size_t valid_sample_count =
+            0;
     };
 
 }

@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <memory>
 #include <numeric>
 #include <optional>
@@ -767,6 +768,12 @@ namespace kl
                 transfer_stream_
                     ->synchronize();
 
+                device_storage
+                    ->valid_sample_count =
+                    prepared
+                        ->storage
+                        ->valid_sample_count;
+
                 if (prepared->generation !=
                     generation_.load())
                 {
@@ -821,7 +828,7 @@ namespace kl
             samples_.size() -
             begin;
 
-        const std::size_t current_batch_size =
+        const std::size_t valid_sample_count =
             std::min(
                 options_.batch_size,
                 remaining);
@@ -830,7 +837,33 @@ namespace kl
             storage =
                 host_batch_pool_
                     ->acquire(
-                        current_batch_size);
+                        options_
+                            .batch_size);
+
+        storage->valid_sample_count =
+            valid_sample_count;
+
+        if (valid_sample_count <
+            options_.batch_size)
+        {
+            std::memset(
+                storage
+                    ->inputs
+                    .data(),
+                0,
+                storage
+                    ->inputs
+                    .nbytes());
+
+            std::memset(
+                storage
+                    ->targets
+                    .data(),
+                0,
+                storage
+                    ->targets
+                    .nbytes());
+        }
 
         std::byte *inputs_data =
             static_cast<std::byte *>(
@@ -854,7 +887,7 @@ namespace kl
         ImageDecoder decoder;
 
         for (std::size_t n = 0;
-             n < current_batch_size;
+             n < valid_sample_count;
              ++n)
         {
             const ImageSample &sample =
