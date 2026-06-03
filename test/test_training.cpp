@@ -1,6 +1,7 @@
 #include <backend/backend.hpp>
 
 #include <cnn/losses/categorical_cross_entropy_loss.hpp>
+#include <cnn/training/training_callbacks.hpp>
 #include <cnn/network/initializer.hpp>
 #include <cnn/network/sequential.hpp>
 #include <cnn/optimizers/adam_optimizer.hpp>
@@ -85,42 +86,7 @@ int main()
         training.fit(
             loader,
             20,
-            [](const kl::TrainingProgress &progress)
-            {
-                if (progress.epoch_complete)
-                {
-                    std::cout
-                        << '\r'
-                        << "epoch "
-                        << progress.epoch
-                        << "/"
-                        << progress.epoch_count
-                        << " | average_loss="
-                        << std::fixed
-                        << std::setprecision(6)
-                        << progress.average_loss
-                        << "                    "
-                        << '\n';
-
-                    return;
-                }
-
-                std::cout
-                    << '\r'
-                    << "epoch "
-                    << progress.epoch
-                    << "/"
-                    << progress.epoch_count
-                    << " | batch "
-                    << progress.batch
-                    << "/"
-                    << progress.batch_count
-                    << " | loss="
-                    << std::fixed
-                    << std::setprecision(6)
-                    << progress.batch_loss
-                    << std::flush;
-            });
+            kl::training_callbacks::terminal_loss());
 
         return EXIT_SUCCESS;
     }
