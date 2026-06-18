@@ -2,6 +2,7 @@
 #define KL_FLATTEN_LAYER_HPP
 
 #include <cnn/layers/layer.hpp>
+#include <cnn/layers/cache/layer_cache_key.hpp>
 
 #include <core/shape.hpp>
 #include <core/tensor.hpp>
@@ -33,6 +34,13 @@ namespace kl
             TensorPool &pool) override;
 
     private:
+        void prepare_cache(
+            const Tensor &input);
+
+    private:
+        LayerCacheKey cache_key_;
+        Shape cached_output_shape_;
+
         Shape last_input_shape_;
         bool has_last_input_shape_ = false;
     };

@@ -42,11 +42,20 @@ namespace kl
     {
         (void)pool;
 
-        last_input_shape_ = input.shape();
-        has_last_input_shape_ = true;
+        prepare_cache(
+            input);
 
-        input.reshape_inplace(output_shape(input.shape()));
-        input.set_layout(Layout::Unknown);
+        last_input_shape_ =
+            cache_key_.shape();
+
+        has_last_input_shape_ =
+            true;
+
+        input.reshape_inplace(
+            cached_output_shape_);
+
+        input.set_layout(
+            Layout::Unknown);
 
         return input;
     }
@@ -62,9 +71,26 @@ namespace kl
             throw std::runtime_error("FlattenLayer::backward called before forward");
         }
 
-        grad_output.reshape_inplace(last_input_shape_);
+        grad_output.reshape_inplace(
+            last_input_shape_);
 
         return grad_output;
+    }
+
+    void FlattenLayer::prepare_cache(
+        const Tensor &input)
+    {
+        if (cache_key_.matches(input))
+        {
+            return;
+        }
+
+        cached_output_shape_ =
+            output_shape(
+                input.shape());
+
+        cache_key_.capture(
+            input);
     }
 
 }
