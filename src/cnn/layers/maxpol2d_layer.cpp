@@ -73,10 +73,11 @@ namespace kl
         Tensor &input,
         TensorPool &pool)
     {
-        const Shape result_shape = output_shape(input.shape());
+        prepare_cache(
+            input);
 
         Tensor &result = pool.request(
-            result_shape,
+            cached_output_shape_,
             input.dtype(),
             input.device(),
             Layout::NCHW,
@@ -85,7 +86,7 @@ namespace kl
         if (mode() == LayerMode::Training)
         {
             prepare_indices(
-                result_shape,
+                cached_output_shape_,
                 input.device());
 
             maxpool2d_with_indices(
@@ -102,8 +103,11 @@ namespace kl
                 options_);
         }
 
-        last_input_shape_ = input.shape();
-        has_last_input_shape_ = true;
+        last_input_shape_ =
+            cache_key_.shape();
+
+        has_last_input_shape_ =
+            true;
 
         return result;
     }
@@ -160,6 +164,22 @@ namespace kl
     const Pooling2dOptions &MaxPool2dLayer::options() const
     {
         return options_;
+    }
+
+    void MaxPool2dLayer::prepare_cache(
+        const Tensor &input)
+    {
+        if (cache_key_.matches(input))
+        {
+            return;
+        }
+
+        cached_output_shape_ =
+            output_shape(
+                input.shape());
+
+        cache_key_.capture(
+            input);
     }
 
     void MaxPool2dLayer::prepare_indices(

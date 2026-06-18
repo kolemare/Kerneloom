@@ -1,6 +1,7 @@
 #ifndef KL_MAXPOOL2D_LAYER_HPP
 #define KL_MAXPOOL2D_LAYER_HPP
 
+#include <cnn/layers/cache/layer_cache_key.hpp>
 #include <cnn/layers/layer.hpp>
 #include <cnn/options/pooling2d_options.hpp>
 
@@ -43,6 +44,9 @@ namespace kl
         const Pooling2dOptions &options() const;
 
     private:
+        void prepare_cache(
+            const Tensor &input);
+
         void prepare_indices(
             const Shape &shape,
             Device device);
@@ -55,6 +59,9 @@ namespace kl
 
     private:
         Pooling2dOptions options_;
+
+        LayerCacheKey cache_key_;
+        Shape cached_output_shape_;
 
         Shape last_input_shape_;
         bool has_last_input_shape_ = false;

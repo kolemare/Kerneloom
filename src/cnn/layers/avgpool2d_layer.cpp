@@ -72,8 +72,11 @@ namespace kl
         Tensor &input,
         TensorPool &pool)
     {
+        prepare_cache(
+            input);
+
         Tensor &result = pool.request(
-            output_shape(input.shape()),
+            cached_output_shape_,
             input.dtype(),
             input.device(),
             Layout::NCHW,
@@ -84,8 +87,11 @@ namespace kl
             result,
             options_);
 
-        last_input_shape_ = input.shape();
-        has_last_input_shape_ = true;
+        last_input_shape_ =
+            cache_key_.shape();
+
+        has_last_input_shape_ =
+            true;
 
         return result;
     }
@@ -122,6 +128,22 @@ namespace kl
     const Pooling2dOptions &AvgPool2dLayer::options() const
     {
         return options_;
+    }
+
+    void AvgPool2dLayer::prepare_cache(
+        const Tensor &input)
+    {
+        if (cache_key_.matches(input))
+        {
+            return;
+        }
+
+        cached_output_shape_ =
+            output_shape(
+                input.shape());
+
+        cache_key_.capture(
+            input);
     }
 
     std::size_t AvgPool2dLayer::output_size(
