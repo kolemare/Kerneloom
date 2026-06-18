@@ -40,22 +40,30 @@ namespace kl
         }
     }
 
-    void LinearLayer::initializeBiases(const InitializerType &type)
+    void LinearLayer::initializeBiases(
+        const InitializerType &type)
     {
         if (bias_ != nullptr)
         {
-            Initializer::initialize(*bias_, type);
+            Initializer::initialize(
+                *bias_,
+                type);
         }
     }
 
-    void LinearLayer::initializeWeights(const InitializerType &type)
+    void LinearLayer::initializeWeights(
+        const InitializerType &type)
     {
-        Initializer::initialize(weights_, type);
+        Initializer::initialize(
+            weights_,
+            type);
     }
 
     void LinearLayer::prepareTraining()
     {
-        mode_ = LayerMode::Training;
+        mode_ =
+            LayerMode::Training;
+
         if (grad_weights_ == nullptr)
         {
             grad_weights_ = std::make_unique<Tensor>(
@@ -140,8 +148,11 @@ namespace kl
         Tensor &input,
         TensorPool &pool)
     {
+        prepare_cache(
+            input);
+
         Tensor &result = pool.request(
-            output_shape(input.shape()),
+            cached_output_shape_,
             dtype_,
             device_,
             Layout::Unknown,
@@ -151,7 +162,8 @@ namespace kl
 
         if (bias_ != nullptr)
         {
-            bias = bias_.get();
+            bias =
+                bias_.get();
         }
 
         linear(
@@ -160,7 +172,8 @@ namespace kl
             bias,
             result);
 
-        last_input_ = &input;
+        last_input_ =
+            &input;
 
         return result;
     }
@@ -185,7 +198,8 @@ namespace kl
 
         if (grad_bias_ != nullptr)
         {
-            grad_bias = grad_bias_.get();
+            grad_bias =
+                grad_bias_.get();
         }
 
         backward_linear(
@@ -283,4 +297,21 @@ namespace kl
                 grad_bias_.get()});
         }
     }
+
+    void LinearLayer::prepare_cache(
+        const Tensor &input)
+    {
+        if (cache_key_.matches(input))
+        {
+            return;
+        }
+
+        cached_output_shape_ =
+            output_shape(
+                input.shape());
+
+        cache_key_.capture(
+            input);
+    }
+
 }

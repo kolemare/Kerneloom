@@ -1,6 +1,7 @@
 #ifndef KL_LINEAR_LAYER_HPP
 #define KL_LINEAR_LAYER_HPP
 
+#include <cnn/layers/cache/layer_cache_key.hpp>
 #include <cnn/layers/layer.hpp>
 
 #include <core/device.hpp>
@@ -11,6 +12,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <vector>
 
 namespace kl
 {
@@ -21,12 +23,16 @@ namespace kl
         LinearLayer(
             std::size_t input_features,
             std::size_t output_features,
-            DType dtype = DType::Float32,
-            Device device = Device::cpu(),
+            DType dtype,
+            Device device,
             bool use_bias = true);
 
-        void initializeBiases(const InitializerType &type) override;
-        void initializeWeights(const InitializerType &type) override;
+        void initializeBiases(
+            const InitializerType &type) override;
+
+        void initializeWeights(
+            const InitializerType &type) override;
+
         void prepareTraining() override;
 
         bool verify() const override;
@@ -43,19 +49,27 @@ namespace kl
             TensorPool &pool) override;
 
         Tensor &weights();
+
         Tensor &bias();
 
         Tensor &gradWeights();
+
         Tensor &gradBias();
 
         std::size_t input_features() const;
+
         std::size_t output_features() const;
 
         bool use_bias() const;
+
         bool hasBias() const;
 
         void collectParameters(
             std::vector<Parameter> &parameters) override;
+
+    private:
+        void prepare_cache(
+            const Tensor &input);
 
     private:
         std::size_t input_features_;
@@ -63,6 +77,7 @@ namespace kl
 
         DType dtype_;
         Device device_;
+
         bool use_bias_;
 
         Tensor weights_;
@@ -71,7 +86,10 @@ namespace kl
         std::unique_ptr<Tensor> grad_weights_;
         std::unique_ptr<Tensor> grad_bias_;
 
-        const Tensor *last_input_ = nullptr;
+        LayerCacheKey cache_key_;
+        Shape cached_output_shape_;
+
+        Tensor *last_input_ = nullptr;
     };
 
 }
