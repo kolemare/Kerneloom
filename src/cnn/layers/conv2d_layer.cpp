@@ -44,22 +44,29 @@ namespace kl
         }
     }
 
-    void Conv2dLayer::initializeBiases(const InitializerType &type)
+    void Conv2dLayer::initializeBiases(
+        const InitializerType &type)
     {
         if (bias_ != nullptr)
         {
-            Initializer::initialize(*bias_, type);
+            Initializer::initialize(
+                *bias_,
+                type);
         }
     }
 
-    void Conv2dLayer::initializeWeights(const InitializerType &type)
+    void Conv2dLayer::initializeWeights(
+        const InitializerType &type)
     {
-        Initializer::initialize(weights_, type);
+        Initializer::initialize(
+            weights_,
+            type);
     }
 
     void Conv2dLayer::prepareTraining()
     {
-        mode_ = LayerMode::Training;
+        mode_ =
+            LayerMode::Training;
 
         if (grad_weights_ == nullptr)
         {
@@ -182,8 +189,11 @@ namespace kl
         Tensor &input,
         TensorPool &pool)
     {
+        prepare_cache(
+            input);
+
         Tensor &result = pool.request(
-            output_shape(input.shape()),
+            cached_output_shape_,
             dtype_,
             device_,
             Layout::NCHW,
@@ -193,7 +203,8 @@ namespace kl
 
         if (bias_ != nullptr)
         {
-            bias = bias_.get();
+            bias =
+                bias_.get();
         }
 
         conv2d(
@@ -203,7 +214,8 @@ namespace kl
             result,
             options_);
 
-        last_input_ = &input;
+        last_input_ =
+            &input;
 
         return result;
     }
@@ -243,7 +255,8 @@ namespace kl
 
         if (grad_bias_ != nullptr)
         {
-            grad_bias = grad_bias_.get();
+            grad_bias =
+                grad_bias_.get();
         }
 
         backward_conv2d(
@@ -326,6 +339,22 @@ namespace kl
     const Conv2dOptions &Conv2dLayer::options() const
     {
         return options_;
+    }
+
+    void Conv2dLayer::prepare_cache(
+        const Tensor &input)
+    {
+        if (cache_key_.matches(input))
+        {
+            return;
+        }
+
+        cached_output_shape_ =
+            output_shape(
+                input.shape());
+
+        cache_key_.capture(
+            input);
     }
 
     std::size_t Conv2dLayer::output_size(

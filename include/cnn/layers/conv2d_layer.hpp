@@ -1,6 +1,7 @@
 #ifndef KL_CONV2D_LAYER_HPP
 #define KL_CONV2D_LAYER_HPP
 
+#include <cnn/layers/cache/layer_cache_key.hpp>
 #include <cnn/layers/layer.hpp>
 #include <cnn/options/conv2d_options.hpp>
 
@@ -12,6 +13,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <vector>
 
 namespace kl
 {
@@ -24,12 +26,16 @@ namespace kl
             std::size_t output_channels,
             std::size_t kernel_height,
             std::size_t kernel_width,
-            DType dtype = DType::Float32,
-            Device device = Device::cpu(),
+            DType dtype,
+            Device device,
             Conv2dOptions options = {});
 
-        void initializeBiases(const InitializerType &type) override;
-        void initializeWeights(const InitializerType &type) override;
+        void initializeBiases(
+            const InitializerType &type) override;
+
+        void initializeWeights(
+            const InitializerType &type) override;
+
         void prepareTraining() override;
 
         bool verify() const override;
@@ -46,9 +52,11 @@ namespace kl
             TensorPool &pool) override;
 
         Tensor &weights();
+
         Tensor &bias();
 
         Tensor &gradWeights();
+
         Tensor &gradBias();
 
         void collectParameters(
@@ -57,6 +65,9 @@ namespace kl
         const Conv2dOptions &options() const;
 
     private:
+        void prepare_cache(
+            const Tensor &input);
+
         std::size_t output_size(
             std::size_t input_size,
             std::size_t kernel_size,
@@ -72,6 +83,7 @@ namespace kl
 
         DType dtype_;
         Device device_;
+
         Conv2dOptions options_;
 
         Tensor weights_;
@@ -80,7 +92,10 @@ namespace kl
         std::unique_ptr<Tensor> grad_weights_;
         std::unique_ptr<Tensor> grad_bias_;
 
-        const Tensor *last_input_ = nullptr;
+        LayerCacheKey cache_key_;
+        Shape cached_output_shape_;
+
+        Tensor *last_input_ = nullptr;
     };
 
 }
