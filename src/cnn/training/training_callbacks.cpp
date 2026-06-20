@@ -26,6 +26,10 @@ namespace kl
                         << std::fixed
                         << std::setprecision(6)
                         << progress.average_loss
+                        << " | accuracy="
+                        << std::fixed
+                        << std::setprecision(4)
+                        << progress.average_accuracy
                         << "                    "
                         << '\n';
 
@@ -46,6 +50,10 @@ namespace kl
                     << std::fixed
                     << std::setprecision(6)
                     << progress.batch_loss
+                    << " | acc="
+                    << std::fixed
+                    << std::setprecision(4)
+                    << progress.batch_accuracy
                     << std::flush;
             };
         }
@@ -69,6 +77,10 @@ namespace kl
                     << std::fixed
                     << std::setprecision(6)
                     << progress.average_loss
+                    << " | accuracy="
+                    << std::fixed
+                    << std::setprecision(4)
+                    << progress.average_accuracy
                     << '\n';
             };
         }

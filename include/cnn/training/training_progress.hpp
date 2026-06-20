@@ -27,6 +27,12 @@ namespace kl
         float average_loss =
             0.0f;
 
+        float batch_accuracy =
+            0.0f;
+
+        float average_accuracy =
+            0.0f;
+
         bool epoch_complete =
             false;
     };
