@@ -33,6 +33,9 @@ namespace kl
     TrainingResult Training::trainBatch(
         Batch &batch)
     {
+        model_.setMode(
+            LayerMode::Training);
+
         model_.reset();
         loss_pool_.reset();
 
