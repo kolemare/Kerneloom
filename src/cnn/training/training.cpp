@@ -1,5 +1,7 @@
 #include <cnn/training/training.hpp>
 
+#include <cnn/evaluation/evaluation.hpp>
+#include <cnn/evaluation/evaluation_result.hpp>
 #include <cnn/metrics/classification_metrics.hpp>
 
 #include <core/device.hpp>
@@ -11,6 +13,73 @@
 
 namespace kl
 {
+
+    namespace
+    {
+
+        void dispatch_epoch_callback(
+            const TrainingCallback &callback,
+            std::size_t epoch,
+            std::size_t epoch_count,
+            std::size_t batch_index,
+            std::size_t batch_count,
+            float batch_loss,
+            float average_loss,
+            float batch_accuracy,
+            float average_accuracy,
+            bool epoch_complete)
+        {
+            if (!callback)
+            {
+                return;
+            }
+
+            callback(
+                TrainingProgress{
+                    epoch,
+                    epoch_count,
+                    batch_index,
+                    batch_count,
+                    batch_loss,
+                    average_loss,
+                    batch_accuracy,
+                    average_accuracy,
+                    0.0f,
+                    0.0f,
+                    false,
+                    epoch_complete});
+        }
+
+        void dispatch_validation_callback(
+            const TrainingCallback &callback,
+            std::size_t epoch,
+            std::size_t epoch_count,
+            std::size_t batch_index,
+            std::size_t batch_count,
+            const TrainingEpochResult &result)
+        {
+            if (!callback)
+            {
+                return;
+            }
+
+            callback(
+                TrainingProgress{
+                    epoch,
+                    epoch_count,
+                    batch_index,
+                    batch_count,
+                    result.average_loss,
+                    result.average_loss,
+                    result.accuracy,
+                    result.accuracy,
+                    result.validation_loss,
+                    result.validation_accuracy,
+                    true,
+                    true});
+        }
+
+    }
 
     Training::Training(
         Sequential &model,
@@ -152,20 +221,17 @@ namespace kl
                 static_cast<float>(
                     total_sample_count);
 
-            if (callback)
-            {
-                callback(
-                    TrainingProgress{
-                        epoch,
-                        epoch_count,
-                        batch_index,
-                        batch_count,
-                        result.loss,
-                        average_loss,
-                        result.accuracy,
-                        average_accuracy,
-                        false});
-            }
+            dispatch_epoch_callback(
+                callback,
+                epoch,
+                epoch_count,
+                batch_index,
+                batch_count,
+                result.loss,
+                average_loss,
+                result.accuracy,
+                average_accuracy,
+                false);
         }
 
         if (batch_index == 0)
@@ -188,24 +254,27 @@ namespace kl
                 total_correct_sample_count) /
                 static_cast<float>(
                     total_sample_count),
+            0.0f,
+            0.0f,
+            false,
             batch_index,
             total_sample_count,
-            total_correct_sample_count};
+            total_correct_sample_count,
+            0,
+            0,
+            0};
 
-        if (callback)
-        {
-            callback(
-                TrainingProgress{
-                    epoch,
-                    epoch_count,
-                    batch_index,
-                    batch_count,
-                    result.average_loss,
-                    result.average_loss,
-                    result.accuracy,
-                    result.accuracy,
-                    true});
-        }
+        dispatch_epoch_callback(
+            callback,
+            epoch,
+            epoch_count,
+            batch_index,
+            batch_count,
+            result.average_loss,
+            result.average_loss,
+            result.accuracy,
+            result.accuracy,
+            true);
 
         return result;
     }
@@ -243,6 +312,84 @@ namespace kl
                     epoch,
                     epoch_count,
                     callback));
+        }
+
+        return results;
+    }
+
+    std::vector<TrainingEpochResult>
+    Training::fit(
+        DataLoader &train_loader,
+        DataLoader &validation_loader,
+        std::size_t epoch_count,
+        const TrainingCallback &callback)
+    {
+        if (epoch_count == 0)
+        {
+            throw std::runtime_error(
+                "Training::fit epoch count must be greater than zero");
+        }
+
+        std::vector<TrainingEpochResult>
+            results;
+
+        results.reserve(
+            epoch_count);
+
+        Evaluation evaluation(
+            model_,
+            loss_);
+
+        for (std::size_t epoch = 1;
+             epoch <= epoch_count;
+             ++epoch)
+        {
+            if (epoch > 1)
+            {
+                train_loader.reset_epoch();
+            }
+
+            TrainingEpochResult result =
+                trainEpoch(
+                    train_loader,
+                    epoch,
+                    epoch_count,
+                    callback);
+
+            validation_loader.reset_epoch();
+
+            const EvaluationResult validation_result =
+                evaluation.evaluate(
+                    validation_loader);
+
+            result.validation_loss =
+                validation_result.average_loss;
+
+            result.validation_accuracy =
+                validation_result.accuracy;
+
+            result.has_validation =
+                true;
+
+            result.validation_batch_count =
+                validation_result.batch_count;
+
+            result.validation_sample_count =
+                validation_result.sample_count;
+
+            result.validation_correct_sample_count =
+                validation_result.correct_sample_count;
+
+            dispatch_validation_callback(
+                callback,
+                epoch,
+                epoch_count,
+                result.batch_count,
+                result.batch_count,
+                result);
+
+            results.push_back(
+                result);
         }
 
         return results;

@@ -32,12 +32,18 @@ namespace kl
 
         TrainingEpochResult trainEpoch(
             DataLoader &loader,
-            std::size_t epoch = 1,
-            std::size_t epoch_count = 1,
+            std::size_t epoch,
+            std::size_t epoch_count,
             const TrainingCallback &callback = {});
 
         std::vector<TrainingEpochResult> fit(
             DataLoader &loader,
+            std::size_t epoch_count,
+            const TrainingCallback &callback = {});
+
+        std::vector<TrainingEpochResult> fit(
+            DataLoader &train_loader,
+            DataLoader &validation_loader,
             std::size_t epoch_count,
             const TrainingCallback &callback = {});
 
@@ -46,8 +52,7 @@ namespace kl
         Loss &loss_;
         Optimizer &optimizer_;
 
-        std::vector<Parameter>
-            parameters_;
+        std::vector<Parameter> parameters_;
 
         TensorPool loss_pool_;
     };

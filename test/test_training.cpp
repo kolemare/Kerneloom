@@ -9,6 +9,7 @@
 
 #include <data/data_loader.hpp>
 #include <data/data_loader_options.hpp>
+#include <data/dataset_split.hpp>
 #include <data/image_dataset.hpp>
 #include <data/image_transform.hpp>
 
@@ -19,7 +20,6 @@
 
 #include <cstdlib>
 #include <exception>
-#include <iomanip>
 #include <iostream>
 
 int main()
@@ -32,6 +32,48 @@ int main()
         constexpr std::size_t batch_size =
             80;
 
+        kl::ImageDataset dataset(
+            "/home/marko/Projects/CNN-CPP/datasets/cifar10/training_set");
+
+        const kl::DatasetSplit split =
+            kl::split_dataset(
+                dataset.samples(),
+                0.8f,
+                0.1f,
+                1337);
+
+        kl::DataLoaderOptions train_options;
+        train_options.batch_size =
+            batch_size;
+
+        train_options.shuffle =
+            true;
+
+        train_options.drop_last =
+            true;
+
+        kl::DataLoaderOptions validation_options;
+        validation_options.batch_size =
+            batch_size;
+
+        validation_options.shuffle =
+            false;
+
+        validation_options.drop_last =
+            false;
+
+        kl::DataLoader train_loader(
+            split.train,
+            kl::ImageTransform(32, 32),
+            device,
+            train_options);
+
+        kl::DataLoader validation_loader(
+            split.validation,
+            kl::ImageTransform(32, 32),
+            device,
+            validation_options);
+
         kl::Sequential cnn(
             batch_size,
             3,
@@ -43,15 +85,20 @@ int main()
         cnn.addConvolutionLayer(32, 3);
         cnn.addActivationLayer(kl::ActivationType::ReLU);
         cnn.addMaxPoolingLayer(2);
+
         cnn.addConvolutionLayer(64, 3);
         cnn.addActivationLayer(kl::ActivationType::ReLU);
         cnn.addMaxPoolingLayer(2);
+
         cnn.addConvolutionLayer(64, 3);
         cnn.addActivationLayer(kl::ActivationType::ReLU);
         cnn.addMaxPoolingLayer(2);
+
         cnn.addFlattenLayer();
+
         cnn.addFullyConnectedLayer(128);
         cnn.addActivationLayer(kl::ActivationType::ReLU);
+
         cnn.addFullyConnectedLayer(10);
         cnn.addActivationLayer(kl::ActivationType::Softmax);
 
@@ -62,29 +109,17 @@ int main()
             kl::InitializerType::Zeros);
 
         kl::CategoricalCrossEntropyLoss loss;
-        kl::AdamOptimizer optimizer(0.001f);
+        kl::AdamOptimizer optimizer(
+            0.001f);
 
         kl::Training training(
             cnn,
             loss,
             optimizer);
 
-        kl::ImageDataset dataset(
-            "/home/marko/Projects/CNN-CPP/datasets/cifar10/training_set");
-
-        kl::DataLoaderOptions options;
-        options.batch_size = batch_size;
-        options.shuffle = true;
-        options.drop_last = true;
-
-        kl::DataLoader loader(
-            dataset.samples(),
-            kl::ImageTransform(32, 32),
-            device,
-            options);
-
         training.fit(
-            loader,
+            train_loader,
+            validation_loader,
             20,
             kl::training_callbacks::terminal_loss());
 

@@ -22,14 +22,29 @@ namespace kl
                         << progress.epoch
                         << "/"
                         << progress.epoch_count
-                        << " | average_loss="
+                        << " | train_loss="
                         << std::fixed
                         << std::setprecision(6)
                         << progress.average_loss
-                        << " | accuracy="
+                        << " | train_acc="
                         << std::fixed
                         << std::setprecision(4)
-                        << progress.average_accuracy
+                        << progress.average_accuracy;
+
+                    if (progress.has_validation)
+                    {
+                        std::cout
+                            << " | val_loss="
+                            << std::fixed
+                            << std::setprecision(6)
+                            << progress.validation_loss
+                            << " | val_acc="
+                            << std::fixed
+                            << std::setprecision(4)
+                            << progress.validation_accuracy;
+                    }
+
+                    std::cout
                         << "                    "
                         << '\n';
 
@@ -73,14 +88,29 @@ namespace kl
                     << progress.epoch
                     << "/"
                     << progress.epoch_count
-                    << " | average_loss="
+                    << " | train_loss="
                     << std::fixed
                     << std::setprecision(6)
                     << progress.average_loss
-                    << " | accuracy="
+                    << " | train_acc="
                     << std::fixed
                     << std::setprecision(4)
-                    << progress.average_accuracy
+                    << progress.average_accuracy;
+
+                if (progress.has_validation)
+                {
+                    std::cout
+                        << " | val_loss="
+                        << std::fixed
+                        << std::setprecision(6)
+                        << progress.validation_loss
+                        << " | val_acc="
+                        << std::fixed
+                        << std::setprecision(4)
+                        << progress.validation_accuracy;
+                }
+
+                std::cout
                     << '\n';
             };
         }

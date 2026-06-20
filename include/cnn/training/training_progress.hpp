@@ -9,32 +9,23 @@ namespace kl
 
     struct TrainingProgress
     {
-        std::size_t epoch =
-            0;
+        std::size_t epoch = 0;
+        std::size_t epoch_count = 0;
 
-        std::size_t epoch_count =
-            0;
+        std::size_t batch = 0;
+        std::size_t batch_count = 0;
 
-        std::size_t batch =
-            0;
+        float batch_loss = 0.0f;
+        float average_loss = 0.0f;
 
-        std::size_t batch_count =
-            0;
+        float batch_accuracy = 0.0f;
+        float average_accuracy = 0.0f;
 
-        float batch_loss =
-            0.0f;
+        float validation_loss = 0.0f;
+        float validation_accuracy = 0.0f;
+        bool has_validation = false;
 
-        float average_loss =
-            0.0f;
-
-        float batch_accuracy =
-            0.0f;
-
-        float average_accuracy =
-            0.0f;
-
-        bool epoch_complete =
-            false;
+        bool epoch_complete = false;
     };
 
     using TrainingCallback =
