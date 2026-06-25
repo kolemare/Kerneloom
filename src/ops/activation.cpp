@@ -1,5 +1,7 @@
 #include <ops/activation.hpp>
 
+#include <ops/validation/activation_validation.hpp>
+
 #include <kernels/cpu/activation/relu_cpu_float32.hpp>
 #include <kernels/cpu/activation/sigmoid_cpu_float32.hpp>
 #include <kernels/cpu/activation/softmax_cpu_float32.hpp>
@@ -49,38 +51,6 @@ namespace kl
     namespace
     {
 
-        void validate_activation_tensor(
-            const Tensor &tensor,
-            ActivationType type)
-        {
-            if (tensor.dtype() != DType::Float32)
-            {
-                throw std::runtime_error(
-                    "activation currently supports only Float32 tensors");
-            }
-
-            if (tensor.storage() != Storage::RowMajor)
-            {
-                throw std::runtime_error(
-                    "activation currently supports only RowMajor tensors");
-            }
-
-            if (type == ActivationType::Softmax)
-            {
-                if (tensor.rank() != 2)
-                {
-                    throw std::runtime_error(
-                        "Softmax activation currently expects tensor shape N x C");
-                }
-
-                if (tensor.shape()[1] == 0)
-                {
-                    throw std::runtime_error(
-                        "Softmax activation class count must be greater than zero");
-                }
-            }
-        }
-
         void activation_cpu_float32(
             Tensor &tensor,
             ActivationType type)
@@ -88,19 +58,23 @@ namespace kl
             switch (type)
             {
             case ActivationType::ReLU:
-                relu_cpu_float32(tensor);
+                relu_cpu_float32(
+                    tensor);
                 return;
 
             case ActivationType::Sigmoid:
-                sigmoid_cpu_float32(tensor);
+                sigmoid_cpu_float32(
+                    tensor);
                 return;
 
             case ActivationType::Tanh:
-                tanh_cpu_float32(tensor);
+                tanh_cpu_float32(
+                    tensor);
                 return;
 
             case ActivationType::Softmax:
-                softmax_cpu_float32(tensor);
+                softmax_cpu_float32(
+                    tensor);
                 return;
 
             default:
@@ -117,19 +91,23 @@ namespace kl
             switch (type)
             {
             case ActivationType::ReLU:
-                relu_cuda_float32(tensor);
+                relu_cuda_float32(
+                    tensor);
                 return;
 
             case ActivationType::Sigmoid:
-                sigmoid_cuda_float32(tensor);
+                sigmoid_cuda_float32(
+                    tensor);
                 return;
 
             case ActivationType::Tanh:
-                tanh_cuda_float32(tensor);
+                tanh_cuda_float32(
+                    tensor);
                 return;
 
             case ActivationType::Softmax:
-                softmax_cuda_float32(tensor);
+                softmax_cuda_float32(
+                    tensor);
                 return;
 
             default:
@@ -147,19 +125,23 @@ namespace kl
             switch (type)
             {
             case ActivationType::ReLU:
-                relu_rocm_float32(tensor);
+                relu_rocm_float32(
+                    tensor);
                 return;
 
             case ActivationType::Sigmoid:
-                sigmoid_rocm_float32(tensor);
+                sigmoid_rocm_float32(
+                    tensor);
                 return;
 
             case ActivationType::Tanh:
-                tanh_rocm_float32(tensor);
+                tanh_rocm_float32(
+                    tensor);
                 return;
 
             case ActivationType::Softmax:
-                softmax_rocm_float32(tensor);
+                softmax_rocm_float32(
+                    tensor);
                 return;
 
             default:
