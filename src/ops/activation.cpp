@@ -153,14 +153,10 @@ namespace kl
 
     }
 
-    void activation(
+    void activation_unchecked(
         Tensor &tensor,
         ActivationType type)
     {
-        validate_activation_tensor(
-            tensor,
-            type);
-
         switch (tensor.device().type())
         {
         case DeviceType::CPU:
@@ -195,6 +191,19 @@ namespace kl
             throw std::runtime_error(
                 "unknown DeviceType in activation");
         }
+    }
+
+    void activation(
+        Tensor &tensor,
+        ActivationType type)
+    {
+        validate_activation_tensor(
+            tensor,
+            type);
+
+        activation_unchecked(
+            tensor,
+            type);
     }
 
 }

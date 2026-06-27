@@ -23,6 +23,19 @@ namespace kl
         Reduction reduction,
         std::size_t valid_sample_count);
 
+    void backward_binary_cross_entropy_unchecked(
+        const Tensor &prediction,
+        const Tensor &target,
+        Tensor &grad_prediction,
+        Reduction reduction);
+
+    void backward_binary_cross_entropy_unchecked(
+        const Tensor &prediction,
+        const Tensor &target,
+        Tensor &grad_prediction,
+        Reduction reduction,
+        std::size_t valid_sample_count);
+
 }
 
 #endif // KL_BACKWARD_BINARY_CROSS_ENTROPY_HPP

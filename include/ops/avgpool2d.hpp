@@ -12,6 +12,11 @@ namespace kl
         Tensor &result,
         const Pooling2dOptions &options);
 
+    void avgpool2d_unchecked(
+        const Tensor &input,
+        Tensor &result,
+        const Pooling2dOptions &options);
+
 }
 
 #endif // KL_AVGPOOL2D_HPP

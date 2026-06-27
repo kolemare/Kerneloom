@@ -17,16 +17,11 @@
 namespace kl
 {
 
-    void backward_avgpool2d(
+    void backward_avgpool2d_unchecked(
         const Tensor &grad_output,
         Tensor &grad_input,
         const Pooling2dOptions &options)
     {
-        validate_backward_avgpool2d_inputs(
-            grad_output,
-            grad_input,
-            options);
-
         switch (grad_output.device().type())
         {
         case DeviceType::CPU:
@@ -64,6 +59,22 @@ namespace kl
             throw std::runtime_error(
                 "unknown DeviceType in backward_avgpool2d");
         }
+    }
+
+    void backward_avgpool2d(
+        const Tensor &grad_output,
+        Tensor &grad_input,
+        const Pooling2dOptions &options)
+    {
+        validate_backward_avgpool2d_inputs(
+            grad_output,
+            grad_input,
+            options);
+
+        backward_avgpool2d_unchecked(
+            grad_output,
+            grad_input,
+            options);
     }
 
 }

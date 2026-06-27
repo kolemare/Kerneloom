@@ -17,7 +17,7 @@
 namespace kl
 {
 
-    void adam_update(
+    void adam_update_unchecked(
         Tensor &value,
         const Tensor &grad,
         Tensor &first_moment,
@@ -29,18 +29,6 @@ namespace kl
         float beta1_power,
         float beta2_power)
     {
-        validate_adam_update_inputs(
-            value,
-            grad,
-            first_moment,
-            second_moment,
-            learning_rate,
-            beta1,
-            beta2,
-            epsilon,
-            beta1_power,
-            beta2_power);
-
         switch (value.device().type())
         {
         case DeviceType::CPU:
@@ -99,6 +87,43 @@ namespace kl
             throw std::runtime_error(
                 "unknown DeviceType in adam_update");
         }
+    }
+
+    void adam_update(
+        Tensor &value,
+        const Tensor &grad,
+        Tensor &first_moment,
+        Tensor &second_moment,
+        float learning_rate,
+        float beta1,
+        float beta2,
+        float epsilon,
+        float beta1_power,
+        float beta2_power)
+    {
+        validate_adam_update_inputs(
+            value,
+            grad,
+            first_moment,
+            second_moment,
+            learning_rate,
+            beta1,
+            beta2,
+            epsilon,
+            beta1_power,
+            beta2_power);
+
+        adam_update_unchecked(
+            value,
+            grad,
+            first_moment,
+            second_moment,
+            learning_rate,
+            beta1,
+            beta2,
+            epsilon,
+            beta1_power,
+            beta2_power);
     }
 
 }

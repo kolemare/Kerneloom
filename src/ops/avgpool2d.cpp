@@ -17,16 +17,11 @@
 namespace kl
 {
 
-    void avgpool2d(
+    void avgpool2d_unchecked(
         const Tensor &input,
         Tensor &result,
         const Pooling2dOptions &options)
     {
-        validate_avgpool2d_inputs(
-            input,
-            result,
-            options);
-
         switch (input.device().type())
         {
         case DeviceType::CPU:
@@ -64,6 +59,22 @@ namespace kl
             throw std::runtime_error(
                 "unknown DeviceType in avgpool2d");
         }
+    }
+
+    void avgpool2d(
+        const Tensor &input,
+        Tensor &result,
+        const Pooling2dOptions &options)
+    {
+        validate_avgpool2d_inputs(
+            input,
+            result,
+            options);
+
+        avgpool2d_unchecked(
+            input,
+            result,
+            options);
     }
 
 }

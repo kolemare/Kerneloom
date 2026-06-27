@@ -26,16 +26,11 @@
 namespace kl
 {
 
-    void backward_activation(
+    void backward_activation_unchecked(
         const Tensor &activation_output,
         Tensor &grad,
         ActivationType type)
     {
-        validate_backward_activation_inputs(
-            activation_output,
-            grad,
-            type);
-
         switch (activation_output.device().type())
         {
         case DeviceType::CPU:
@@ -148,6 +143,22 @@ namespace kl
             throw std::runtime_error(
                 "unknown DeviceType in backward_activation");
         }
+    }
+
+    void backward_activation(
+        const Tensor &activation_output,
+        Tensor &grad,
+        ActivationType type)
+    {
+        validate_backward_activation_inputs(
+            activation_output,
+            grad,
+            type);
+
+        backward_activation_unchecked(
+            activation_output,
+            grad,
+            type);
     }
 
 }

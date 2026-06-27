@@ -21,6 +21,10 @@ namespace kl
         Tensor &tensor,
         ActivationType type);
 
+    void activation_unchecked(
+        Tensor &tensor,
+        ActivationType type);
+
 }
 
 #endif // KL_ACTIVATION_HPP
