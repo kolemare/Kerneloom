@@ -73,7 +73,7 @@ namespace kl
         {
             validate_parameter(parameter);
 
-            sgd_update(
+            sgd_update_unchecked(
                 *parameter.value,
                 *parameter.grad,
                 learning_rate_);

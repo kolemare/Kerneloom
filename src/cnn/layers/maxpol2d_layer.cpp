@@ -89,7 +89,7 @@ namespace kl
                 cached_output_shape_,
                 input.device());
 
-            maxpool2d_with_indices(
+            maxpool2d_with_indices_unchecked(
                 input,
                 result,
                 *indices_,
@@ -97,7 +97,7 @@ namespace kl
         }
         else
         {
-            maxpool2d(
+            maxpool2d_unchecked(
                 input,
                 result,
                 options_);
@@ -138,7 +138,7 @@ namespace kl
             Layout::NCHW,
             Storage::RowMajor);
 
-        backward_maxpool2d(
+        backward_maxpool2d_unchecked(
             *indices_,
             grad_output,
             grad_input);

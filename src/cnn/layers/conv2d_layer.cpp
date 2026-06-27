@@ -207,7 +207,7 @@ namespace kl
                 bias_.get();
         }
 
-        conv2d(
+        conv2d_unchecked(
             input,
             weights_,
             bias,
@@ -259,7 +259,7 @@ namespace kl
                 grad_bias_.get();
         }
 
-        backward_conv2d(
+        backward_conv2d_unchecked(
             *last_input_,
             weights_,
             grad_output,

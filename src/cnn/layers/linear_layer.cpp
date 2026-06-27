@@ -166,7 +166,7 @@ namespace kl
                 bias_.get();
         }
 
-        linear(
+        linear_unchecked(
             input,
             weights_,
             bias,
@@ -202,7 +202,7 @@ namespace kl
                 grad_bias_.get();
         }
 
-        backward_linear(
+        backward_linear_unchecked(
             *last_input_,
             weights_,
             grad_output,

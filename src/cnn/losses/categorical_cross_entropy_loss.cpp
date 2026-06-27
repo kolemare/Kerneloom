@@ -48,7 +48,7 @@ namespace kl
                 Layout::Unknown,
                 Storage::RowMajor);
 
-        categorical_cross_entropy(
+        categorical_cross_entropy_unchecked(
             prediction,
             target,
             result,
@@ -93,7 +93,7 @@ namespace kl
                 last_prediction_
                     ->storage());
 
-        backward_categorical_cross_entropy(
+        backward_categorical_cross_entropy_unchecked(
             *last_prediction_,
             *last_target_,
             grad_prediction,

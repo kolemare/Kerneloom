@@ -82,7 +82,7 @@ namespace kl
             Layout::NCHW,
             Storage::RowMajor);
 
-        avgpool2d(
+        avgpool2d_unchecked(
             input,
             result,
             options_);
@@ -117,7 +117,7 @@ namespace kl
             Layout::NCHW,
             Storage::RowMajor);
 
-        backward_avgpool2d(
+        backward_avgpool2d_unchecked(
             grad_output,
             grad_input,
             options_);

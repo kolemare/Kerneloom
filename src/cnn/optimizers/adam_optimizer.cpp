@@ -116,7 +116,7 @@ namespace kl
 
             validate_parameter(parameter);
 
-            adam_update(
+            adam_update_unchecked(
                 *parameter.value,
                 *parameter.grad,
                 *first_moments_[i],

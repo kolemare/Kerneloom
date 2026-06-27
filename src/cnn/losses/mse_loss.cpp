@@ -44,7 +44,7 @@ namespace kl
                 Layout::Unknown,
                 Storage::RowMajor);
 
-        mse_loss(
+        mse_loss_unchecked(
             prediction,
             target,
             result,
@@ -88,7 +88,7 @@ namespace kl
                 last_prediction_
                     ->storage());
 
-        backward_mse_loss(
+        backward_mse_loss_unchecked(
             *last_prediction_,
             *last_target_,
             grad_prediction,

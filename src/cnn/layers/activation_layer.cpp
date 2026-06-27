@@ -1,5 +1,8 @@
 #include <cnn/layers/activation_layer.hpp>
 
+#include <ops/activation.hpp>
+#include <ops/backward_activation.hpp>
+
 #include <stdexcept>
 
 namespace kl
@@ -51,9 +54,12 @@ namespace kl
     {
         (void)pool;
 
-        activation(input, activation_type_);
+        activation_unchecked(
+            input,
+            activation_type_);
 
-        last_input_ = &input;
+        last_input_ =
+            &input;
 
         return input;
     }
@@ -69,7 +75,7 @@ namespace kl
             throw std::runtime_error("ActivationLayer::backward called before forward");
         }
 
-        backward_activation(
+        backward_activation_unchecked(
             *last_input_,
             grad_output,
             activation_type_);
