@@ -17,16 +17,11 @@
 namespace kl
 {
 
-    void backward_maxpool2d(
+    void backward_maxpool2d_unchecked(
         const Tensor &indices,
         const Tensor &grad_output,
         Tensor &grad_input)
     {
-        validate_backward_maxpool2d_inputs(
-            indices,
-            grad_output,
-            grad_input);
-
         switch (grad_output.device().type())
         {
         case DeviceType::CPU:
@@ -64,6 +59,22 @@ namespace kl
             throw std::runtime_error(
                 "unknown DeviceType in backward_maxpool2d");
         }
+    }
+
+    void backward_maxpool2d(
+        const Tensor &indices,
+        const Tensor &grad_output,
+        Tensor &grad_input)
+    {
+        validate_backward_maxpool2d_inputs(
+            indices,
+            grad_output,
+            grad_input);
+
+        backward_maxpool2d_unchecked(
+            indices,
+            grad_output,
+            grad_input);
     }
 
 }

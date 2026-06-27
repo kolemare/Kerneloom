@@ -17,7 +17,7 @@
 namespace kl
 {
 
-    void backward_conv2d(
+    void backward_conv2d_unchecked(
         const Tensor &input,
         const Tensor &weights,
         const Tensor &grad_output,
@@ -26,15 +26,6 @@ namespace kl
         Tensor *grad_bias,
         const Conv2dOptions &options)
     {
-        validate_backward_conv2d_inputs(
-            input,
-            weights,
-            grad_output,
-            grad_input,
-            grad_weights,
-            grad_bias,
-            options);
-
         switch (input.device().type())
         {
         case DeviceType::CPU:
@@ -84,6 +75,34 @@ namespace kl
             throw std::runtime_error(
                 "unknown DeviceType in backward_conv2d");
         }
+    }
+
+    void backward_conv2d(
+        const Tensor &input,
+        const Tensor &weights,
+        const Tensor &grad_output,
+        Tensor &grad_input,
+        Tensor &grad_weights,
+        Tensor *grad_bias,
+        const Conv2dOptions &options)
+    {
+        validate_backward_conv2d_inputs(
+            input,
+            weights,
+            grad_output,
+            grad_input,
+            grad_weights,
+            grad_bias,
+            options);
+
+        backward_conv2d_unchecked(
+            input,
+            weights,
+            grad_output,
+            grad_input,
+            grad_weights,
+            grad_bias,
+            options);
     }
 
 }

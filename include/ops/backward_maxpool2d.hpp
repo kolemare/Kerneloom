@@ -11,6 +11,11 @@ namespace kl
         const Tensor &grad_output,
         Tensor &grad_input);
 
+    void backward_maxpool2d_unchecked(
+        const Tensor &indices,
+        const Tensor &grad_output,
+        Tensor &grad_input);
+
 }
 
 #endif // KL_BACKWARD_MAXPOOL2D_HPP

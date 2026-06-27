@@ -17,6 +17,15 @@ namespace kl
         Tensor *grad_bias,
         const Conv2dOptions &options);
 
+    void backward_conv2d_unchecked(
+        const Tensor &input,
+        const Tensor &weights,
+        const Tensor &grad_output,
+        Tensor &grad_input,
+        Tensor &grad_weights,
+        Tensor *grad_bias,
+        const Conv2dOptions &options);
+
 }
 
 #endif // KL_BACKWARD_CONV2D_HPP

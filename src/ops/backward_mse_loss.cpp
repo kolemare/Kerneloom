@@ -17,13 +17,13 @@
 namespace kl
 {
 
-    void backward_mse_loss(
+    void backward_mse_loss_unchecked(
         const Tensor &prediction,
         const Tensor &target,
         Tensor &grad_prediction,
         Reduction reduction)
     {
-        backward_mse_loss(
+        backward_mse_loss_unchecked(
             prediction,
             target,
             grad_prediction,
@@ -31,20 +31,13 @@ namespace kl
             prediction.shape()[0]);
     }
 
-    void backward_mse_loss(
+    void backward_mse_loss_unchecked(
         const Tensor &prediction,
         const Tensor &target,
         Tensor &grad_prediction,
         Reduction reduction,
         std::size_t valid_sample_count)
     {
-        validate_backward_mse_loss_inputs(
-            prediction,
-            target,
-            grad_prediction,
-            reduction,
-            valid_sample_count);
-
         switch (prediction.device().type())
         {
         case DeviceType::CPU:
@@ -88,6 +81,42 @@ namespace kl
             throw std::runtime_error(
                 "unknown DeviceType in backward_mse_loss");
         }
+    }
+
+    void backward_mse_loss(
+        const Tensor &prediction,
+        const Tensor &target,
+        Tensor &grad_prediction,
+        Reduction reduction)
+    {
+        backward_mse_loss(
+            prediction,
+            target,
+            grad_prediction,
+            reduction,
+            prediction.shape()[0]);
+    }
+
+    void backward_mse_loss(
+        const Tensor &prediction,
+        const Tensor &target,
+        Tensor &grad_prediction,
+        Reduction reduction,
+        std::size_t valid_sample_count)
+    {
+        validate_backward_mse_loss_inputs(
+            prediction,
+            target,
+            grad_prediction,
+            reduction,
+            valid_sample_count);
+
+        backward_mse_loss_unchecked(
+            prediction,
+            target,
+            grad_prediction,
+            reduction,
+            valid_sample_count);
     }
 
 }

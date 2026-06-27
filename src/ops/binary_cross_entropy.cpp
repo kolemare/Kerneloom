@@ -17,13 +17,13 @@
 namespace kl
 {
 
-    void binary_cross_entropy(
+    void binary_cross_entropy_unchecked(
         const Tensor &prediction,
         const Tensor &target,
         Tensor &result,
         Reduction reduction)
     {
-        binary_cross_entropy(
+        binary_cross_entropy_unchecked(
             prediction,
             target,
             result,
@@ -31,20 +31,13 @@ namespace kl
             prediction.shape()[0]);
     }
 
-    void binary_cross_entropy(
+    void binary_cross_entropy_unchecked(
         const Tensor &prediction,
         const Tensor &target,
         Tensor &result,
         Reduction reduction,
         std::size_t valid_sample_count)
     {
-        validate_binary_cross_entropy_inputs(
-            prediction,
-            target,
-            result,
-            reduction,
-            valid_sample_count);
-
         switch (prediction.device().type())
         {
         case DeviceType::CPU:
@@ -88,6 +81,42 @@ namespace kl
             throw std::runtime_error(
                 "unknown DeviceType in binary_cross_entropy");
         }
+    }
+
+    void binary_cross_entropy(
+        const Tensor &prediction,
+        const Tensor &target,
+        Tensor &result,
+        Reduction reduction)
+    {
+        binary_cross_entropy(
+            prediction,
+            target,
+            result,
+            reduction,
+            prediction.shape()[0]);
+    }
+
+    void binary_cross_entropy(
+        const Tensor &prediction,
+        const Tensor &target,
+        Tensor &result,
+        Reduction reduction,
+        std::size_t valid_sample_count)
+    {
+        validate_binary_cross_entropy_inputs(
+            prediction,
+            target,
+            result,
+            reduction,
+            valid_sample_count);
+
+        binary_cross_entropy_unchecked(
+            prediction,
+            target,
+            result,
+            reduction,
+            valid_sample_count);
     }
 
 }

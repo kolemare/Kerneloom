@@ -14,6 +14,14 @@ namespace kl
         Tensor &grad_weights,
         Tensor *grad_bias);
 
+    void backward_linear_unchecked(
+        const Tensor &input,
+        const Tensor &weights,
+        const Tensor &grad_output,
+        Tensor &grad_input,
+        Tensor &grad_weights,
+        Tensor *grad_bias);
+
 }
 
 #endif // KL_BACKWARD_LINEAR_HPP

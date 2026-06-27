@@ -17,7 +17,7 @@
 namespace kl
 {
 
-    void backward_linear(
+    void backward_linear_unchecked(
         const Tensor &input,
         const Tensor &weights,
         const Tensor &grad_output,
@@ -25,14 +25,6 @@ namespace kl
         Tensor &grad_weights,
         Tensor *grad_bias)
     {
-        validate_backward_linear_inputs(
-            input,
-            weights,
-            grad_output,
-            grad_input,
-            grad_weights,
-            grad_bias);
-
         switch (input.device().type())
         {
         case DeviceType::CPU:
@@ -79,6 +71,31 @@ namespace kl
             throw std::runtime_error(
                 "unknown DeviceType in backward_linear");
         }
+    }
+
+    void backward_linear(
+        const Tensor &input,
+        const Tensor &weights,
+        const Tensor &grad_output,
+        Tensor &grad_input,
+        Tensor &grad_weights,
+        Tensor *grad_bias)
+    {
+        validate_backward_linear_inputs(
+            input,
+            weights,
+            grad_output,
+            grad_input,
+            grad_weights,
+            grad_bias);
+
+        backward_linear_unchecked(
+            input,
+            weights,
+            grad_output,
+            grad_input,
+            grad_weights,
+            grad_bias);
     }
 
 }
