@@ -17,18 +17,12 @@
 namespace kl
 {
 
-    void maxpool2d_with_indices(
+    void maxpool2d_with_indices_unchecked(
         const Tensor &input,
         Tensor &result,
         Tensor &indices,
         const Pooling2dOptions &options)
     {
-        validate_maxpool2d_with_indices_inputs(
-            input,
-            result,
-            indices,
-            options);
-
         switch (input.device().type())
         {
         case DeviceType::CPU:
@@ -69,6 +63,25 @@ namespace kl
             throw std::runtime_error(
                 "unknown DeviceType in maxpool2d_with_indices");
         }
+    }
+
+    void maxpool2d_with_indices(
+        const Tensor &input,
+        Tensor &result,
+        Tensor &indices,
+        const Pooling2dOptions &options)
+    {
+        validate_maxpool2d_with_indices_inputs(
+            input,
+            result,
+            indices,
+            options);
+
+        maxpool2d_with_indices_unchecked(
+            input,
+            result,
+            indices,
+            options);
     }
 
 }

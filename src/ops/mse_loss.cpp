@@ -17,13 +17,13 @@
 namespace kl
 {
 
-    void mse_loss(
+    void mse_loss_unchecked(
         const Tensor &prediction,
         const Tensor &target,
         Tensor &result,
         Reduction reduction)
     {
-        mse_loss(
+        mse_loss_unchecked(
             prediction,
             target,
             result,
@@ -31,20 +31,13 @@ namespace kl
             prediction.shape()[0]);
     }
 
-    void mse_loss(
+    void mse_loss_unchecked(
         const Tensor &prediction,
         const Tensor &target,
         Tensor &result,
         Reduction reduction,
         std::size_t valid_sample_count)
     {
-        validate_mse_loss_inputs(
-            prediction,
-            target,
-            result,
-            reduction,
-            valid_sample_count);
-
         switch (prediction.device().type())
         {
         case DeviceType::CPU:
@@ -88,6 +81,42 @@ namespace kl
             throw std::runtime_error(
                 "unknown DeviceType in mse_loss");
         }
+    }
+
+    void mse_loss(
+        const Tensor &prediction,
+        const Tensor &target,
+        Tensor &result,
+        Reduction reduction)
+    {
+        mse_loss(
+            prediction,
+            target,
+            result,
+            reduction,
+            prediction.shape()[0]);
+    }
+
+    void mse_loss(
+        const Tensor &prediction,
+        const Tensor &target,
+        Tensor &result,
+        Reduction reduction,
+        std::size_t valid_sample_count)
+    {
+        validate_mse_loss_inputs(
+            prediction,
+            target,
+            result,
+            reduction,
+            valid_sample_count);
+
+        mse_loss_unchecked(
+            prediction,
+            target,
+            result,
+            reduction,
+            valid_sample_count);
     }
 
 }

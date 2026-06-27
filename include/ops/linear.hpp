@@ -12,6 +12,12 @@ namespace kl
         const Tensor *bias,
         Tensor &result);
 
+    void linear_unchecked(
+        const Tensor &input,
+        const Tensor &weights,
+        const Tensor *bias,
+        Tensor &result);
+
 }
 
 #endif // KL_LINEAR_HPP

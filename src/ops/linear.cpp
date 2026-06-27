@@ -17,18 +17,12 @@
 namespace kl
 {
 
-    void linear(
+    void linear_unchecked(
         const Tensor &input,
         const Tensor &weights,
         const Tensor *bias,
         Tensor &result)
     {
-        validate_linear_inputs(
-            input,
-            weights,
-            bias,
-            result);
-
         switch (input.device().type())
         {
         case DeviceType::CPU:
@@ -69,6 +63,25 @@ namespace kl
             throw std::runtime_error(
                 "unknown DeviceType in linear");
         }
+    }
+
+    void linear(
+        const Tensor &input,
+        const Tensor &weights,
+        const Tensor *bias,
+        Tensor &result)
+    {
+        validate_linear_inputs(
+            input,
+            weights,
+            bias,
+            result);
+
+        linear_unchecked(
+            input,
+            weights,
+            bias,
+            result);
     }
 
 }

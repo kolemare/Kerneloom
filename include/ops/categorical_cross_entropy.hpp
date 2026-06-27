@@ -23,6 +23,19 @@ namespace kl
         Reduction reduction,
         std::size_t valid_sample_count);
 
+    void categorical_cross_entropy_unchecked(
+        const Tensor &prediction,
+        const Tensor &target,
+        Tensor &result,
+        Reduction reduction);
+
+    void categorical_cross_entropy_unchecked(
+        const Tensor &prediction,
+        const Tensor &target,
+        Tensor &result,
+        Reduction reduction,
+        std::size_t valid_sample_count);
+
 }
 
 #endif // KL_CATEGORICAL_CROSS_ENTROPY_HPP

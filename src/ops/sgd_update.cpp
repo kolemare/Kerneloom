@@ -17,15 +17,11 @@
 namespace kl
 {
 
-    void sgd_update(
+    void sgd_update_unchecked(
         Tensor &value,
         const Tensor &grad,
         float learning_rate)
     {
-        validate_sgd_update_inputs(
-            value,
-            grad);
-
         switch (value.device().type())
         {
         case DeviceType::CPU:
@@ -63,6 +59,21 @@ namespace kl
             throw std::runtime_error(
                 "unknown DeviceType in sgd_update");
         }
+    }
+
+    void sgd_update(
+        Tensor &value,
+        const Tensor &grad,
+        float learning_rate)
+    {
+        validate_sgd_update_inputs(
+            value,
+            grad);
+
+        sgd_update_unchecked(
+            value,
+            grad,
+            learning_rate);
     }
 
 }

@@ -11,6 +11,11 @@ namespace kl
         const Tensor &grad,
         float learning_rate);
 
+    void sgd_update_unchecked(
+        Tensor &value,
+        const Tensor &grad,
+        float learning_rate);
+
 }
 
 #endif // KL_SGD_UPDATE_HPP

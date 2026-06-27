@@ -23,6 +23,19 @@ namespace kl
         Reduction reduction,
         std::size_t valid_sample_count);
 
+    void mse_loss_unchecked(
+        const Tensor &prediction,
+        const Tensor &target,
+        Tensor &result,
+        Reduction reduction);
+
+    void mse_loss_unchecked(
+        const Tensor &prediction,
+        const Tensor &target,
+        Tensor &result,
+        Reduction reduction,
+        std::size_t valid_sample_count);
+
 }
 
 #endif // KL_MSE_LOSS_OP_HPP

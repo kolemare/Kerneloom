@@ -14,6 +14,12 @@ namespace kl
         Tensor &indices,
         const Pooling2dOptions &options);
 
+    void maxpool2d_with_indices_unchecked(
+        const Tensor &input,
+        Tensor &result,
+        Tensor &indices,
+        const Pooling2dOptions &options);
+
 }
 
 #endif // KL_MAXPOOL2D_WITH_INDICES_HPP

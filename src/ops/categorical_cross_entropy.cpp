@@ -17,13 +17,13 @@
 namespace kl
 {
 
-    void categorical_cross_entropy(
+    void categorical_cross_entropy_unchecked(
         const Tensor &prediction,
         const Tensor &target,
         Tensor &result,
         Reduction reduction)
     {
-        categorical_cross_entropy(
+        categorical_cross_entropy_unchecked(
             prediction,
             target,
             result,
@@ -31,20 +31,13 @@ namespace kl
             prediction.shape()[0]);
     }
 
-    void categorical_cross_entropy(
+    void categorical_cross_entropy_unchecked(
         const Tensor &prediction,
         const Tensor &target,
         Tensor &result,
         Reduction reduction,
         std::size_t valid_sample_count)
     {
-        validate_categorical_cross_entropy_inputs(
-            prediction,
-            target,
-            result,
-            reduction,
-            valid_sample_count);
-
         switch (prediction.device().type())
         {
         case DeviceType::CPU:
@@ -88,6 +81,42 @@ namespace kl
             throw std::runtime_error(
                 "unknown DeviceType in categorical_cross_entropy");
         }
+    }
+
+    void categorical_cross_entropy(
+        const Tensor &prediction,
+        const Tensor &target,
+        Tensor &result,
+        Reduction reduction)
+    {
+        categorical_cross_entropy(
+            prediction,
+            target,
+            result,
+            reduction,
+            prediction.shape()[0]);
+    }
+
+    void categorical_cross_entropy(
+        const Tensor &prediction,
+        const Tensor &target,
+        Tensor &result,
+        Reduction reduction,
+        std::size_t valid_sample_count)
+    {
+        validate_categorical_cross_entropy_inputs(
+            prediction,
+            target,
+            result,
+            reduction,
+            valid_sample_count);
+
+        categorical_cross_entropy_unchecked(
+            prediction,
+            target,
+            result,
+            reduction,
+            valid_sample_count);
     }
 
 }

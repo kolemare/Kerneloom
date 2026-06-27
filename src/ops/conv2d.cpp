@@ -221,20 +221,13 @@ namespace kl
 
     }
 
-    void conv2d(
+    void conv2d_unchecked(
         const Tensor &input,
         const Tensor &kernels,
         const Tensor *bias,
         Tensor &result,
         const Conv2dOptions &options)
     {
-        validate_conv2d_inputs(
-            input,
-            kernels,
-            bias,
-            result,
-            options);
-
         switch (input.device().type())
         {
         case DeviceType::CPU:
@@ -278,6 +271,28 @@ namespace kl
             throw std::runtime_error(
                 "unknown DeviceType in conv2d");
         }
+    }
+
+    void conv2d(
+        const Tensor &input,
+        const Tensor &kernels,
+        const Tensor *bias,
+        Tensor &result,
+        const Conv2dOptions &options)
+    {
+        validate_conv2d_inputs(
+            input,
+            kernels,
+            bias,
+            result,
+            options);
+
+        conv2d_unchecked(
+            input,
+            kernels,
+            bias,
+            result,
+            options);
     }
 
 }
