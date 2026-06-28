@@ -1,5 +1,7 @@
 #include <core/copy.hpp>
 
+#include <core/synchronize.hpp>
+
 #include <backend/cpu/cpu_copy.hpp>
 
 #if defined(KL_ENABLE_CUDA)
@@ -36,6 +38,14 @@ namespace kl
             }
         }
 
+        bool is_host_readback(
+            DeviceType dst_type,
+            DeviceType src_type)
+        {
+            return dst_type == DeviceType::CPU &&
+                   src_type != DeviceType::CPU;
+        }
+
     }
 
     void copy(Tensor &dst, const Tensor &src)
@@ -55,6 +65,12 @@ namespace kl
         {
 #if defined(KL_ENABLE_CUDA)
             cuda_copy(dst, src);
+
+            if (is_host_readback(dst_type, src_type))
+            {
+                synchronize(src.device());
+            }
+
             return;
 #else
             throw std::runtime_error("CUDA copy requested but CUDA backend is not enabled");
@@ -65,6 +81,12 @@ namespace kl
         {
 #if defined(KL_ENABLE_ROCM)
             rocm_copy(dst, src);
+
+            if (is_host_readback(dst_type, src_type))
+            {
+                synchronize(src.device());
+            }
+
             return;
 #else
             throw std::runtime_error("ROCm copy requested but ROCm backend is not enabled");
