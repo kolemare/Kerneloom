@@ -14,7 +14,7 @@ def clean(ctx):
 
 
 @task
-def build(ctx, cuda=False, rocm=False, debug=False, jobs=8):
+def build(ctx, cuda=False, rocm=False, debug=False, jobs=16):
     clean(ctx)
 
     if cuda and rocm:
@@ -33,6 +33,22 @@ def build(ctx, cuda=False, rocm=False, debug=False, jobs=8):
 
     ctx.run(f"cmake -S . -B {BUILD_DIR} {' '.join(cmake_args)}", pty=True)
     ctx.run(f"cmake --build {BUILD_DIR} -j {jobs}", pty=True)
+
+
+@task(name="builds")
+def builds(ctx, debug=False, jobs=16):
+    try:
+        print("\n=== Building CPU ===\n")
+        build(ctx, debug=debug, jobs=jobs)
+
+        print("\n=== Building CUDA ===\n")
+        build(ctx, cuda=True, debug=debug, jobs=jobs)
+
+        print("\n=== Building ROCm ===\n")
+        build(ctx, rocm=True, debug=debug, jobs=jobs)
+
+    finally:
+        clean(ctx)
 
 
 @task
