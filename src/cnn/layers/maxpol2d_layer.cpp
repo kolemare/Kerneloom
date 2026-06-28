@@ -73,6 +73,11 @@ namespace kl
         Tensor &input,
         TensorPool &pool)
     {
+        const bool cache_hit =
+            cache_key_.matches(
+                input) &&
+            cached_mode_ == mode();
+
         prepare_cache(
             input);
 
@@ -89,19 +94,46 @@ namespace kl
                 cached_output_shape_,
                 input.device());
 
-            maxpool2d_with_indices_unchecked(
-                input,
-                result,
-                *indices_,
-                options_);
+            if (cache_hit)
+            {
+                maxpool2d_with_indices_unchecked(
+                    input,
+                    result,
+                    *indices_,
+                    options_);
+            }
+            else
+            {
+                maxpool2d_with_indices(
+                    input,
+                    result,
+                    *indices_,
+                    options_);
+            }
         }
         else
         {
-            maxpool2d_unchecked(
-                input,
-                result,
-                options_);
+            if (cache_hit)
+            {
+                maxpool2d_unchecked(
+                    input,
+                    result,
+                    options_);
+            }
+            else
+            {
+                maxpool2d(
+                    input,
+                    result,
+                    options_);
+            }
         }
+
+        cached_mode_ =
+            mode();
+
+        last_forward_used_fast_path_ =
+            cache_hit;
 
         last_input_shape_ =
             cache_key_.shape();
@@ -138,10 +170,20 @@ namespace kl
             Layout::NCHW,
             Storage::RowMajor);
 
-        backward_maxpool2d_unchecked(
-            *indices_,
-            grad_output,
-            grad_input);
+        if (last_forward_used_fast_path_)
+        {
+            backward_maxpool2d_unchecked(
+                *indices_,
+                grad_output,
+                grad_input);
+        }
+        else
+        {
+            backward_maxpool2d(
+                *indices_,
+                grad_output,
+                grad_input);
+        }
 
         return grad_input;
     }

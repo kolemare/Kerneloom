@@ -95,6 +95,8 @@ namespace kl
         LayerCacheKey cache_key_;
         Shape cached_output_shape_;
 
+        bool last_forward_used_fast_path_ = false;
+
         Tensor *last_input_ = nullptr;
     };
 

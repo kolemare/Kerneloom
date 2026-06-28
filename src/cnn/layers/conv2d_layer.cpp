@@ -189,6 +189,10 @@ namespace kl
         Tensor &input,
         TensorPool &pool)
     {
+        const bool cache_hit =
+            cache_key_.matches(
+                input);
+
         prepare_cache(
             input);
 
@@ -207,12 +211,27 @@ namespace kl
                 bias_.get();
         }
 
-        conv2d_unchecked(
-            input,
-            weights_,
-            bias,
-            result,
-            options_);
+        if (cache_hit)
+        {
+            conv2d_unchecked(
+                input,
+                weights_,
+                bias,
+                result,
+                options_);
+        }
+        else
+        {
+            conv2d(
+                input,
+                weights_,
+                bias,
+                result,
+                options_);
+        }
+
+        last_forward_used_fast_path_ =
+            cache_hit;
 
         last_input_ =
             &input;
@@ -259,14 +278,28 @@ namespace kl
                 grad_bias_.get();
         }
 
-        backward_conv2d_unchecked(
-            *last_input_,
-            weights_,
-            grad_output,
-            grad_input,
-            *grad_weights_,
-            grad_bias,
-            options_);
+        if (last_forward_used_fast_path_)
+        {
+            backward_conv2d_unchecked(
+                *last_input_,
+                weights_,
+                grad_output,
+                grad_input,
+                *grad_weights_,
+                grad_bias,
+                options_);
+        }
+        else
+        {
+            backward_conv2d(
+                *last_input_,
+                weights_,
+                grad_output,
+                grad_input,
+                *grad_weights_,
+                grad_bias,
+                options_);
+        }
 
         return grad_input;
     }

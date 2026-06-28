@@ -72,6 +72,10 @@ namespace kl
         Tensor &input,
         TensorPool &pool)
     {
+        const bool cache_hit =
+            cache_key_.matches(
+                input);
+
         prepare_cache(
             input);
 
@@ -82,10 +86,23 @@ namespace kl
             Layout::NCHW,
             Storage::RowMajor);
 
-        avgpool2d_unchecked(
-            input,
-            result,
-            options_);
+        if (cache_hit)
+        {
+            avgpool2d_unchecked(
+                input,
+                result,
+                options_);
+        }
+        else
+        {
+            avgpool2d(
+                input,
+                result,
+                options_);
+        }
+
+        last_forward_used_fast_path_ =
+            cache_hit;
 
         last_input_shape_ =
             cache_key_.shape();
@@ -117,10 +134,20 @@ namespace kl
             Layout::NCHW,
             Storage::RowMajor);
 
-        backward_avgpool2d_unchecked(
-            grad_output,
-            grad_input,
-            options_);
+        if (last_forward_used_fast_path_)
+        {
+            backward_avgpool2d_unchecked(
+                grad_output,
+                grad_input,
+                options_);
+        }
+        else
+        {
+            backward_avgpool2d(
+                grad_output,
+                grad_input,
+                options_);
+        }
 
         return grad_input;
     }

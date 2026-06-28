@@ -1,6 +1,7 @@
 #ifndef KL_ACTIVATION_LAYER_HPP
 #define KL_ACTIVATION_LAYER_HPP
 
+#include <cnn/layers/cache/layer_cache_key.hpp>
 #include <cnn/layers/layer.hpp>
 
 #include <core/shape.hpp>
@@ -39,6 +40,10 @@ namespace kl
 
     private:
         ActivationType activation_type_;
+
+        LayerCacheKey cache_key_;
+
+        bool last_forward_used_fast_path_ = false;
 
         const Tensor *last_input_ = nullptr;
     };

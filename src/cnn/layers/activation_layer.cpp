@@ -54,9 +54,28 @@ namespace kl
     {
         (void)pool;
 
-        activation_unchecked(
-            input,
-            activation_type_);
+        const bool cache_hit =
+            cache_key_.matches(
+                input);
+
+        if (cache_hit)
+        {
+            activation_unchecked(
+                input,
+                activation_type_);
+        }
+        else
+        {
+            activation(
+                input,
+                activation_type_);
+
+            cache_key_.capture(
+                input);
+        }
+
+        last_forward_used_fast_path_ =
+            cache_hit;
 
         last_input_ =
             &input;
@@ -75,10 +94,20 @@ namespace kl
             throw std::runtime_error("ActivationLayer::backward called before forward");
         }
 
-        backward_activation_unchecked(
-            *last_input_,
-            grad_output,
-            activation_type_);
+        if (last_forward_used_fast_path_)
+        {
+            backward_activation_unchecked(
+                *last_input_,
+                grad_output,
+                activation_type_);
+        }
+        else
+        {
+            backward_activation(
+                *last_input_,
+                grad_output,
+                activation_type_);
+        }
 
         return grad_output;
     }

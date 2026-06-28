@@ -63,6 +63,9 @@ namespace kl
         LayerCacheKey cache_key_;
         Shape cached_output_shape_;
 
+        LayerMode cached_mode_ = LayerMode::Inference;
+        bool last_forward_used_fast_path_ = false;
+
         Shape last_input_shape_;
         bool has_last_input_shape_ = false;
 
