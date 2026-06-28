@@ -1,0 +1,11 @@
+#ifndef KL_ROCM_SYNCHRONIZE_HIPH
+#define KL_ROCM_SYNCHRONIZE_HIPH
+
+namespace kl
+{
+
+    void rocm_synchronize();
+
+}
+
+#endif // KL_ROCM_SYNCHRONIZE_HIPH
