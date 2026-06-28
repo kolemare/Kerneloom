@@ -64,7 +64,6 @@ namespace kl
             count);
 
         check_cuda(cudaGetLastError(), "CUDA Tanh backward kernel launch failed");
-        check_cuda(cudaDeviceSynchronize(), "CUDA Tanh backward synchronization failed");
     }
 
 }

@@ -68,10 +68,6 @@ namespace kl
         check_cuda(
             cudaGetLastError(),
             "CUDA SGD update kernel launch failed");
-
-        check_cuda(
-            cudaDeviceSynchronize(),
-            "CUDA SGD update synchronization failed");
     }
 
 }

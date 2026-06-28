@@ -97,10 +97,6 @@ namespace kl
         check_hip(
             hipGetLastError(),
             "ROCm conv2d backward grad_bias kernel launch failed");
-
-        check_hip(
-            hipDeviceSynchronize(),
-            "ROCm conv2d backward grad_bias synchronization failed");
     }
 
 }

@@ -178,7 +178,6 @@ namespace kl
             use_bias);
 
         check_cuda(cudaGetLastError(), "CUDA conv2d general kernel launch failed");
-        check_cuda(cudaDeviceSynchronize(), "CUDA conv2d general synchronization failed");
     }
 
 }

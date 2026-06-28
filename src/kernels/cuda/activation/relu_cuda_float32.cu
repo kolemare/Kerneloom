@@ -52,7 +52,6 @@ namespace kl
         relu_cuda_float32_kernel<<<grid, block>>>(data, count);
 
         check_cuda(cudaGetLastError(), "CUDA ReLU kernel launch failed");
-        check_cuda(cudaDeviceSynchronize(), "CUDA ReLU synchronization failed");
     }
 
 }

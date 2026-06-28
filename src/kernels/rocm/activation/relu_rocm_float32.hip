@@ -59,7 +59,6 @@ namespace kl
             count);
 
         check_hip(hipGetLastError(), "ROCm ReLU kernel launch failed");
-        check_hip(hipDeviceSynchronize(), "ROCm ReLU synchronization failed");
     }
 
 }

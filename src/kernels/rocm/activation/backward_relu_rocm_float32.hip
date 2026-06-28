@@ -70,7 +70,6 @@ namespace kl
             count);
 
         check_hip(hipGetLastError(), "ROCm ReLU backward kernel launch failed");
-        check_hip(hipDeviceSynchronize(), "ROCm ReLU backward synchronization failed");
     }
 
 }

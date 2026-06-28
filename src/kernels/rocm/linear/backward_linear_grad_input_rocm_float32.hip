@@ -96,10 +96,6 @@ namespace kl
         check_hip(
             hipGetLastError(),
             "ROCm backward linear grad_input kernel launch failed");
-
-        check_hip(
-            hipDeviceSynchronize(),
-            "ROCm backward linear grad_input synchronization failed");
     }
 
 }

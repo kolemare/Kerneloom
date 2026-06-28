@@ -132,10 +132,6 @@ namespace kl
         check_cuda(
             cudaGetLastError(),
             "CUDA backward softmax kernel launch failed");
-
-        check_cuda(
-            cudaDeviceSynchronize(),
-            "CUDA backward softmax synchronization failed");
     }
 
 }

@@ -164,10 +164,6 @@ namespace kl
         check_cuda(
             cudaGetLastError(),
             "CUDA softmax kernel launch failed");
-
-        check_cuda(
-            cudaDeviceSynchronize(),
-            "CUDA softmax synchronization failed");
     }
 
 }

@@ -56,7 +56,6 @@ namespace kl
             count);
 
         check_hip(hipGetLastError(), "ROCm Sigmoid kernel launch failed");
-        check_hip(hipDeviceSynchronize(), "ROCm Sigmoid synchronization failed");
     }
 
 }

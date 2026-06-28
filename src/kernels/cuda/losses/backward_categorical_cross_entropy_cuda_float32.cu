@@ -148,10 +148,6 @@ namespace kl
         check_cuda(
             cudaGetLastError(),
             "CUDA backward categorical cross entropy kernel launch failed");
-
-        check_cuda(
-            cudaDeviceSynchronize(),
-            "CUDA backward categorical cross entropy synchronization failed");
     }
 
 }

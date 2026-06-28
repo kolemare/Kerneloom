@@ -73,10 +73,6 @@ namespace kl
         check_hip(
             hipGetLastError(),
             "ROCm SGD update kernel launch failed");
-
-        check_hip(
-            hipDeviceSynchronize(),
-            "ROCm SGD update synchronization failed");
     }
 
 }

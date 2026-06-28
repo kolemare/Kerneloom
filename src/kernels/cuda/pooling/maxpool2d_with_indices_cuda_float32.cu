@@ -161,10 +161,6 @@ namespace kl
         check_cuda(
             cudaGetLastError(),
             "CUDA maxpool2d_with_indices kernel launch failed");
-
-        check_cuda(
-            cudaDeviceSynchronize(),
-            "CUDA maxpool2d_with_indices synchronization failed");
     }
 
 }

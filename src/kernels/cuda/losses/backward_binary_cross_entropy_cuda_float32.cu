@@ -145,10 +145,6 @@ namespace kl
         check_cuda(
             cudaGetLastError(),
             "CUDA backward binary cross entropy kernel launch failed");
-
-        check_cuda(
-            cudaDeviceSynchronize(),
-            "CUDA backward binary cross entropy synchronization failed");
     }
 
 }

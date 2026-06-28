@@ -65,7 +65,6 @@ namespace kl
             count);
 
         check_cuda(cudaGetLastError(), "CUDA ReLU backward kernel launch failed");
-        check_cuda(cudaDeviceSynchronize(), "CUDA ReLU backward synchronization failed");
     }
 
 }

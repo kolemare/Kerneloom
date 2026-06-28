@@ -114,10 +114,6 @@ namespace kl
         check_hip(
             hipGetLastError(),
             "ROCm backward maxpool2d kernel launch failed");
-
-        check_hip(
-            hipDeviceSynchronize(),
-            "ROCm backward maxpool2d synchronization failed");
     }
 
 }

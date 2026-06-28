@@ -49,7 +49,6 @@ namespace kl
         sigmoid_cuda_float32_kernel<<<grid, block>>>(data, count);
 
         check_cuda(cudaGetLastError(), "CUDA Sigmoid kernel launch failed");
-        check_cuda(cudaDeviceSynchronize(), "CUDA Sigmoid synchronization failed");
     }
 
 }

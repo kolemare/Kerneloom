@@ -147,7 +147,6 @@ namespace kl
             options.padding_w);
 
         check_cuda(cudaGetLastError(), "CUDA avgpool2d kernel launch failed");
-        check_cuda(cudaDeviceSynchronize(), "CUDA avgpool2d synchronization failed");
     }
 
 }

@@ -166,10 +166,6 @@ namespace kl
         check_hip(
             hipGetLastError(),
             "ROCm softmax kernel launch failed");
-
-        check_hip(
-            hipDeviceSynchronize(),
-            "ROCm softmax synchronization failed");
     }
 
 }

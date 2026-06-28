@@ -130,10 +130,6 @@ namespace kl
         check_cuda(
             cudaGetLastError(),
             "CUDA backward MSE kernel launch failed");
-
-        check_cuda(
-            cudaDeviceSynchronize(),
-            "CUDA backward MSE synchronization failed");
     }
 
 }

@@ -187,10 +187,6 @@ namespace kl
         check_cuda(
             cudaGetLastError(),
             "CUDA conv2d backward grad_input kernel launch failed");
-
-        check_cuda(
-            cudaDeviceSynchronize(),
-            "CUDA conv2d backward grad_input synchronization failed");
     }
 
 }

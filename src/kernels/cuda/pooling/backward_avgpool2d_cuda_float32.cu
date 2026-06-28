@@ -190,10 +190,6 @@ namespace kl
         check_cuda(
             cudaGetLastError(),
             "CUDA backward avgpool2d kernel launch failed");
-
-        check_cuda(
-            cudaDeviceSynchronize(),
-            "CUDA backward avgpool2d synchronization failed");
     }
 
 }

@@ -49,7 +49,6 @@ namespace kl
         tanh_cuda_float32_kernel<<<grid, block>>>(data, count);
 
         check_cuda(cudaGetLastError(), "CUDA Tanh kernel launch failed");
-        check_cuda(cudaDeviceSynchronize(), "CUDA Tanh synchronization failed");
     }
 
 }

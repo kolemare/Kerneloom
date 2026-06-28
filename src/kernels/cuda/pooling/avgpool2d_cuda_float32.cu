@@ -145,7 +145,6 @@ namespace kl
             options.padding_w);
 
         check_cuda(cudaGetLastError(), "CUDA maxpool2d kernel launch failed");
-        check_cuda(cudaDeviceSynchronize(), "CUDA maxpool2d synchronization failed");
     }
 
 }

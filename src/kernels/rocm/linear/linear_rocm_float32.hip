@@ -108,7 +108,6 @@ namespace kl
             output_features);
 
         check_hip(hipGetLastError(), "ROCm linear kernel launch failed");
-        check_hip(hipDeviceSynchronize(), "ROCm linear synchronization failed");
     }
 
 }

@@ -103,7 +103,6 @@ namespace kl
             output_features);
 
         check_cuda(cudaGetLastError(), "CUDA linear kernel launch failed");
-        check_cuda(cudaDeviceSynchronize(), "CUDA linear synchronization failed");
     }
 
 }

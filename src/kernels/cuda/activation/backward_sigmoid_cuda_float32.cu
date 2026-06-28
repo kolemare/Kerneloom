@@ -64,7 +64,6 @@ namespace kl
             count);
 
         check_cuda(cudaGetLastError(), "CUDA Sigmoid backward kernel launch failed");
-        check_cuda(cudaDeviceSynchronize(), "CUDA Sigmoid backward synchronization failed");
     }
 
 }

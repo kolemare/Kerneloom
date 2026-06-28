@@ -174,7 +174,6 @@ namespace kl
             use_bias);
 
         check_hip(hipGetLastError(), "ROCm conv2d padded kernel launch failed");
-        check_hip(hipDeviceSynchronize(), "ROCm conv2d padded synchronization failed");
     }
 
 }

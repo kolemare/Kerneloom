@@ -150,10 +150,6 @@ namespace kl
         check_hip(
             hipGetLastError(),
             "ROCm binary cross entropy kernel launch failed");
-
-        check_hip(
-            hipDeviceSynchronize(),
-            "ROCm binary cross entropy synchronization failed");
     }
 
 }

@@ -104,10 +104,6 @@ namespace kl
         check_cuda(
             cudaGetLastError(),
             "CUDA backward maxpool2d kernel launch failed");
-
-        check_cuda(
-            cudaDeviceSynchronize(),
-            "CUDA backward maxpool2d synchronization failed");
     }
 
 }

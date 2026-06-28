@@ -122,10 +122,6 @@ namespace kl
         check_hip(
             hipGetLastError(),
             "ROCm Adam update kernel launch failed");
-
-        check_hip(
-            hipDeviceSynchronize(),
-            "ROCm Adam update synchronization failed");
     }
 
 }

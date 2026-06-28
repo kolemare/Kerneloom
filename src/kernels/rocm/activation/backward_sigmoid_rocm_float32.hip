@@ -69,7 +69,6 @@ namespace kl
             count);
 
         check_hip(hipGetLastError(), "ROCm Sigmoid backward kernel launch failed");
-        check_hip(hipDeviceSynchronize(), "ROCm Sigmoid backward synchronization failed");
     }
 
 }

@@ -159,7 +159,6 @@ namespace kl
             use_bias);
 
         check_hip(hipGetLastError(), "ROCm conv2d strided kernel launch failed");
-        check_hip(hipDeviceSynchronize(), "ROCm conv2d strided synchronization failed");
     }
 
 }

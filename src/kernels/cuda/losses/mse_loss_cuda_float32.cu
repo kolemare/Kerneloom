@@ -128,10 +128,6 @@ namespace kl
         check_cuda(
             cudaGetLastError(),
             "CUDA MSE kernel launch failed");
-
-        check_cuda(
-            cudaDeviceSynchronize(),
-            "CUDA MSE synchronization failed");
     }
 
 }

@@ -118,10 +118,6 @@ namespace kl
         check_cuda(
             cudaGetLastError(),
             "CUDA Adam update kernel launch failed");
-
-        check_cuda(
-            cudaDeviceSynchronize(),
-            "CUDA Adam update synchronization failed");
     }
 
 }

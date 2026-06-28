@@ -69,7 +69,6 @@ namespace kl
             count);
 
         check_hip(hipGetLastError(), "ROCm Tanh backward kernel launch failed");
-        check_hip(hipDeviceSynchronize(), "ROCm Tanh backward synchronization failed");
     }
 
 }

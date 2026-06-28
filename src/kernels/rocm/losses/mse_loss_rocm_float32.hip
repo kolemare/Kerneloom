@@ -131,10 +131,6 @@ namespace kl
         check_hip(
             hipGetLastError(),
             "ROCm MSE kernel launch failed");
-
-        check_hip(
-            hipDeviceSynchronize(),
-            "ROCm MSE synchronization failed");
     }
 
 }

@@ -152,7 +152,6 @@ namespace kl
             options.padding_w);
 
         check_hip(hipGetLastError(), "ROCm avgpool2d kernel launch failed");
-        check_hip(hipDeviceSynchronize(), "ROCm avgpool2d synchronization failed");
     }
 
 }

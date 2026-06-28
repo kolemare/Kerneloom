@@ -169,10 +169,6 @@ namespace kl
         check_hip(
             hipGetLastError(),
             "ROCm conv2d backward grad_weights kernel launch failed");
-
-        check_hip(
-            hipDeviceSynchronize(),
-            "ROCm conv2d backward grad_weights synchronization failed");
     }
 
 }

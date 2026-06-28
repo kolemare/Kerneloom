@@ -200,10 +200,6 @@ namespace kl
         check_hip(
             hipGetLastError(),
             "ROCm backward avgpool2d kernel launch failed");
-
-        check_hip(
-            hipDeviceSynchronize(),
-            "ROCm backward avgpool2d synchronization failed");
     }
 
 }

@@ -152,7 +152,6 @@ namespace kl
             options.padding_w);
 
         check_hip(hipGetLastError(), "ROCm maxpool2d kernel launch failed");
-        check_hip(hipDeviceSynchronize(), "ROCm maxpool2d synchronization failed");
     }
 
 }

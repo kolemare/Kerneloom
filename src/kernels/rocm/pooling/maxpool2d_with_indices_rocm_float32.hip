@@ -166,10 +166,6 @@ namespace kl
         check_hip(
             hipGetLastError(),
             "ROCm maxpool2d_with_indices kernel launch failed");
-
-        check_hip(
-            hipDeviceSynchronize(),
-            "ROCm maxpool2d_with_indices synchronization failed");
     }
 
 }
