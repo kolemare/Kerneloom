@@ -2,7 +2,6 @@
 
 #include <data/data_loader_memory_budget.hpp>
 #include <data/image_decoder.hpp>
-#include <data/memory_planner.hpp>
 
 #include <core/dtype.hpp>
 #include <core/layout.hpp>
@@ -15,6 +14,7 @@
 #include <cstdint>
 #include <cstring>
 #include <memory>
+#include <mutex>
 #include <numeric>
 #include <optional>
 #include <random>
@@ -53,6 +53,124 @@ namespace kl
             }
         }
 
+        std::mutex &default_budget_mutex()
+        {
+            static std::mutex mutex;
+
+            return mutex;
+        }
+
+        std::size_t &expected_loader_count_storage()
+        {
+            static std::size_t expected_loader_count =
+                1;
+
+            return expected_loader_count;
+        }
+
+        std::weak_ptr<DataLoaderMemoryBudget> &
+        default_budget_storage(
+            Device device)
+        {
+            static std::weak_ptr<DataLoaderMemoryBudget>
+                cpu_budget;
+
+            static std::weak_ptr<DataLoaderMemoryBudget>
+                cuda_budget;
+
+            static std::weak_ptr<DataLoaderMemoryBudget>
+                rocm_budget;
+
+            switch (device.type())
+            {
+            case DeviceType::CPU:
+                return cpu_budget;
+
+            case DeviceType::CUDA:
+                return cuda_budget;
+
+            case DeviceType::ROCM:
+                return rocm_budget;
+
+            default:
+                throw std::runtime_error(
+                    "unsupported DataLoader default memory budget device");
+            }
+        }
+
+        std::shared_ptr<DataLoaderMemoryBudget>
+        default_data_loader_memory_budget(
+            Device device,
+            const MemoryPolicy &policy)
+        {
+            std::lock_guard<std::mutex> lock(
+                default_budget_mutex());
+
+            std::weak_ptr<DataLoaderMemoryBudget> &slot =
+                default_budget_storage(
+                    device);
+
+            std::shared_ptr<DataLoaderMemoryBudget>
+                existing =
+                    slot.lock();
+
+            if (existing !=
+                nullptr)
+            {
+                return existing;
+            }
+
+            std::shared_ptr<DataLoaderMemoryBudget>
+                created =
+                    std::make_shared<DataLoaderMemoryBudget>(
+                        device,
+                        policy,
+                        expected_loader_count_storage());
+
+            slot =
+                created;
+
+            return created;
+        }
+
+    }
+
+    void DataLoader::set_expected_loader_count(
+        std::size_t expected_loader_count)
+    {
+        if (expected_loader_count == 0)
+        {
+            throw std::runtime_error(
+                "DataLoader expected loader count must be greater than zero");
+        }
+
+        std::lock_guard<std::mutex> lock(
+            default_budget_mutex());
+
+        if (default_budget_storage(
+                Device::cpu())
+                    .lock() != nullptr ||
+            default_budget_storage(
+                Device::cuda())
+                    .lock() != nullptr ||
+            default_budget_storage(
+                Device::rocm())
+                    .lock() != nullptr)
+        {
+            throw std::runtime_error(
+                "DataLoader expected loader count must be set before creating default DataLoaders");
+        }
+
+        expected_loader_count_storage() =
+            expected_loader_count;
+    }
+
+    std::size_t DataLoader::expected_loader_count()
+    {
+        std::lock_guard<std::mutex> lock(
+            default_budget_mutex());
+
+        return expected_loader_count_storage();
     }
 
     DataLoader::EpochState::EpochState(
@@ -79,8 +197,11 @@ namespace kl
               std::move(samples),
               std::move(transform),
               device,
-              std::move(options),
-              nullptr)
+              options,
+              default_data_loader_memory_budget(
+                  device,
+                  options
+                      .memory))
     {
     }
 
@@ -134,45 +255,40 @@ namespace kl
             device_.type() !=
             DeviceType::CPU;
 
+        if (memory_budget_ ==
+            nullptr)
+        {
+            memory_budget_ =
+                default_data_loader_memory_budget(
+                    device_,
+                    options_
+                        .memory);
+        }
+
+        if (memory_budget_->device().type() !=
+            device_.type())
+        {
+            throw std::runtime_error(
+                "DataLoader memory budget device does not match DataLoader device");
+        }
+
         if (options_
                 .automatic_memory_planning)
         {
-            if (memory_budget_ !=
-                nullptr)
-            {
-                if (memory_budget_->device().type() !=
-                    device_.type())
-                {
-                    throw std::runtime_error(
-                        "DataLoader memory budget device does not match DataLoader device");
-                }
-
-                memory_reservation_ =
-                    memory_budget_
-                        ->reserve_auto(
-                            batch_bytes,
-                            options_
-                                .loader_workers,
-                            options_
-                                .memory,
-                            uses_device);
-
-                has_memory_reservation_ =
-                    true;
-
-                memory_plan_ =
-                    memory_reservation_
-                        .plan;
-            }
-            else
-            {
-                memory_plan_ =
-                    create_memory_plan(
-                        device_,
+            memory_reservation_ =
+                memory_budget_
+                    ->reserve_auto(
                         batch_bytes,
                         options_
-                            .memory);
-            }
+                            .loader_workers,
+                        uses_device);
+
+            has_memory_reservation_ =
+                true;
+
+            memory_plan_ =
+                memory_reservation_
+                    .plan;
 
             options_.decoded_cache_bytes =
                 memory_plan_
@@ -205,49 +321,38 @@ namespace kl
                           .device_prefetch_batches
                     : 0;
 
-            if (memory_budget_ !=
-                nullptr)
-            {
-                if (memory_budget_->device().type() !=
-                    device_.type())
-                {
-                    throw std::runtime_error(
-                        "DataLoader memory budget device does not match DataLoader device");
-                }
+            memory_reservation_ =
+                memory_budget_
+                    ->reserve_manual(
+                        batch_bytes,
+                        memory_plan_
+                            .decoded_cache_bytes,
+                        memory_plan_
+                            .host_prefetch_batches,
+                        memory_plan_
+                            .device_prefetch_batches,
+                        options_
+                            .loader_workers,
+                        uses_device);
 
-                memory_reservation_ =
-                    memory_budget_
-                        ->reserve_manual(
-                            batch_bytes,
-                            memory_plan_
-                                .decoded_cache_bytes,
-                            memory_plan_
-                                .host_prefetch_batches,
-                            memory_plan_
-                                .device_prefetch_batches,
-                            options_
-                                .loader_workers,
-                            uses_device);
+            has_memory_reservation_ =
+                true;
 
-                has_memory_reservation_ =
-                    true;
+            memory_plan_ =
+                memory_reservation_
+                    .plan;
 
-                memory_plan_ =
-                    memory_reservation_
-                        .plan;
+            options_.decoded_cache_bytes =
+                memory_plan_
+                    .decoded_cache_bytes;
 
-                options_.decoded_cache_bytes =
-                    memory_plan_
-                        .decoded_cache_bytes;
+            options_.host_prefetch_batches =
+                memory_plan_
+                    .host_prefetch_batches;
 
-                options_.host_prefetch_batches =
-                    memory_plan_
-                        .host_prefetch_batches;
-
-                options_.device_prefetch_batches =
-                    memory_plan_
-                        .device_prefetch_batches;
-            }
+            options_.device_prefetch_batches =
+                memory_plan_
+                    .device_prefetch_batches;
         }
 
         if (options_.host_prefetch_batches == 0)

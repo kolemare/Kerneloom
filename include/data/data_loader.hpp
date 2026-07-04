@@ -32,6 +32,11 @@ namespace kl
     class DataLoader
     {
     public:
+        static void set_expected_loader_count(
+            std::size_t expected_loader_count);
+
+        static std::size_t expected_loader_count();
+
         DataLoader(
             std::vector<ImageSample> samples,
             ImageTransform transform,
@@ -47,8 +52,12 @@ namespace kl
 
         ~DataLoader();
 
-        DataLoader(const DataLoader &) = delete;
-        DataLoader &operator=(const DataLoader &) = delete;
+        DataLoader(const DataLoader &) =
+            delete;
+
+        DataLoader &operator=(
+            const DataLoader &) =
+            delete;
 
         void reset_epoch();
 
@@ -57,21 +66,27 @@ namespace kl
         Batch next();
 
         std::size_t sample_count() const;
+
         std::size_t batch_count() const;
 
         std::size_t host_prefetched_batch_count() const;
+
         std::size_t device_prefetched_batch_count() const;
 
         std::size_t decoded_cache_image_count() const;
+
         std::size_t decoded_cache_used_bytes() const;
 
         std::uint64_t decoded_cache_hit_count() const;
+
         std::uint64_t decoded_cache_miss_count() const;
 
         std::size_t pooled_host_batch_count() const;
+
         std::size_t available_pooled_host_batch_count() const;
 
         std::size_t pooled_device_batch_count() const;
+
         std::size_t available_pooled_device_batch_count() const;
 
         const MemoryPlan &memory_plan() const;
@@ -102,17 +117,17 @@ namespace kl
         {
             std::size_t generation;
             std::size_t index;
-
-            std::shared_ptr<BatchStorage>
-                storage;
+            std::shared_ptr<BatchStorage> storage;
         };
 
         void start_workers();
+
         void stop_workers();
 
         void worker_loop();
 
         void start_transfer_worker();
+
         void transfer_worker_loop();
 
         Batch next_from_queue(
@@ -133,29 +148,21 @@ namespace kl
         void rethrow_worker_exception() const;
 
     private:
-        std::vector<ImageSample>
-            samples_;
+        std::vector<ImageSample> samples_;
 
         ImageTransform transform_;
 
         Device device_;
+
         DataLoaderOptions options_;
 
         MemoryPlan memory_plan_;
 
-        std::shared_ptr<DataLoaderMemoryBudget>
-            memory_budget_;
+        std::size_t epoch_ =
+            0;
 
-        DataLoaderMemoryReservation
-            memory_reservation_;
-
-        bool has_memory_reservation_ =
-            false;
-
-        std::size_t epoch_ = 0;
-
-        std::atomic<std::size_t>
-            generation_{0};
+        std::atomic<std::size_t> generation_{
+            0};
 
         std::size_t next_batch_to_return_ =
             0;
@@ -163,8 +170,8 @@ namespace kl
         std::size_t total_batches_ =
             0;
 
-        std::atomic<bool>
-            stop_requested_{false};
+        std::atomic<bool> stop_requested_{
+            false};
 
         std::unique_ptr<
             BlockingQueue<PreparedBatch>>
@@ -174,11 +181,9 @@ namespace kl
             BlockingQueue<PreparedBatch>>
             device_queue_;
 
-        std::vector<std::thread>
-            workers_;
+        std::vector<std::thread> workers_;
 
-        std::thread
-            transfer_worker_;
+        std::thread transfer_worker_;
 
         std::map<
             std::size_t,
@@ -199,11 +204,9 @@ namespace kl
         std::unique_ptr<TransferStream>
             transfer_stream_;
 
-        mutable std::mutex
-            epoch_mutex_;
+        mutable std::mutex epoch_mutex_;
 
-        std::condition_variable
-            epoch_cv_;
+        std::condition_variable epoch_cv_;
 
         std::shared_ptr<EpochState>
             current_epoch_;
@@ -211,11 +214,18 @@ namespace kl
         std::shared_ptr<DecodedImageCache>
             decoded_cache_;
 
-        mutable std::mutex
-            exception_mutex_;
+        std::shared_ptr<DataLoaderMemoryBudget>
+            memory_budget_;
 
-        std::exception_ptr
-            worker_exception_;
+        DataLoaderMemoryReservation
+            memory_reservation_;
+
+        bool has_memory_reservation_ =
+            false;
+
+        mutable std::mutex exception_mutex_;
+
+        std::exception_ptr worker_exception_;
     };
 
 }

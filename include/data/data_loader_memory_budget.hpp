@@ -31,12 +31,12 @@ namespace kl
     public:
         DataLoaderMemoryBudget(
             Device device,
-            const MemoryPolicy &policy = {});
+            const MemoryPolicy &policy = {},
+            std::size_t expected_loader_count = 1);
 
         DataLoaderMemoryReservation reserve_auto(
             std::size_t batch_bytes,
             std::size_t loader_workers,
-            const MemoryPolicy &policy,
             bool uses_device);
 
         DataLoaderMemoryReservation reserve_manual(
@@ -68,8 +68,12 @@ namespace kl
         std::size_t remaining_host_storage_bytes() const;
         std::size_t remaining_device_storage_bytes() const;
 
+        std::size_t fair_decoded_cache_budget_bytes() const;
+        std::size_t fair_host_storage_budget_bytes() const;
+        std::size_t fair_device_storage_budget_bytes() const;
+
         std::size_t calculate_auto_prefetch_batches(
-            std::size_t remaining_bytes,
+            std::size_t budget_bytes,
             std::size_t batch_bytes,
             std::size_t extra_batches,
             std::size_t maximum_prefetch_batches,
@@ -89,6 +93,10 @@ namespace kl
 
     private:
         Device device_;
+        MemoryPolicy policy_;
+
+        std::size_t expected_loader_count_ =
+            1;
 
         std::size_t available_ram_bytes_ =
             0;

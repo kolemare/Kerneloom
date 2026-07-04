@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <fstream>
 #include <limits>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 
@@ -14,7 +15,7 @@ namespace kl
     namespace
     {
 
-        std::size_t available_ram_bytes()
+        std::size_t detect_available_ram_bytes()
         {
             std::ifstream file(
                 "/proc/meminfo");
@@ -25,17 +26,24 @@ namespace kl
                     "failed to open /proc/meminfo");
             }
 
-            std::string key;
-            std::size_t value_kib =
-                0;
+            std::string line;
 
-            std::string unit;
-
-            while (file >>
-                   key >>
-                   value_kib >>
-                   unit)
+            while (std::getline(file, line))
             {
+                std::istringstream stream(
+                    line);
+
+                std::string key;
+                std::size_t value_kib =
+                    0;
+
+                std::string unit;
+
+                stream >>
+                    key >>
+                    value_kib >>
+                    unit;
+
                 if (key ==
                     "MemAvailable:")
                 {
@@ -52,15 +60,26 @@ namespace kl
 
     DataLoaderMemoryBudget::DataLoaderMemoryBudget(
         Device device,
-        const MemoryPolicy &policy)
+        const MemoryPolicy &policy,
+        std::size_t expected_loader_count)
         : device_(
-              device)
+              device),
+          policy_(
+              policy),
+          expected_loader_count_(
+              expected_loader_count)
     {
         validate_policy(
-            policy);
+            policy_);
+
+        if (expected_loader_count_ == 0)
+        {
+            throw std::runtime_error(
+                "DataLoaderMemoryBudget expected loader count must be greater than zero");
+        }
 
         available_ram_bytes_ =
-            available_ram_bytes();
+            detect_available_ram_bytes();
 
         available_vram_bytes_ =
             available_device_memory_bytes(
@@ -70,14 +89,14 @@ namespace kl
             static_cast<std::size_t>(
                 static_cast<double>(
                     available_ram_bytes_) *
-                policy
+                policy_
                     .decoded_cache_ram_fraction);
 
         host_storage_capacity_bytes_ =
             static_cast<std::size_t>(
                 static_cast<double>(
                     available_ram_bytes_) *
-                policy
+                policy_
                     .host_prefetch_ram_fraction);
 
         if (device_.type() ==
@@ -92,7 +111,7 @@ namespace kl
                 static_cast<std::size_t>(
                     static_cast<double>(
                         available_vram_bytes_) *
-                    policy
+                    policy_
                         .device_prefetch_vram_fraction);
         }
     }
@@ -101,12 +120,8 @@ namespace kl
     DataLoaderMemoryBudget::reserve_auto(
         std::size_t batch_bytes,
         std::size_t loader_workers,
-        const MemoryPolicy &policy,
         bool uses_device)
     {
-        validate_policy(
-            policy);
-
         if (batch_bytes == 0)
         {
             throw std::runtime_error(
@@ -134,19 +149,26 @@ namespace kl
             batch_bytes;
 
         reservation.plan.decoded_cache_bytes =
-            remaining_decoded_cache_bytes();
+            std::min(
+                fair_decoded_cache_budget_bytes(),
+                remaining_decoded_cache_bytes());
 
         reservation.decoded_cache_bytes =
             reservation
                 .plan
                 .decoded_cache_bytes;
 
+        const std::size_t host_budget =
+            std::min(
+                fair_host_storage_budget_bytes(),
+                remaining_host_storage_bytes());
+
         reservation.plan.host_prefetch_batches =
             calculate_auto_prefetch_batches(
-                remaining_host_storage_bytes(),
+                host_budget,
                 batch_bytes,
                 loader_workers,
-                policy
+                policy_
                     .max_host_prefetch_batches,
                 "host");
 
@@ -159,14 +181,26 @@ namespace kl
                 batch_bytes,
                 "host storage reservation");
 
+        if (reservation.host_storage_bytes >
+            remaining_host_storage_bytes())
+        {
+            throw std::runtime_error(
+                "DataLoader shared memory budget does not have enough host storage remaining");
+        }
+
         if (uses_device)
         {
+            const std::size_t device_budget =
+                std::min(
+                    fair_device_storage_budget_bytes(),
+                    remaining_device_storage_bytes());
+
             reservation.plan.device_prefetch_batches =
                 calculate_auto_prefetch_batches(
-                    remaining_device_storage_bytes(),
+                    device_budget,
                     batch_bytes,
                     1,
-                    policy
+                    policy_
                         .max_device_prefetch_batches,
                     "device");
 
@@ -178,6 +212,13 @@ namespace kl
                         1,
                     batch_bytes,
                     "device storage reservation");
+
+            if (reservation.device_storage_bytes >
+                remaining_device_storage_bytes())
+            {
+                throw std::runtime_error(
+                    "DataLoader shared memory budget does not have enough device storage remaining");
+            }
         }
         else
         {
@@ -230,7 +271,8 @@ namespace kl
                 "DataLoaderMemoryBudget host prefetch batch count must be greater than zero");
         }
 
-        if (uses_device && device_prefetch_batches == 0)
+        if (uses_device &&
+            device_prefetch_batches == 0)
         {
             throw std::runtime_error(
                 "DataLoaderMemoryBudget device prefetch batch count must be greater than zero");
@@ -468,8 +510,29 @@ namespace kl
     }
 
     std::size_t
+    DataLoaderMemoryBudget::fair_decoded_cache_budget_bytes() const
+    {
+        return decoded_cache_capacity_bytes_ /
+               expected_loader_count_;
+    }
+
+    std::size_t
+    DataLoaderMemoryBudget::fair_host_storage_budget_bytes() const
+    {
+        return host_storage_capacity_bytes_ /
+               expected_loader_count_;
+    }
+
+    std::size_t
+    DataLoaderMemoryBudget::fair_device_storage_budget_bytes() const
+    {
+        return device_storage_capacity_bytes_ /
+               expected_loader_count_;
+    }
+
+    std::size_t
     DataLoaderMemoryBudget::calculate_auto_prefetch_batches(
-        std::size_t remaining_bytes,
+        std::size_t budget_bytes,
         std::size_t batch_bytes,
         std::size_t extra_batches,
         std::size_t maximum_prefetch_batches,
@@ -493,7 +556,7 @@ namespace kl
                 batch_bytes,
                 name);
 
-        if (remaining_bytes < minimum_bytes)
+        if (budget_bytes < minimum_bytes)
         {
             throw std::runtime_error(
                 std::string("DataLoader shared memory budget does not have enough ") +
@@ -502,7 +565,7 @@ namespace kl
         }
 
         const std::size_t affordable_total_batches =
-            remaining_bytes /
+            budget_bytes /
             batch_bytes;
 
         const std::size_t affordable_prefetch_batches =
@@ -564,6 +627,14 @@ namespace kl
         {
             throw std::runtime_error(
                 "max_device_prefetch_batches must be greater than zero");
+        }
+
+        if (policy.decoded_cache_ram_fraction +
+                policy.host_prefetch_ram_fraction >
+            1.0f)
+        {
+            throw std::runtime_error(
+                "decoded cache RAM fraction plus host prefetch RAM fraction must not exceed one");
         }
     }
 
