@@ -51,6 +51,6 @@ target_include_directories(kerneloom_lib PUBLIC
     third_party
 )
 
-add_executable(kerneloom test/test_dataloader_memory_budget.cpp)
+add_executable(kerneloom test/test_training.cpp)
 
 target_link_libraries(kerneloom PRIVATE kerneloom_lib)

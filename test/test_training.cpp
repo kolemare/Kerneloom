@@ -8,7 +8,6 @@
 #include <cnn/training/training.hpp>
 
 #include <data/data_loader.hpp>
-#include <data/data_loader_options.hpp>
 #include <data/dataset_split.hpp>
 #include <data/image_dataset.hpp>
 #include <data/image_transform.hpp>
@@ -41,6 +40,8 @@ int main()
                 0.8f,
                 0.1f,
                 1337);
+
+        kl::DataLoader::set_expected_loader_count(2);
 
         kl::DataLoaderOptions train_options;
         train_options.batch_size =
