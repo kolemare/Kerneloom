@@ -1,7 +1,7 @@
 #include <backend/backend.hpp>
 
 #include <data/data_loader.hpp>
-#include <data/data_loader_options.hpp>
+#include <data/data_loader/data_loader_options.hpp>
 #include <data/image_dataset.hpp>
 #include <data/image_transform.hpp>
 #include <data/memory_policy.hpp>

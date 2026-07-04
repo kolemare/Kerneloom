@@ -1,4 +1,4 @@
-#include <data/data_loader_memory_budget.hpp>
+#include <data/data_loader/data_loader_memory_budget.hpp>
 
 #include <backend/backend_memory.hpp>
 
@@ -12,7 +12,7 @@
 namespace kl
 {
 
-    namespace
+    namespace data_loader_memory_budget_internal
     {
 
         std::size_t detect_available_ram_bytes()
@@ -34,6 +34,7 @@ namespace kl
                     line);
 
                 std::string key;
+
                 std::size_t value_kib =
                     0;
 
@@ -79,7 +80,7 @@ namespace kl
         }
 
         available_ram_bytes_ =
-            detect_available_ram_bytes();
+            data_loader_memory_budget_internal::detect_available_ram_bytes();
 
         available_vram_bytes_ =
             available_device_memory_bytes(
