@@ -1,5 +1,6 @@
 #include <data/data_loader.hpp>
 
+#include <data/data_loader_memory_budget.hpp>
 #include <data/image_decoder.hpp>
 #include <data/memory_planner.hpp>
 
@@ -74,6 +75,21 @@ namespace kl
         ImageTransform transform,
         Device device,
         DataLoaderOptions options)
+        : DataLoader(
+              std::move(samples),
+              std::move(transform),
+              device,
+              std::move(options),
+              nullptr)
+    {
+    }
+
+    DataLoader::DataLoader(
+        std::vector<ImageSample> samples,
+        ImageTransform transform,
+        Device device,
+        DataLoaderOptions options,
+        std::shared_ptr<DataLoaderMemoryBudget> memory_budget)
         : samples_(
               std::move(samples)),
           transform_(
@@ -81,7 +97,9 @@ namespace kl
           device_(
               device),
           options_(
-              options)
+              options),
+          memory_budget_(
+              std::move(memory_budget))
     {
         if (samples_.empty())
         {
@@ -112,15 +130,49 @@ namespace kl
                 dtype_size(
                     DType::Int32);
 
+        const bool uses_device =
+            device_.type() !=
+            DeviceType::CPU;
+
         if (options_
                 .automatic_memory_planning)
         {
-            memory_plan_ =
-                create_memory_plan(
-                    device_,
-                    batch_bytes,
-                    options_
-                        .memory);
+            if (memory_budget_ !=
+                nullptr)
+            {
+                if (memory_budget_->device().type() !=
+                    device_.type())
+                {
+                    throw std::runtime_error(
+                        "DataLoader memory budget device does not match DataLoader device");
+                }
+
+                memory_reservation_ =
+                    memory_budget_
+                        ->reserve_auto(
+                            batch_bytes,
+                            options_
+                                .loader_workers,
+                            options_
+                                .memory,
+                            uses_device);
+
+                has_memory_reservation_ =
+                    true;
+
+                memory_plan_ =
+                    memory_reservation_
+                        .plan;
+            }
+            else
+            {
+                memory_plan_ =
+                    create_memory_plan(
+                        device_,
+                        batch_bytes,
+                        options_
+                            .memory);
+            }
 
             options_.decoded_cache_bytes =
                 memory_plan_
@@ -148,11 +200,54 @@ namespace kl
                     .host_prefetch_batches;
 
             memory_plan_.device_prefetch_batches =
-                device_.type() ==
-                        DeviceType::CPU
-                    ? 0
-                    : options_
-                          .device_prefetch_batches;
+                uses_device
+                    ? options_
+                          .device_prefetch_batches
+                    : 0;
+
+            if (memory_budget_ !=
+                nullptr)
+            {
+                if (memory_budget_->device().type() !=
+                    device_.type())
+                {
+                    throw std::runtime_error(
+                        "DataLoader memory budget device does not match DataLoader device");
+                }
+
+                memory_reservation_ =
+                    memory_budget_
+                        ->reserve_manual(
+                            batch_bytes,
+                            memory_plan_
+                                .decoded_cache_bytes,
+                            memory_plan_
+                                .host_prefetch_batches,
+                            memory_plan_
+                                .device_prefetch_batches,
+                            options_
+                                .loader_workers,
+                            uses_device);
+
+                has_memory_reservation_ =
+                    true;
+
+                memory_plan_ =
+                    memory_reservation_
+                        .plan;
+
+                options_.decoded_cache_bytes =
+                    memory_plan_
+                        .decoded_cache_bytes;
+
+                options_.host_prefetch_batches =
+                    memory_plan_
+                        .host_prefetch_batches;
+
+                options_.device_prefetch_batches =
+                    memory_plan_
+                        .device_prefetch_batches;
+            }
         }
 
         if (options_.host_prefetch_batches == 0)
@@ -161,8 +256,7 @@ namespace kl
                 "DataLoader host prefetch batch count must be greater than zero");
         }
 
-        if (device_.type() !=
-                DeviceType::CPU &&
+        if (uses_device &&
             options_.device_prefetch_batches == 0)
         {
             throw std::runtime_error(
@@ -202,8 +296,7 @@ namespace kl
                     options_
                         .pin_host_memory));
 
-        if (device_.type() !=
-            DeviceType::CPU)
+        if (uses_device)
         {
             device_queue_ =
                 std::make_unique<
@@ -236,8 +329,7 @@ namespace kl
 
         start_workers();
 
-        if (device_.type() !=
-            DeviceType::CPU)
+        if (uses_device)
         {
             start_transfer_worker();
         }
@@ -248,6 +340,14 @@ namespace kl
     DataLoader::~DataLoader()
     {
         stop_workers();
+
+        if (has_memory_reservation_ &&
+            memory_budget_ != nullptr)
+        {
+            memory_budget_
+                ->release(
+                    memory_reservation_);
+        }
     }
 
     void DataLoader::reset_epoch()
@@ -806,10 +906,20 @@ namespace kl
                 true);
 
             host_queue_->close();
-            device_queue_->close();
+
+            if (device_queue_ !=
+                nullptr)
+            {
+                device_queue_->close();
+            }
 
             host_batch_pool_->close();
-            device_batch_pool_->close();
+
+            if (device_batch_pool_ !=
+                nullptr)
+            {
+                device_batch_pool_->close();
+            }
 
             epoch_cv_.notify_all();
         }

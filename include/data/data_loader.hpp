@@ -2,6 +2,7 @@
 #define KL_DATA_LOADER_HPP
 
 #include <data/batch.hpp>
+#include <data/data_loader_memory_budget.hpp>
 #include <data/data_loader_options.hpp>
 #include <data/image_sample.hpp>
 #include <data/image_transform.hpp>
@@ -36,6 +37,13 @@ namespace kl
             ImageTransform transform,
             Device device,
             DataLoaderOptions options = {});
+
+        DataLoader(
+            std::vector<ImageSample> samples,
+            ImageTransform transform,
+            Device device,
+            DataLoaderOptions options,
+            std::shared_ptr<DataLoaderMemoryBudget> memory_budget);
 
         ~DataLoader();
 
@@ -134,6 +142,15 @@ namespace kl
         DataLoaderOptions options_;
 
         MemoryPlan memory_plan_;
+
+        std::shared_ptr<DataLoaderMemoryBudget>
+            memory_budget_;
+
+        DataLoaderMemoryReservation
+            memory_reservation_;
+
+        bool has_memory_reservation_ =
+            false;
 
         std::size_t epoch_ = 0;
 
