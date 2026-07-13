@@ -8,6 +8,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(KL_ENABLE_CUDA "Enable CUDA backend" OFF)
 option(KL_ENABLE_ROCM "Enable ROCm backend" OFF)
+option(KL_BUILD_APP "Build Kerneloom application binary" ON)
 option(KL_BUILD_TESTS "Build Kerneloom tests" OFF)
 
 file(GLOB_RECURSE KL_SOURCES CONFIGURE_DEPENDS
@@ -52,9 +53,10 @@ target_include_directories(kerneloom_lib PUBLIC
     third_party
 )
 
-add_executable(kerneloom test/test_training.cpp)
-
-target_link_libraries(kerneloom PRIVATE kerneloom_lib)
+if(KL_BUILD_APP)
+    add_executable(kerneloom tests/manual/test_training.cpp)
+    target_link_libraries(kerneloom PRIVATE kerneloom_lib)
+endif()
 
 if(KL_BUILD_TESTS)
     enable_testing()

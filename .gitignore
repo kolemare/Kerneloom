@@ -1,5 +1,6 @@
 #Ignore the build directory
 build
+build_tests
 
 #Ignore bazel things
 bazel-bin
