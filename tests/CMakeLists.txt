@@ -1,6 +1,10 @@
+file(GLOB_RECURSE KL_TEST_SOURCES CONFIGURE_DEPENDS
+    suites/*.cpp
+)
+
 add_executable(kerneloom_tests
     test_main.cpp
-    kernels/linear_forward_test.cpp
+    ${KL_TEST_SOURCES}
 )
 
 target_link_libraries(kerneloom_tests
