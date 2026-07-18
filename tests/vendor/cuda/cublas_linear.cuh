@@ -1,16 +1,16 @@
-#ifndef KL_TEST_ROCBLAS_LINEAR_HPP
-#define KL_TEST_ROCBLAS_LINEAR_HPP
+#ifndef KL_TEST_CUBLAS_LINEAR_HPP
+#define KL_TEST_CUBLAS_LINEAR_HPP
 
-#ifdef KL_ENABLE_ROCM
+#ifdef KL_ENABLE_CUDA
 
-#include "vendor/rocm/rocblas_handle.hpp"
+#include "vendor/cuda/cublas_handle.cuh"
 
 #include <core/device.hpp>
 #include <core/dtype.hpp>
 #include <core/shape.hpp>
 #include <core/tensor.hpp>
 
-#include <rocblas/rocblas.h>
+#include <cublas_v2.h>
 
 #include <cstddef>
 #include <stdexcept>
@@ -18,7 +18,7 @@
 namespace kl::test
 {
 
-    inline Tensor rocblasLinearForwardFloat32(
+    inline Tensor cublasLinearForwardFloat32(
         const Tensor &input,
         const Tensor &weights,
         std::size_t batch_size,
@@ -28,17 +28,17 @@ namespace kl::test
         Tensor output(
             Shape{batch_size, output_features},
             DType::Float32,
-            Device::rocm());
+            Device::cuda());
 
-        RocblasHandle handle;
+        CublasHandle handle;
 
         const float alpha = 1.0F;
         const float beta = 0.0F;
 
-        const auto status = rocblas_sgemm(
+        const auto status = cublasSgemm(
             handle.get(),
-            rocblas_operation_transpose,
-            rocblas_operation_none,
+            CUBLAS_OP_T,
+            CUBLAS_OP_N,
             static_cast<int>(output_features),
             static_cast<int>(batch_size),
             static_cast<int>(input_features),
@@ -51,9 +51,9 @@ namespace kl::test
             static_cast<float *>(output.data()),
             static_cast<int>(output_features));
 
-        if (status != rocblas_status_success)
+        if (status != CUBLAS_STATUS_SUCCESS)
         {
-            throw std::runtime_error("rocBLAS linear forward failed");
+            throw std::runtime_error("cuBLAS linear forward failed");
         }
 
         return output;
@@ -61,6 +61,6 @@ namespace kl::test
 
 }
 
-#endif // KL_ENABLE_ROCM
+#endif // KL_ENABLE_CUDA
 
-#endif // KL_TEST_ROCBLAS_LINEAR_HPP
+#endif // KL_TEST_CUBLAS_LINEAR_HPP

@@ -6,12 +6,12 @@
 #include "common/tensor_factory.hpp"
 
 #ifdef KL_ENABLE_CUDA
-#include "vendor/cuda/cublas_linear.hpp"
+#include "vendor/cuda/cublas_linear.cuh"
 #include <kernels/cuda/linear/linear_cuda_float32.cuh>
 #endif
 
 #ifdef KL_ENABLE_ROCM
-#include "vendor/rocm/rocblas_linear.hpp"
+#include "vendor/rocm/rocblas_linear.hiph"
 #include <kernels/rocm/linear/linear_rocm_float32.hiph>
 #endif
 
@@ -30,7 +30,7 @@ namespace
     constexpr std::size_t input_features = 8192;
     constexpr std::size_t output_features = 8192;
 
-    constexpr std::size_t warmup_iterations = 2;
+    constexpr std::size_t warmup_iterations = 3;
     constexpr std::size_t measured_iterations = 5;
 
     constexpr double float32_absolute_tolerance = 1.0e-3;
