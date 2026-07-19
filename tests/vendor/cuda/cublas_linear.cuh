@@ -17,9 +17,11 @@
 namespace kl::test
 {
 
-    inline Tensor cublasLinearForwardFloat32(
+    inline void cublasLinearForwardFloat32(
+        CublasHandle &handle,
         const Tensor &input,
-        const Tensor &weights)
+        const Tensor &weights,
+        Tensor &output)
     {
         const std::size_t batch_size =
             input.shape()[0];
@@ -30,15 +32,11 @@ namespace kl::test
         const std::size_t output_features =
             weights.shape()[0];
 
-        Tensor output(
-            Shape{batch_size, output_features},
-            DType::Float32,
-            Device::cuda());
+        const float alpha =
+            1.0F;
 
-        CublasHandle handle;
-
-        const float alpha = 1.0F;
-        const float beta = 0.0F;
+        const float beta =
+            0.0F;
 
         const auto status = cublasSgemm(
             handle.get(),
@@ -61,6 +59,24 @@ namespace kl::test
             throw std::runtime_error(
                 "cuBLAS linear forward failed");
         }
+    }
+
+    inline Tensor cublasLinearForwardFloat32(
+        const Tensor &input,
+        const Tensor &weights)
+    {
+        Tensor output(
+            Shape{input.shape()[0], weights.shape()[0]},
+            DType::Float32,
+            Device::cuda());
+
+        CublasHandle handle;
+
+        cublasLinearForwardFloat32(
+            handle,
+            input,
+            weights,
+            output);
 
         return output;
     }

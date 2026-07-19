@@ -10,6 +10,7 @@
 
 #include <cstddef>
 #include <random>
+#include <stdexcept>
 #include <utility>
 
 namespace kl::test
@@ -76,6 +77,50 @@ namespace kl::test
             } });
 
         return tensor.to(device);
+    }
+
+    inline Tensor makeTransposedTensor2d(
+        const Tensor &source,
+        Device device)
+    {
+        if (source.shape().rank() != 2)
+        {
+            throw std::runtime_error(
+                "makeTransposedTensor2d expects a rank-2 tensor");
+        }
+
+        Tensor source_cpu =
+            source.to(Device::cpu());
+
+        const std::size_t rows =
+            source_cpu.shape()[0];
+
+        const std::size_t columns =
+            source_cpu.shape()[1];
+
+        Tensor transposed_cpu(
+            Shape{columns, rows},
+            source_cpu.dtype(),
+            Device::cpu());
+
+        dispatchFloatDType(source_cpu.dtype(), [&]<typename T>()
+                           {
+            const T* source_data =
+                static_cast<const T*>(source_cpu.data());
+
+            T* transposed_data =
+                static_cast<T*>(transposed_cpu.data());
+
+            for (std::size_t row = 0; row < rows; ++row)
+            {
+                for (std::size_t column = 0; column < columns; ++column)
+                {
+                    transposed_data[column * rows + row] =
+                        source_data[row * columns + column];
+                }
+            } });
+
+        return transposed_cpu.to(device);
     }
 
 }

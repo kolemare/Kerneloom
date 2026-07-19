@@ -6,6 +6,7 @@
 
 #include <chrono>
 #include <cstddef>
+#include <iostream>
 
 namespace kl::test
 {
@@ -38,6 +39,8 @@ namespace kl::test
         Device device,
         std::size_t warmup_iterations,
         std::size_t measured_iterations,
+        bool print_each_iteration,
+        const char *name,
         Fn &&fn)
     {
         for (std::size_t i = 0; i < warmup_iterations; ++i)
@@ -60,7 +63,22 @@ namespace kl::test
 
             synchronize(device);
 
-            total_ms += timer.stopMilliseconds();
+            const double iteration_ms =
+                timer.stopMilliseconds();
+
+            total_ms += iteration_ms;
+
+            if (print_each_iteration)
+            {
+                std::cout
+                    << "  "
+                    << name
+                    << " iteration "
+                    << i
+                    << ": "
+                    << iteration_ms
+                    << " ms\n";
+            }
         }
 
         return total_ms / static_cast<double>(measured_iterations);
