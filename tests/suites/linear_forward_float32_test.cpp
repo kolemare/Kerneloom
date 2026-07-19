@@ -26,13 +26,11 @@
 namespace
 {
 
-    struct LinearForwardConfig
+    struct LinearForwardFloat32Config
     {
         std::size_t batch_size;
         std::size_t input_features;
         std::size_t output_features;
-
-        kl::DType dtype;
 
         double absolute_tolerance;
         double relative_tolerance;
@@ -41,23 +39,21 @@ namespace
         std::size_t measured_iterations;
     };
 
-    constexpr LinearForwardConfig float32_config{
+    constexpr LinearForwardFloat32Config config{
         .batch_size = 2048,
         .input_features = 8192,
         .output_features = 8192,
-        .dtype = kl::DType::Float32,
         .absolute_tolerance = 1.0e-3,
         .relative_tolerance = 1.0e-3,
         .warmup_iterations = 3,
         .measured_iterations = 5};
 
     kl::Tensor makeInput(
-        const LinearForwardConfig &config,
         kl::Device device)
     {
         return kl::test::makeRandomTensor(
             kl::Shape{config.batch_size, config.input_features},
-            config.dtype,
+            kl::DType::Float32,
             device,
             -1.0,
             1.0,
@@ -65,12 +61,11 @@ namespace
     }
 
     kl::Tensor makeWeights(
-        const LinearForwardConfig &config,
         kl::Device device)
     {
         return kl::test::makeRandomTensor(
             kl::Shape{config.output_features, config.input_features},
-            config.dtype,
+            kl::DType::Float32,
             device,
             -1.0,
             1.0,
@@ -81,21 +76,20 @@ namespace
 
     kl::Tensor kerneloomLinearCudaFloat32(
         const kl::Tensor &input,
-        const kl::Tensor &weights,
-        const LinearForwardConfig &config)
+        const kl::Tensor &weights)
     {
-        kl::Tensor result(
-            kl::Shape{config.batch_size, config.output_features},
-            config.dtype,
+        kl::Tensor output(
+            kl::Shape{input.shape()[0], weights.shape()[0]},
+            kl::DType::Float32,
             kl::Device::cuda());
 
         kl::linear_cuda_float32(
             input,
             weights,
             nullptr,
-            result);
+            output);
 
-        return result;
+        return output;
     }
 
 #endif // KL_ENABLE_CUDA
@@ -104,21 +98,20 @@ namespace
 
     kl::Tensor kerneloomLinearRocmFloat32(
         const kl::Tensor &input,
-        const kl::Tensor &weights,
-        const LinearForwardConfig &config)
+        const kl::Tensor &weights)
     {
-        kl::Tensor result(
-            kl::Shape{config.batch_size, config.output_features},
-            config.dtype,
+        kl::Tensor output(
+            kl::Shape{input.shape()[0], weights.shape()[0]},
+            kl::DType::Float32,
             kl::Device::rocm());
 
         kl::linear_rocm_float32(
             input,
             weights,
             nullptr,
-            result);
+            output);
 
-        return result;
+        return output;
     }
 
 #endif // KL_ENABLE_ROCM
@@ -126,7 +119,6 @@ namespace
     template <typename Fn>
     double benchmarkGpu(
         kl::Device device,
-        const LinearForwardConfig &config,
         Fn &&fn)
     {
         for (std::size_t i = 0; i < config.warmup_iterations; ++i)
@@ -159,67 +151,51 @@ namespace
 
 #ifdef KL_ENABLE_CUDA
 
-TEST(LinearForwardCuda, Float32MatchesCuBLAS)
+TEST(LinearForwardCudaFloat32, MatchesCuBLAS)
 {
-    const auto input = makeInput(
-        float32_config,
-        kl::Device::cuda());
+    const auto input =
+        makeInput(kl::Device::cuda());
 
-    const auto weights = makeWeights(
-        float32_config,
-        kl::Device::cuda());
+    const auto weights =
+        makeWeights(kl::Device::cuda());
 
-    const auto expected = kl::test::cublasLinearForwardFloat32(
-        input,
-        weights,
-        float32_config.batch_size,
-        float32_config.input_features,
-        float32_config.output_features);
+    const auto expected =
+        kl::test::cublasLinearForwardFloat32(input, weights);
 
-    const auto actual = kerneloomLinearCudaFloat32(
-        input,
-        weights,
-        float32_config);
+    const auto actual =
+        kerneloomLinearCudaFloat32(input, weights);
 
     EXPECT_TRUE(kl::test::tensorCompare(
         expected,
         actual,
-        float32_config.absolute_tolerance,
-        float32_config.relative_tolerance));
+        config.absolute_tolerance,
+        config.relative_tolerance));
 }
 
-TEST(LinearForwardCuda, Float32BenchmarkAgainstCuBLAS)
+TEST(LinearForwardCudaFloat32, BenchmarkAgainstCuBLAS)
 {
-    const auto input = makeInput(
-        float32_config,
-        kl::Device::cuda());
+    const auto input =
+        makeInput(kl::Device::cuda());
 
-    const auto weights = makeWeights(
-        float32_config,
-        kl::Device::cuda());
+    const auto weights =
+        makeWeights(kl::Device::cuda());
 
     const double kerneloom_ms = benchmarkGpu(
         kl::Device::cuda(),
-        float32_config,
         [&]()
         {
             return kerneloomLinearCudaFloat32(
                 input,
-                weights,
-                float32_config);
+                weights);
         });
 
     const double cublas_ms = benchmarkGpu(
         kl::Device::cuda(),
-        float32_config,
         [&]()
         {
             return kl::test::cublasLinearForwardFloat32(
                 input,
-                weights,
-                float32_config.batch_size,
-                float32_config.input_features,
-                float32_config.output_features);
+                weights);
         });
 
     kl::test::printBenchmarkComparison(
@@ -234,67 +210,51 @@ TEST(LinearForwardCuda, Float32BenchmarkAgainstCuBLAS)
 
 #ifdef KL_ENABLE_ROCM
 
-TEST(LinearForwardRocm, Float32MatchesRocBLAS)
+TEST(LinearForwardRocmFloat32, MatchesRocBLAS)
 {
-    const auto input = makeInput(
-        float32_config,
-        kl::Device::rocm());
+    const auto input =
+        makeInput(kl::Device::rocm());
 
-    const auto weights = makeWeights(
-        float32_config,
-        kl::Device::rocm());
+    const auto weights =
+        makeWeights(kl::Device::rocm());
 
-    const auto expected = kl::test::rocblasLinearForwardFloat32(
-        input,
-        weights,
-        float32_config.batch_size,
-        float32_config.input_features,
-        float32_config.output_features);
+    const auto expected =
+        kl::test::rocblasLinearForwardFloat32(input, weights);
 
-    const auto actual = kerneloomLinearRocmFloat32(
-        input,
-        weights,
-        float32_config);
+    const auto actual =
+        kerneloomLinearRocmFloat32(input, weights);
 
     EXPECT_TRUE(kl::test::tensorCompare(
         expected,
         actual,
-        float32_config.absolute_tolerance,
-        float32_config.relative_tolerance));
+        config.absolute_tolerance,
+        config.relative_tolerance));
 }
 
-TEST(LinearForwardRocm, Float32BenchmarkAgainstRocBLAS)
+TEST(LinearForwardRocmFloat32, BenchmarkAgainstRocBLAS)
 {
-    const auto input = makeInput(
-        float32_config,
-        kl::Device::rocm());
+    const auto input =
+        makeInput(kl::Device::rocm());
 
-    const auto weights = makeWeights(
-        float32_config,
-        kl::Device::rocm());
+    const auto weights =
+        makeWeights(kl::Device::rocm());
 
     const double kerneloom_ms = benchmarkGpu(
         kl::Device::rocm(),
-        float32_config,
         [&]()
         {
             return kerneloomLinearRocmFloat32(
                 input,
-                weights,
-                float32_config);
+                weights);
         });
 
     const double rocblas_ms = benchmarkGpu(
         kl::Device::rocm(),
-        float32_config,
         [&]()
         {
             return kl::test::rocblasLinearForwardFloat32(
                 input,
-                weights,
-                float32_config.batch_size,
-                float32_config.input_features,
-                float32_config.output_features);
+                weights);
         });
 
     kl::test::printBenchmarkComparison(
