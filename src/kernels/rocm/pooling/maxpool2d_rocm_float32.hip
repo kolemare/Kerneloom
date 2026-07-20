@@ -42,8 +42,6 @@ namespace kl
             const std::size_t oh = blockIdx.y * blockDim.y + threadIdx.y;
 
             const std::size_t nc = blockIdx.z;
-            const std::size_t n = nc / C;
-            const std::size_t c = nc % C;
 
             if (oh >= OH || ow >= OW)
             {
@@ -51,11 +49,9 @@ namespace kl
             }
 
             float max_value = -FLT_MAX;
-            bool has_value = false;
 
             const std::size_t input_nc_offset =
-                n * C * H * W +
-                c * H * W;
+                nc * H * W;
 
             for (std::size_t kh = 0; kh < kernel_h; ++kh)
             {
@@ -87,21 +83,19 @@ namespace kl
                     const float value =
                         input[input_row_offset + static_cast<std::size_t>(iw)];
 
-                    if (!has_value || value > max_value)
+                    if (value > max_value)
                     {
                         max_value = value;
-                        has_value = true;
                     }
                 }
             }
 
             const std::size_t result_index =
-                n * C * OH * OW +
-                c * OH * OW +
+                nc * OH * OW +
                 oh * OW +
                 ow;
 
-            result[result_index] = has_value ? max_value : 0.0f;
+            result[result_index] = max_value;
         }
 
     }

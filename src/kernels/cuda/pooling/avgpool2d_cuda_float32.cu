@@ -1,11 +1,10 @@
-#include <kernels/cuda/pooling/maxpool2d_cuda_float32.cuh>
+#include <kernels/cuda/pooling/avgpool2d_cuda_float32.cuh>
 
 #include <cuda_runtime.h>
 
 #include <cstddef>
 #include <stdexcept>
 #include <string>
-#include <cfloat>
 
 namespace kl
 {
@@ -22,7 +21,7 @@ namespace kl
             }
         }
 
-        __global__ void maxpool2d_cuda_float32_kernel(
+        __global__ void avgpool2d_cuda_float32_kernel(
             const float *input,
             float *result,
             std::size_t N,
@@ -50,7 +49,8 @@ namespace kl
                 return;
             }
 
-            float max_value = -FLT_MAX;
+            float sum = 0.0f;
+            std::size_t count = 0;
 
             const std::size_t input_nc_offset =
                 n * C * H * W +
@@ -83,13 +83,8 @@ namespace kl
                         continue;
                     }
 
-                    const float value =
-                        input[input_row_offset + static_cast<std::size_t>(iw)];
-
-                    if (value > max_value)
-                    {
-                        max_value = value;
-                    }
+                    sum += input[input_row_offset + static_cast<std::size_t>(iw)];
+                    ++count;
                 }
             }
 
@@ -99,12 +94,19 @@ namespace kl
                 oh * OW +
                 ow;
 
-            result[result_index] = max_value;
+            if (count > 0)
+            {
+                result[result_index] = sum / static_cast<float>(count);
+            }
+            else
+            {
+                result[result_index] = 0.0f;
+            }
         }
 
     }
 
-    void maxpool2d_cuda_float32(
+    void avgpool2d_cuda_float32(
         const Tensor &input,
         Tensor &result,
         const Pooling2dOptions &options)
@@ -128,7 +130,7 @@ namespace kl
             static_cast<unsigned int>((OH + block_size - 1) / block_size),
             static_cast<unsigned int>(N * C));
 
-        maxpool2d_cuda_float32_kernel<<<grid, block>>>(
+        avgpool2d_cuda_float32_kernel<<<grid, block>>>(
             input_data,
             result_data,
             N,
@@ -144,7 +146,7 @@ namespace kl
             options.padding_h,
             options.padding_w);
 
-        check_cuda(cudaGetLastError(), "CUDA maxpool2d kernel launch failed");
+        check_cuda(cudaGetLastError(), "CUDA avgpool2d kernel launch failed");
     }
 
 }
