@@ -198,7 +198,7 @@ namespace
             kl::Device::rocm(),
             options::warmup_iterations,
             options::measured_iterations,
-            options::print_each_iteration,
+            kl::test::options::benchmark::print_each_iteration,
             "Kerneloom ROCm",
             [&]()
             {
@@ -212,7 +212,7 @@ namespace
             kl::Device::rocm(),
             options::warmup_iterations,
             options::measured_iterations,
-            options::print_each_iteration,
+            kl::test::options::benchmark::print_each_iteration,
             "MIOpen",
             [&]()
             {

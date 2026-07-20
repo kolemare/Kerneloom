@@ -6,6 +6,14 @@
 namespace kl::test::options
 {
 
+    namespace benchmark
+    {
+
+        constexpr bool print_each_iteration =
+            false;
+
+    }
+
     namespace linear_forward_float32
     {
 
@@ -48,9 +56,6 @@ namespace kl::test::options
 
         constexpr std::size_t measured_iterations =
             5;
-
-        constexpr bool print_each_iteration =
-            false;
 
     }
 
@@ -248,9 +253,6 @@ namespace kl::test::options
 
         constexpr std::size_t measured_iterations =
             10;
-
-        constexpr bool print_each_iteration =
-            false;
 
     }
 
