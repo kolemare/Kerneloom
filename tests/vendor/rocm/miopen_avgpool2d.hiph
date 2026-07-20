@@ -1,0 +1,173 @@
+#ifndef KL_TEST_MIOPEN_AVGPOOL2D_HPP
+#define KL_TEST_MIOPEN_AVGPOOL2D_HPP
+
+#ifdef KL_ENABLE_ROCM
+
+#include "vendor/rocm/miopen_maxpool2d.hiph"
+
+#include <core/device.hpp>
+#include <core/dtype.hpp>
+#include <core/shape.hpp>
+#include <core/tensor.hpp>
+
+#include <miopen/miopen.h>
+
+#include <cstddef>
+#include <stdexcept>
+#include <string>
+
+namespace kl::test
+{
+
+    class MiopenAveragePoolingDescriptor
+    {
+    public:
+        MiopenAveragePoolingDescriptor(
+            std::size_t kernel_height,
+            std::size_t kernel_width,
+            std::size_t padding_height,
+            std::size_t padding_width,
+            std::size_t stride_height,
+            std::size_t stride_width)
+        {
+            check_miopen(
+                miopenCreatePoolingDescriptor(&descriptor_),
+                "Failed to create MIOpen average pooling descriptor");
+
+            check_miopen(
+                miopenSet2dPoolingDescriptor(
+                    descriptor_,
+                    miopenPoolingAverage,
+                    static_cast<int>(kernel_height),
+                    static_cast<int>(kernel_width),
+                    static_cast<int>(padding_height),
+                    static_cast<int>(padding_width),
+                    static_cast<int>(stride_height),
+                    static_cast<int>(stride_width)),
+                "Failed to set MIOpen average pooling descriptor");
+        }
+
+        ~MiopenAveragePoolingDescriptor()
+        {
+            if (descriptor_ != nullptr)
+            {
+                (void)miopenDestroyPoolingDescriptor(
+                    descriptor_);
+            }
+        }
+
+        MiopenAveragePoolingDescriptor(
+            const MiopenAveragePoolingDescriptor &) = delete;
+
+        MiopenAveragePoolingDescriptor &operator=(
+            const MiopenAveragePoolingDescriptor &) = delete;
+
+        MiopenAveragePoolingDescriptor(
+            MiopenAveragePoolingDescriptor &&) = delete;
+
+        MiopenAveragePoolingDescriptor &operator=(
+            MiopenAveragePoolingDescriptor &&) = delete;
+
+        [[nodiscard]] miopenPoolingDescriptor_t get() const
+        {
+            return descriptor_;
+        }
+
+    private:
+        miopenPoolingDescriptor_t descriptor_ =
+            nullptr;
+    };
+
+    inline void miopenAvgPool2dForwardFloat32(
+        MiopenHandle &handle,
+        const MiopenTensorDescriptor &input_descriptor,
+        const MiopenTensorDescriptor &output_descriptor,
+        const MiopenAveragePoolingDescriptor &pooling_descriptor,
+        const Tensor &input,
+        Tensor &output)
+    {
+        const float alpha =
+            1.0F;
+
+        const float beta =
+            0.0F;
+
+        bool do_backward =
+            false;
+
+        check_miopen(
+            miopenPoolingForward(
+                handle.get(),
+                pooling_descriptor.get(),
+                &alpha,
+                input_descriptor.get(),
+                input.data(),
+                &beta,
+                output_descriptor.get(),
+                output.data(),
+                do_backward,
+                nullptr,
+                0),
+            "MIOpen AvgPool2d forward failed");
+    }
+
+    inline Tensor miopenAvgPool2dForwardFloat32(
+        const Tensor &input,
+        std::size_t kernel_height,
+        std::size_t kernel_width,
+        std::size_t padding_height,
+        std::size_t padding_width,
+        std::size_t stride_height,
+        std::size_t stride_width)
+    {
+        const std::size_t output_height =
+            (input.shape()[2] + 2 * padding_height - kernel_height) /
+                stride_height +
+            1;
+
+        const std::size_t output_width =
+            (input.shape()[3] + 2 * padding_width - kernel_width) /
+                stride_width +
+            1;
+
+        Tensor output(
+            Shape{
+                input.shape()[0],
+                input.shape()[1],
+                output_height,
+                output_width},
+            DType::Float32,
+            Device::rocm());
+
+        MiopenHandle handle;
+
+        MiopenTensorDescriptor input_descriptor(
+            input);
+
+        MiopenTensorDescriptor output_descriptor(
+            output);
+
+        MiopenAveragePoolingDescriptor pooling_descriptor(
+            kernel_height,
+            kernel_width,
+            padding_height,
+            padding_width,
+            stride_height,
+            stride_width);
+
+        miopenAvgPool2dForwardFloat32(
+            handle,
+            input_descriptor,
+            output_descriptor,
+            pooling_descriptor,
+            input,
+            output);
+
+        return output;
+    }
+
+}
+
+#endif // KL_ENABLE_ROCM
+
+#endif // KL_TEST_MIOPEN_AVGPOOL2D_HPP
