@@ -1,0 +1,60 @@
+#ifndef KL_TEST_MIOPEN_HANDLE_HPP
+#define KL_TEST_MIOPEN_HANDLE_HPP
+
+#ifdef KL_ENABLE_ROCM
+
+#include <miopen/miopen.h>
+
+#include <stdexcept>
+
+namespace kl::test
+{
+
+    class MiopenHandle
+    {
+    public:
+        MiopenHandle()
+        {
+            const miopenStatus_t status =
+                miopenCreate(&handle_);
+
+            if (status != miopenStatusSuccess)
+            {
+                throw std::runtime_error(
+                    "Failed to create MIOpen handle");
+            }
+        }
+
+        ~MiopenHandle()
+        {
+            if (handle_ != nullptr)
+            {
+                (void)miopenDestroy(handle_);
+            }
+        }
+
+        MiopenHandle(const MiopenHandle &) = delete;
+
+        MiopenHandle &operator=(
+            const MiopenHandle &) = delete;
+
+        MiopenHandle(MiopenHandle &&) = delete;
+
+        MiopenHandle &operator=(
+            MiopenHandle &&) = delete;
+
+        [[nodiscard]] miopenHandle_t get() const
+        {
+            return handle_;
+        }
+
+    private:
+        miopenHandle_t handle_ =
+            nullptr;
+    };
+
+}
+
+#endif // KL_ENABLE_ROCM
+
+#endif // KL_TEST_MIOPEN_HANDLE_HPP

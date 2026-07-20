@@ -1,0 +1,260 @@
+#ifndef KL_TEST_MIOPEN_MAXPOOL2D_HPP
+#define KL_TEST_MIOPEN_MAXPOOL2D_HPP
+
+#ifdef KL_ENABLE_ROCM
+
+#include "vendor/rocm/miopen_handle.hiph"
+
+#include <core/device.hpp>
+#include <core/dtype.hpp>
+#include <core/shape.hpp>
+#include <core/tensor.hpp>
+
+#include <miopen/miopen.h>
+
+#include <cstddef>
+#include <stdexcept>
+#include <string>
+
+namespace kl::test
+{
+
+    inline void check_miopen(
+        miopenStatus_t status,
+        const char *message)
+    {
+        if (status != miopenStatusSuccess)
+        {
+            throw std::runtime_error(
+                std::string(message) + ": " + miopenGetErrorString(status));
+        }
+    }
+
+    class MiopenTensorDescriptor
+    {
+    public:
+        MiopenTensorDescriptor(
+            const Tensor &tensor)
+        {
+            if (tensor.shape().rank() != 4)
+            {
+                throw std::runtime_error(
+                    "MIOpen tensor descriptor expects rank-4 tensor");
+            }
+
+            if (tensor.dtype() != DType::Float32)
+            {
+                throw std::runtime_error(
+                    "MIOpen tensor descriptor expects Float32 tensor");
+            }
+
+            check_miopen(
+                miopenCreateTensorDescriptor(&descriptor_),
+                "Failed to create MIOpen tensor descriptor");
+
+            const int n =
+                static_cast<int>(tensor.shape()[0]);
+
+            const int c =
+                static_cast<int>(tensor.shape()[1]);
+
+            const int h =
+                static_cast<int>(tensor.shape()[2]);
+
+            const int w =
+                static_cast<int>(tensor.shape()[3]);
+
+            check_miopen(
+                miopenSet4dTensorDescriptor(
+                    descriptor_,
+                    miopenFloat,
+                    n,
+                    c,
+                    h,
+                    w),
+                "Failed to set MIOpen tensor descriptor");
+        }
+
+        ~MiopenTensorDescriptor()
+        {
+            if (descriptor_ != nullptr)
+            {
+                (void)miopenDestroyTensorDescriptor(
+                    descriptor_);
+            }
+        }
+
+        MiopenTensorDescriptor(
+            const MiopenTensorDescriptor &) = delete;
+
+        MiopenTensorDescriptor &operator=(
+            const MiopenTensorDescriptor &) = delete;
+
+        MiopenTensorDescriptor(
+            MiopenTensorDescriptor &&) = delete;
+
+        MiopenTensorDescriptor &operator=(
+            MiopenTensorDescriptor &&) = delete;
+
+        [[nodiscard]] miopenTensorDescriptor_t get() const
+        {
+            return descriptor_;
+        }
+
+    private:
+        miopenTensorDescriptor_t descriptor_ =
+            nullptr;
+    };
+
+    class MiopenPoolingDescriptor
+    {
+    public:
+        MiopenPoolingDescriptor(
+            std::size_t kernel_height,
+            std::size_t kernel_width,
+            std::size_t padding_height,
+            std::size_t padding_width,
+            std::size_t stride_height,
+            std::size_t stride_width)
+        {
+            check_miopen(
+                miopenCreatePoolingDescriptor(&descriptor_),
+                "Failed to create MIOpen pooling descriptor");
+
+            check_miopen(
+                miopenSet2dPoolingDescriptor(
+                    descriptor_,
+                    miopenPoolingMax,
+                    static_cast<int>(kernel_height),
+                    static_cast<int>(kernel_width),
+                    static_cast<int>(padding_height),
+                    static_cast<int>(padding_width),
+                    static_cast<int>(stride_height),
+                    static_cast<int>(stride_width)),
+                "Failed to set MIOpen pooling descriptor");
+        }
+
+        ~MiopenPoolingDescriptor()
+        {
+            if (descriptor_ != nullptr)
+            {
+                (void)miopenDestroyPoolingDescriptor(
+                    descriptor_);
+            }
+        }
+
+        MiopenPoolingDescriptor(
+            const MiopenPoolingDescriptor &) = delete;
+
+        MiopenPoolingDescriptor &operator=(
+            const MiopenPoolingDescriptor &) = delete;
+
+        MiopenPoolingDescriptor(
+            MiopenPoolingDescriptor &&) = delete;
+
+        MiopenPoolingDescriptor &operator=(
+            MiopenPoolingDescriptor &&) = delete;
+
+        [[nodiscard]] miopenPoolingDescriptor_t get() const
+        {
+            return descriptor_;
+        }
+
+    private:
+        miopenPoolingDescriptor_t descriptor_ =
+            nullptr;
+    };
+
+    inline void miopenMaxPool2dForwardFloat32(
+        MiopenHandle &handle,
+        const MiopenTensorDescriptor &input_descriptor,
+        const MiopenTensorDescriptor &output_descriptor,
+        const MiopenPoolingDescriptor &pooling_descriptor,
+        const Tensor &input,
+        Tensor &output)
+    {
+        const float alpha =
+            1.0F;
+
+        const float beta =
+            0.0F;
+
+        bool do_backward =
+            false;
+
+        check_miopen(
+            miopenPoolingForward(
+                handle.get(),
+                pooling_descriptor.get(),
+                &alpha,
+                input_descriptor.get(),
+                input.data(),
+                &beta,
+                output_descriptor.get(),
+                output.data(),
+                do_backward,
+                nullptr,
+                0),
+            "MIOpen MaxPool2d forward failed");
+    }
+
+    inline Tensor miopenMaxPool2dForwardFloat32(
+        const Tensor &input,
+        std::size_t kernel_height,
+        std::size_t kernel_width,
+        std::size_t padding_height,
+        std::size_t padding_width,
+        std::size_t stride_height,
+        std::size_t stride_width)
+    {
+        const std::size_t output_height =
+            (input.shape()[2] + 2 * padding_height - kernel_height) /
+                stride_height +
+            1;
+
+        const std::size_t output_width =
+            (input.shape()[3] + 2 * padding_width - kernel_width) /
+                stride_width +
+            1;
+
+        Tensor output(
+            Shape{
+                input.shape()[0],
+                input.shape()[1],
+                output_height,
+                output_width},
+            DType::Float32,
+            Device::rocm());
+
+        MiopenHandle handle;
+
+        MiopenTensorDescriptor input_descriptor(
+            input);
+
+        MiopenTensorDescriptor output_descriptor(
+            output);
+
+        MiopenPoolingDescriptor pooling_descriptor(
+            kernel_height,
+            kernel_width,
+            padding_height,
+            padding_width,
+            stride_height,
+            stride_width);
+
+        miopenMaxPool2dForwardFloat32(
+            handle,
+            input_descriptor,
+            output_descriptor,
+            pooling_descriptor,
+            input,
+            output);
+
+        return output;
+    }
+
+}
+
+#endif // KL_ENABLE_ROCM
+
+#endif // KL_TEST_MIOPEN_MAXPOOL2D_HPP

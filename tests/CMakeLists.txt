@@ -31,9 +31,11 @@ endif()
 
 if(KL_ENABLE_ROCM)
     find_package(rocblas REQUIRED)
+    find_package(miopen REQUIRED)
 
     target_link_libraries(kerneloom_tests
         PRIVATE
             roc::rocblas
+            MIOpen
     )
 endif()
