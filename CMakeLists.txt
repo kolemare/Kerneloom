@@ -11,6 +11,10 @@ option(KL_ENABLE_ROCM "Enable ROCm backend" OFF)
 option(KL_BUILD_APP "Build Kerneloom application binary" ON)
 option(KL_BUILD_TESTS "Build Kerneloom tests" OFF)
 
+list(APPEND CMAKE_MODULE_PATH
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake"
+)
+
 file(GLOB_RECURSE KL_SOURCES CONFIGURE_DEPENDS
     src/core/*.cpp
     src/backend/*.cpp

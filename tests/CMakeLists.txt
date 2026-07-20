@@ -20,10 +20,12 @@ target_include_directories(kerneloom_tests
 
 if(KL_ENABLE_CUDA)
     find_package(CUDAToolkit REQUIRED)
+    find_package(CUDNN REQUIRED)
 
     target_link_libraries(kerneloom_tests
         PRIVATE
             CUDA::cublas
+            CUDA::cudnn
     )
 endif()
 
