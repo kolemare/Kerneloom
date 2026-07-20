@@ -9,14 +9,33 @@ namespace kl::test::options
     namespace linear_forward_float32
     {
 
-        constexpr std::size_t batch_size =
-            2048;
+        namespace large_non_square
+        {
 
-        constexpr std::size_t input_features =
-            8192;
+            constexpr std::size_t batch_size =
+                2048;
 
-        constexpr std::size_t output_features =
-            4096;
+            constexpr std::size_t input_features =
+                8192;
+
+            constexpr std::size_t output_features =
+                4096;
+
+        }
+
+        namespace demanding_odd_shape
+        {
+
+            constexpr std::size_t batch_size =
+                2049;
+
+            constexpr std::size_t input_features =
+                8191;
+
+            constexpr std::size_t output_features =
+                4097;
+
+        }
 
         constexpr double absolute_tolerance =
             1.0e-3;
@@ -31,7 +50,7 @@ namespace kl::test::options
             5;
 
         constexpr bool print_each_iteration =
-            true;
+            false;
 
     }
 
@@ -91,7 +110,7 @@ namespace kl::test::options
             10;
 
         constexpr bool print_each_iteration =
-            true;
+            false;
 
     }
 }
