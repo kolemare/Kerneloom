@@ -12,10 +12,43 @@
 
 #include <rocblas/rocblas.h>
 
+#include <cstddef>
 #include <stdexcept>
 
 namespace kl::test
 {
+
+    inline void check_rocblas(
+        rocblas_status status,
+        const char *message)
+    {
+        if (status != rocblas_status_success)
+        {
+            throw std::runtime_error(
+                message);
+        }
+    }
+
+    inline Tensor makeOnesRocmFloat32(
+        std::size_t size)
+    {
+        Tensor ones_cpu(
+            Shape{size},
+            DType::Float32,
+            Device::cpu());
+
+        float *data =
+            static_cast<float *>(ones_cpu.data());
+
+        for (std::size_t i = 0; i < size; ++i)
+        {
+            data[i] =
+                1.0F;
+        }
+
+        return ones_cpu.to(
+            Device::rocm());
+    }
 
     inline void rocblasLinearForwardFloat32(
         RocblasHandle &handle,
@@ -38,27 +71,61 @@ namespace kl::test
         const float beta =
             0.0F;
 
-        const auto status = rocblas_sgemm(
-            handle.get(),
-            rocblas_operation_transpose,
-            rocblas_operation_none,
-            static_cast<int>(output_features),
-            static_cast<int>(batch_size),
-            static_cast<int>(input_features),
-            &alpha,
-            static_cast<const float *>(weights.data()),
-            static_cast<int>(input_features),
-            static_cast<const float *>(input.data()),
-            static_cast<int>(input_features),
-            &beta,
-            static_cast<float *>(output.data()),
-            static_cast<int>(output_features));
+        check_rocblas(
+            rocblas_sgemm(
+                handle.get(),
+                rocblas_operation_transpose,
+                rocblas_operation_none,
+                static_cast<int>(output_features),
+                static_cast<int>(batch_size),
+                static_cast<int>(input_features),
+                &alpha,
+                static_cast<const float *>(weights.data()),
+                static_cast<int>(input_features),
+                static_cast<const float *>(input.data()),
+                static_cast<int>(input_features),
+                &beta,
+                static_cast<float *>(output.data()),
+                static_cast<int>(output_features)),
+            "rocBLAS linear forward failed");
+    }
 
-        if (status != rocblas_status_success)
-        {
-            throw std::runtime_error(
-                "rocBLAS linear forward failed");
-        }
+    inline void rocblasLinearForwardFloat32(
+        RocblasHandle &handle,
+        const Tensor &input,
+        const Tensor &weights,
+        const Tensor &bias,
+        const Tensor &ones,
+        Tensor &output)
+    {
+        rocblasLinearForwardFloat32(
+            handle,
+            input,
+            weights,
+            output);
+
+        const std::size_t batch_size =
+            input.shape()[0];
+
+        const std::size_t output_features =
+            weights.shape()[0];
+
+        const float alpha =
+            1.0F;
+
+        check_rocblas(
+            rocblas_sger(
+                handle.get(),
+                static_cast<int>(output_features),
+                static_cast<int>(batch_size),
+                &alpha,
+                static_cast<const float *>(bias.data()),
+                1,
+                static_cast<const float *>(ones.data()),
+                1,
+                static_cast<float *>(output.data()),
+                static_cast<int>(output_features)),
+            "rocBLAS linear bias add failed");
     }
 
     inline Tensor rocblasLinearForwardFloat32(
@@ -76,6 +143,33 @@ namespace kl::test
             handle,
             input,
             weights,
+            output);
+
+        return output;
+    }
+
+    inline Tensor rocblasLinearForwardFloat32(
+        const Tensor &input,
+        const Tensor &weights,
+        const Tensor &bias)
+    {
+        Tensor output(
+            Shape{input.shape()[0], weights.shape()[0]},
+            DType::Float32,
+            Device::rocm());
+
+        Tensor ones =
+            makeOnesRocmFloat32(
+                input.shape()[0]);
+
+        RocblasHandle handle;
+
+        rocblasLinearForwardFloat32(
+            handle,
+            input,
+            weights,
+            bias,
+            ones,
             output);
 
         return output;
