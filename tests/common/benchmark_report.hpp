@@ -25,6 +25,17 @@ namespace kl::test
         }
     }
 
+    inline void printSingleBenchmark(
+        const char *benchmark_name,
+        const char *implementation_name,
+        double implementation_ms)
+    {
+        std::cout << "\n";
+        std::cout << "Benchmark: " << benchmark_name << "\n";
+        std::cout << "  " << implementation_name << ": "
+                  << implementation_ms << " ms\n";
+    }
+
 }
 
 #endif // KL_TEST_BENCHMARK_REPORT_HPP

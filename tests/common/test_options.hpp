@@ -453,6 +453,67 @@ namespace kl::test::options
 
     }
 
+    namespace activation_forward_float32
+    {
+
+        namespace elementwise_huge
+        {
+
+            constexpr std::size_t element_count =
+                64ULL * 1024ULL * 1024ULL;
+
+        }
+
+        namespace elementwise_odd_huge
+        {
+
+            constexpr std::size_t element_count =
+                67ULL * 1024ULL * 1024ULL - 1ULL;
+
+        }
+
+        namespace softmax_huge
+        {
+
+            constexpr std::size_t batch_size =
+                32768;
+
+            constexpr std::size_t class_count =
+                1024;
+
+        }
+
+        namespace softmax_odd_huge
+        {
+
+            constexpr std::size_t batch_size =
+                65537;
+
+            constexpr std::size_t class_count =
+                1009;
+
+        }
+
+        constexpr double elementwise_absolute_tolerance =
+            1.0e-5;
+
+        constexpr double elementwise_relative_tolerance =
+            1.0e-5;
+
+        constexpr double softmax_absolute_tolerance =
+            1.0e-4;
+
+        constexpr double softmax_relative_tolerance =
+            1.0e-4;
+
+        constexpr std::size_t warmup_iterations =
+            3;
+
+        constexpr std::size_t measured_iterations =
+            10;
+
+    }
+
 }
 
 #endif // KL_TEST_OPTIONS_HPP
