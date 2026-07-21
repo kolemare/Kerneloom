@@ -10,7 +10,6 @@
 #include <cudnn.h>
 
 #include <stdexcept>
-#include <string>
 
 namespace kl::test
 {
@@ -28,8 +27,7 @@ namespace kl::test
             if (create_status != CUDNN_STATUS_SUCCESS)
             {
                 throw std::runtime_error(
-                    std::string("Failed to create cuDNN activation descriptor: ") +
-                    cudnnGetErrorString(create_status));
+                    "Failed to create cuDNN activation descriptor");
             }
 
             const cudnnStatus_t set_status =
@@ -42,8 +40,7 @@ namespace kl::test
             if (set_status != CUDNN_STATUS_SUCCESS)
             {
                 throw std::runtime_error(
-                    std::string("Failed to set cuDNN activation descriptor: ") +
-                    cudnnGetErrorString(set_status));
+                    "Failed to set cuDNN activation descriptor");
             }
         }
 
@@ -80,7 +77,8 @@ namespace kl::test
 
     inline void cudnnActivationForwardFloat32(
         CudnnHandle &handle,
-        const CudnnTensorDescriptor &tensor_descriptor,
+        const CudnnTensorDescriptor &input_descriptor,
+        const CudnnTensorDescriptor &output_descriptor,
         const CudnnActivationDescriptor &activation_descriptor,
         const Tensor &input,
         Tensor &output)
@@ -96,23 +94,70 @@ namespace kl::test
                 handle.get(),
                 activation_descriptor.get(),
                 &alpha,
-                tensor_descriptor.get(),
+                input_descriptor.get(),
                 input.data(),
                 &beta,
-                tensor_descriptor.get(),
+                output_descriptor.get(),
                 output.data());
 
         if (status != CUDNN_STATUS_SUCCESS)
         {
             throw std::runtime_error(
-                std::string("cuDNN activation forward failed: ") +
-                cudnnGetErrorString(status));
+                "cuDNN activation forward failed");
         }
+    }
+
+    inline void cudnnActivationForwardFloat32(
+        CudnnHandle &handle,
+        const CudnnTensorDescriptor &tensor_descriptor,
+        const CudnnActivationDescriptor &activation_descriptor,
+        const Tensor &input,
+        Tensor &output)
+    {
+        cudnnActivationForwardFloat32(
+            handle,
+            tensor_descriptor,
+            tensor_descriptor,
+            activation_descriptor,
+            input,
+            output);
+    }
+
+    inline Tensor cudnnActivationForwardFloat32(
+        const Tensor &input,
+        cudnnActivationMode_t mode)
+    {
+        Tensor output(
+            input.shape(),
+            input.dtype(),
+            input.device());
+
+        CudnnHandle handle;
+
+        CudnnTensorDescriptor input_descriptor(
+            input);
+
+        CudnnTensorDescriptor output_descriptor(
+            output);
+
+        CudnnActivationDescriptor activation_descriptor(
+            mode);
+
+        cudnnActivationForwardFloat32(
+            handle,
+            input_descriptor,
+            output_descriptor,
+            activation_descriptor,
+            input,
+            output);
+
+        return output;
     }
 
     inline void cudnnSoftmaxForwardFloat32(
         CudnnHandle &handle,
-        const CudnnTensorDescriptor &tensor_descriptor,
+        const CudnnTensorDescriptor &input_descriptor,
+        const CudnnTensorDescriptor &output_descriptor,
         const Tensor &input,
         Tensor &output)
     {
@@ -128,18 +173,57 @@ namespace kl::test
                 CUDNN_SOFTMAX_ACCURATE,
                 CUDNN_SOFTMAX_MODE_CHANNEL,
                 &alpha,
-                tensor_descriptor.get(),
+                input_descriptor.get(),
                 input.data(),
                 &beta,
-                tensor_descriptor.get(),
+                output_descriptor.get(),
                 output.data());
 
         if (status != CUDNN_STATUS_SUCCESS)
         {
             throw std::runtime_error(
-                std::string("cuDNN softmax forward failed: ") +
-                cudnnGetErrorString(status));
+                "cuDNN softmax forward failed");
         }
+    }
+
+    inline void cudnnSoftmaxForwardFloat32(
+        CudnnHandle &handle,
+        const CudnnTensorDescriptor &tensor_descriptor,
+        const Tensor &input,
+        Tensor &output)
+    {
+        cudnnSoftmaxForwardFloat32(
+            handle,
+            tensor_descriptor,
+            tensor_descriptor,
+            input,
+            output);
+    }
+
+    inline Tensor cudnnSoftmaxForwardFloat32(
+        const Tensor &input)
+    {
+        Tensor output(
+            input.shape(),
+            input.dtype(),
+            input.device());
+
+        CudnnHandle handle;
+
+        CudnnTensorDescriptor input_descriptor(
+            input);
+
+        CudnnTensorDescriptor output_descriptor(
+            output);
+
+        cudnnSoftmaxForwardFloat32(
+            handle,
+            input_descriptor,
+            output_descriptor,
+            input,
+            output);
+
+        return output;
     }
 
 }
