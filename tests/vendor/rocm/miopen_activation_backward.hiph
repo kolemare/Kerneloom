@@ -1,0 +1,197 @@
+#ifndef KL_TEST_MIOPEN_ACTIVATION_BACKWARD_HPP
+#define KL_TEST_MIOPEN_ACTIVATION_BACKWARD_HPP
+
+#ifdef KL_ENABLE_ROCM
+
+#include "vendor/rocm/miopen_activation.hiph"
+
+#include <core/tensor.hpp>
+
+#include <miopen/miopen.h>
+
+namespace kl::test
+{
+
+    inline void miopenActivationBackwardFloat32(
+        MiopenHandle &handle,
+        const MiopenTensorDescriptor &activation_output_descriptor,
+        const MiopenTensorDescriptor &gradient_descriptor,
+        const MiopenTensorDescriptor &input_descriptor,
+        const MiopenTensorDescriptor &output_gradient_descriptor,
+        const MiopenActivationDescriptor &activation_descriptor,
+        const Tensor &activation_output,
+        const Tensor &gradient,
+        const Tensor &input,
+        Tensor &output_gradient)
+    {
+        const float alpha =
+            1.0F;
+
+        const float beta =
+            0.0F;
+
+        check_miopen(
+            miopenActivationBackward(
+                handle.get(),
+                activation_descriptor.get(),
+                &alpha,
+                activation_output_descriptor.get(),
+                activation_output.data(),
+                gradient_descriptor.get(),
+                gradient.data(),
+                input_descriptor.get(),
+                input.data(),
+                &beta,
+                output_gradient_descriptor.get(),
+                output_gradient.data()),
+            "MIOpen activation backward failed");
+    }
+
+    inline void miopenActivationBackwardFloat32(
+        MiopenHandle &handle,
+        const MiopenTensorDescriptor &tensor_descriptor,
+        const MiopenActivationDescriptor &activation_descriptor,
+        const Tensor &activation_output,
+        const Tensor &gradient,
+        const Tensor &input,
+        Tensor &output_gradient)
+    {
+        miopenActivationBackwardFloat32(
+            handle,
+            tensor_descriptor,
+            tensor_descriptor,
+            tensor_descriptor,
+            tensor_descriptor,
+            activation_descriptor,
+            activation_output,
+            gradient,
+            input,
+            output_gradient);
+    }
+
+    inline Tensor miopenActivationBackwardFloat32(
+        const Tensor &input,
+        const Tensor &activation_output,
+        const Tensor &gradient,
+        miopenActivationMode_t mode)
+    {
+        Tensor output_gradient(
+            gradient.shape(),
+            gradient.dtype(),
+            gradient.device());
+
+        MiopenHandle handle;
+
+        MiopenTensorDescriptor input_descriptor(
+            input);
+
+        MiopenTensorDescriptor activation_output_descriptor(
+            activation_output);
+
+        MiopenTensorDescriptor gradient_descriptor(
+            gradient);
+
+        MiopenTensorDescriptor output_gradient_descriptor(
+            output_gradient);
+
+        MiopenActivationDescriptor activation_descriptor(
+            mode);
+
+        miopenActivationBackwardFloat32(
+            handle,
+            activation_output_descriptor,
+            gradient_descriptor,
+            input_descriptor,
+            output_gradient_descriptor,
+            activation_descriptor,
+            activation_output,
+            gradient,
+            input,
+            output_gradient);
+
+        return output_gradient;
+    }
+
+    inline void miopenSoftmaxBackwardFloat32(
+        MiopenHandle &handle,
+        const MiopenTensorDescriptor &activation_output_descriptor,
+        const MiopenTensorDescriptor &gradient_descriptor,
+        const MiopenTensorDescriptor &output_gradient_descriptor,
+        const Tensor &activation_output,
+        const Tensor &gradient,
+        Tensor &output_gradient)
+    {
+        const float alpha =
+            1.0F;
+
+        const float beta =
+            0.0F;
+
+        check_miopen(
+            miopenSoftmaxBackward(
+                handle.get(),
+                &alpha,
+                activation_output_descriptor.get(),
+                activation_output.data(),
+                gradient_descriptor.get(),
+                gradient.data(),
+                &beta,
+                output_gradient_descriptor.get(),
+                output_gradient.data()),
+            "MIOpen softmax backward failed");
+    }
+
+    inline void miopenSoftmaxBackwardFloat32(
+        MiopenHandle &handle,
+        const MiopenTensorDescriptor &tensor_descriptor,
+        const Tensor &activation_output,
+        const Tensor &gradient,
+        Tensor &output_gradient)
+    {
+        miopenSoftmaxBackwardFloat32(
+            handle,
+            tensor_descriptor,
+            tensor_descriptor,
+            tensor_descriptor,
+            activation_output,
+            gradient,
+            output_gradient);
+    }
+
+    inline Tensor miopenSoftmaxBackwardFloat32(
+        const Tensor &activation_output,
+        const Tensor &gradient)
+    {
+        Tensor output_gradient(
+            gradient.shape(),
+            gradient.dtype(),
+            gradient.device());
+
+        MiopenHandle handle;
+
+        MiopenTensorDescriptor activation_output_descriptor(
+            activation_output);
+
+        MiopenTensorDescriptor gradient_descriptor(
+            gradient);
+
+        MiopenTensorDescriptor output_gradient_descriptor(
+            output_gradient);
+
+        miopenSoftmaxBackwardFloat32(
+            handle,
+            activation_output_descriptor,
+            gradient_descriptor,
+            output_gradient_descriptor,
+            activation_output,
+            gradient,
+            output_gradient);
+
+        return output_gradient;
+    }
+
+}
+
+#endif // KL_ENABLE_ROCM
+
+#endif // KL_TEST_MIOPEN_ACTIVATION_BACKWARD_HPP
