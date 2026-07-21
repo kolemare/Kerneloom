@@ -1,0 +1,231 @@
+#ifndef KL_TEST_MIOPEN_ACTIVATION_HPP
+#define KL_TEST_MIOPEN_ACTIVATION_HPP
+
+#ifdef KL_ENABLE_ROCM
+
+#include "vendor/rocm/miopen_maxpool2d.hiph"
+
+#include <core/tensor.hpp>
+
+#include <miopen/miopen.h>
+
+namespace kl::test
+{
+
+    class MiopenActivationDescriptor
+    {
+    public:
+        explicit MiopenActivationDescriptor(
+            miopenActivationMode_t mode)
+        {
+            check_miopen(
+                miopenCreateActivationDescriptor(
+                    &descriptor_),
+                "Failed to create MIOpen activation descriptor");
+
+            double alpha =
+                0.0;
+
+            double beta =
+                0.0;
+
+            double gamma =
+                0.0;
+
+            if (mode == miopenActivationTANH)
+            {
+                alpha =
+                    1.0;
+
+                beta =
+                    1.0;
+
+                gamma =
+                    1.0;
+            }
+
+            check_miopen(
+                miopenSetActivationDescriptor(
+                    descriptor_,
+                    mode,
+                    alpha,
+                    beta,
+                    gamma),
+                "Failed to set MIOpen activation descriptor");
+        }
+
+        ~MiopenActivationDescriptor()
+        {
+            if (descriptor_ != nullptr)
+            {
+                (void)miopenDestroyActivationDescriptor(
+                    descriptor_);
+            }
+        }
+
+        MiopenActivationDescriptor(
+            const MiopenActivationDescriptor &) = delete;
+
+        MiopenActivationDescriptor &operator=(
+            const MiopenActivationDescriptor &) = delete;
+
+        MiopenActivationDescriptor(
+            MiopenActivationDescriptor &&) = delete;
+
+        MiopenActivationDescriptor &operator=(
+            MiopenActivationDescriptor &&) = delete;
+
+        [[nodiscard]] miopenActivationDescriptor_t get() const
+        {
+            return descriptor_;
+        }
+
+    private:
+        miopenActivationDescriptor_t descriptor_ =
+            nullptr;
+    };
+
+    inline void miopenActivationForwardFloat32(
+        MiopenHandle &handle,
+        const MiopenTensorDescriptor &input_descriptor,
+        const MiopenTensorDescriptor &output_descriptor,
+        const MiopenActivationDescriptor &activation_descriptor,
+        const Tensor &input,
+        Tensor &output)
+    {
+        const float alpha =
+            1.0F;
+
+        const float beta =
+            0.0F;
+
+        check_miopen(
+            miopenActivationForward(
+                handle.get(),
+                activation_descriptor.get(),
+                &alpha,
+                input_descriptor.get(),
+                input.data(),
+                &beta,
+                output_descriptor.get(),
+                output.data()),
+            "MIOpen activation forward failed");
+    }
+
+    inline void miopenActivationForwardFloat32(
+        MiopenHandle &handle,
+        const MiopenTensorDescriptor &tensor_descriptor,
+        const MiopenActivationDescriptor &activation_descriptor,
+        const Tensor &input,
+        Tensor &output)
+    {
+        miopenActivationForwardFloat32(
+            handle,
+            tensor_descriptor,
+            tensor_descriptor,
+            activation_descriptor,
+            input,
+            output);
+    }
+
+    inline Tensor miopenActivationForwardFloat32(
+        const Tensor &input,
+        miopenActivationMode_t mode)
+    {
+        Tensor output(
+            input.shape(),
+            input.dtype(),
+            input.device());
+
+        MiopenHandle handle;
+
+        MiopenTensorDescriptor input_descriptor(
+            input);
+
+        MiopenTensorDescriptor output_descriptor(
+            output);
+
+        MiopenActivationDescriptor activation_descriptor(
+            mode);
+
+        miopenActivationForwardFloat32(
+            handle,
+            input_descriptor,
+            output_descriptor,
+            activation_descriptor,
+            input,
+            output);
+
+        return output;
+    }
+
+    inline void miopenSoftmaxForwardFloat32(
+        MiopenHandle &handle,
+        const MiopenTensorDescriptor &input_descriptor,
+        const MiopenTensorDescriptor &output_descriptor,
+        const Tensor &input,
+        Tensor &output)
+    {
+        const float alpha =
+            1.0F;
+
+        const float beta =
+            0.0F;
+
+        check_miopen(
+            miopenSoftmaxForward(
+                handle.get(),
+                &alpha,
+                input_descriptor.get(),
+                input.data(),
+                &beta,
+                output_descriptor.get(),
+                output.data()),
+            "MIOpen softmax forward failed");
+    }
+
+    inline void miopenSoftmaxForwardFloat32(
+        MiopenHandle &handle,
+        const MiopenTensorDescriptor &tensor_descriptor,
+        const Tensor &input,
+        Tensor &output)
+    {
+        miopenSoftmaxForwardFloat32(
+            handle,
+            tensor_descriptor,
+            tensor_descriptor,
+            input,
+            output);
+    }
+
+    inline Tensor miopenSoftmaxForwardFloat32(
+        const Tensor &input)
+    {
+        Tensor output(
+            input.shape(),
+            input.dtype(),
+            input.device());
+
+        MiopenHandle handle;
+
+        MiopenTensorDescriptor input_descriptor(
+            input);
+
+        MiopenTensorDescriptor output_descriptor(
+            output);
+
+        miopenSoftmaxForwardFloat32(
+            handle,
+            input_descriptor,
+            output_descriptor,
+            input,
+            output);
+
+        return output;
+    }
+
+}
+
+#endif // KL_ENABLE_ROCM
+
+#endif // KL_TEST_MIOPEN_ACTIVATION_HPP
