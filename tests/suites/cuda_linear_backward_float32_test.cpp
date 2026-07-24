@@ -468,8 +468,8 @@ TEST(LinearBackwardCudaFloat32, GradBiasBenchmarkAgainstCuBLAS_LargeNonSquare)
 {
     runGradBiasBenchmark(
         "Linear Backward Grad Bias CUDA Float32 Large Non-Square",
-        options::large_non_square::batch_size,
-        options::large_non_square::output_features);
+        options::grad_bias_large::batch_size,
+        options::grad_bias_large::output_features);
 }
 
 TEST(LinearBackwardCudaFloat32, GradInputMatchesCuBLAS_DemandingOddShape)
@@ -517,8 +517,8 @@ TEST(LinearBackwardCudaFloat32, GradBiasBenchmarkAgainstCuBLAS_DemandingOddShape
 {
     runGradBiasBenchmark(
         "Linear Backward Grad Bias CUDA Float32 Demanding Odd Shape",
-        options::demanding_odd_shape::batch_size,
-        options::demanding_odd_shape::output_features);
+        options::grad_bias_odd::batch_size,
+        options::grad_bias_odd::output_features);
 }
 
 #endif // KL_ENABLE_CUDA

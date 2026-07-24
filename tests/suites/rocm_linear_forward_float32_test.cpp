@@ -369,9 +369,9 @@ TEST(LinearForwardRocmFloat32, BenchmarkAgainstRocBLAS_WithBias_LargeNonSquare)
 {
     runBenchmarkWithBias(
         "Linear Forward ROCm Float32 With Bias Large Non-Square",
-        options::large_non_square::batch_size,
-        options::large_non_square::input_features,
-        options::large_non_square::output_features);
+        options::bias_add_large::batch_size,
+        options::bias_add_large::input_features,
+        options::bias_add_large::output_features);
 }
 
 TEST(LinearForwardRocmFloat32, BenchmarkAgainstRocBLAS_NoBias_DemandingOddShape)
@@ -387,9 +387,9 @@ TEST(LinearForwardRocmFloat32, BenchmarkAgainstRocBLAS_WithBias_DemandingOddShap
 {
     runBenchmarkWithBias(
         "Linear Forward ROCm Float32 With Bias Demanding Odd Shape",
-        options::demanding_odd_shape::batch_size,
-        options::demanding_odd_shape::input_features,
-        options::demanding_odd_shape::output_features);
+        options::bias_add_odd::batch_size,
+        options::bias_add_odd::input_features,
+        options::bias_add_odd::output_features);
 }
 
 #endif // KL_ENABLE_ROCM

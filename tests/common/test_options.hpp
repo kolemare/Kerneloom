@@ -21,13 +21,13 @@ namespace kl::test::options
         {
 
             constexpr std::size_t batch_size =
-                3840;
+                5632;
 
             constexpr std::size_t input_features =
-                15360;
+                22528;
 
             constexpr std::size_t output_features =
-                7680;
+                11264;
 
         }
 
@@ -35,13 +35,41 @@ namespace kl::test::options
         {
 
             constexpr std::size_t batch_size =
-                3841;
+                5633;
 
             constexpr std::size_t input_features =
-                15359;
+                22527;
 
             constexpr std::size_t output_features =
-                7681;
+                11265;
+
+        }
+
+        namespace bias_add_large
+        {
+
+            constexpr std::size_t batch_size =
+                28672;
+
+            constexpr std::size_t input_features =
+                512;
+
+            constexpr std::size_t output_features =
+                32768;
+
+        }
+
+        namespace bias_add_odd
+        {
+
+            constexpr std::size_t batch_size =
+                28673;
+
+            constexpr std::size_t input_features =
+                513;
+
+            constexpr std::size_t output_features =
+                32769;
 
         }
 
@@ -66,13 +94,13 @@ namespace kl::test::options
         {
 
             constexpr std::size_t batch_size =
-                3328;
+                8192;
 
             constexpr std::size_t input_features =
-                13312;
+                17408;
 
             constexpr std::size_t output_features =
-                6656;
+                8704;
 
         }
 
@@ -80,13 +108,35 @@ namespace kl::test::options
         {
 
             constexpr std::size_t batch_size =
-                3329;
+                8193;
 
             constexpr std::size_t input_features =
-                13311;
+                17407;
 
             constexpr std::size_t output_features =
-                6657;
+                8705;
+
+        }
+
+        namespace grad_bias_large
+        {
+
+            constexpr std::size_t batch_size =
+                32768;
+
+            constexpr std::size_t output_features =
+                65536;
+
+        }
+
+        namespace grad_bias_odd
+        {
+
+            constexpr std::size_t batch_size =
+                32769;
+
+            constexpr std::size_t output_features =
+                65537;
 
         }
 
