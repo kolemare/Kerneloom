@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <iomanip>
 #include <iostream>
 
 namespace kl::test
@@ -18,7 +19,8 @@ namespace kl::test
         const Tensor &expected,
         const Tensor &actual,
         double absolute_tolerance = 1.0e-4,
-        double relative_tolerance = 1.0e-4)
+        double relative_tolerance = 1.0e-4,
+        double max_mismatch_ratio = 0.0)
     {
         if (expected.shape() != actual.shape())
         {
@@ -70,14 +72,34 @@ namespace kl::test
 
             if (mismatches > 0)
             {
-                std::cout
-                    << "Tensor comparison failed\n"
-                    << "  Elements:       " << expected_cpu.numel() << '\n'
-                    << "  Mismatches:     " << mismatches << '\n'
-                    << "  Max abs error:  " << max_abs_error << '\n'
-                    << "  Max rel error:  " << max_rel_error << '\n';
+                const double mismatch_ratio =
+                    static_cast<double>(mismatches) /
+                    static_cast<double>(expected_cpu.numel());
 
-                passed = false;
+                if (mismatch_ratio > max_mismatch_ratio)
+                {
+                    std::cout
+                        << "Tensor comparison failed\n"
+                        << "  Elements:        " << expected_cpu.numel() << '\n'
+                        << "  Mismatches:      " << mismatches << '\n'
+                        << "  Mismatch ratio:  " << std::scientific << mismatch_ratio << '\n'
+                        << "  Allowed ratio:   " << std::scientific << max_mismatch_ratio << '\n'
+                        << "  Max abs error:   " << std::scientific << max_abs_error << '\n'
+                        << "  Max rel error:   " << std::scientific << max_rel_error << '\n';
+
+                    passed = false;
+                }
+                else
+                {
+                    std::cout
+                        << "Tensor comparison passed with tiny mismatch ratio\n"
+                        << "  Elements:        " << expected_cpu.numel() << '\n'
+                        << "  Mismatches:      " << mismatches << '\n'
+                        << "  Mismatch ratio:  " << std::scientific << mismatch_ratio << '\n'
+                        << "  Allowed ratio:   " << std::scientific << max_mismatch_ratio << '\n'
+                        << "  Max abs error:   " << std::scientific << max_abs_error << '\n'
+                        << "  Max rel error:   " << std::scientific << max_rel_error << '\n';
+                }
             } });
 
         return passed;

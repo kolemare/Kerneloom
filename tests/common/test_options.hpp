@@ -14,6 +14,14 @@ namespace kl::test::options
 
     }
 
+    namespace tensor_compare
+    {
+
+        constexpr double max_mismatch_ratio =
+            1.0e-7;
+
+    }
+
     namespace linear_forward_float32
     {
 
