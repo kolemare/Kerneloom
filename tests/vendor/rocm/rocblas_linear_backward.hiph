@@ -1,0 +1,208 @@
+#ifndef KL_TEST_ROCBLAS_LINEAR_BACKWARD_HPP
+#define KL_TEST_ROCBLAS_LINEAR_BACKWARD_HPP
+
+#ifdef KL_ENABLE_ROCM
+
+#include "vendor/rocm/rocblas_linear.hiph"
+
+#include <core/device.hpp>
+#include <core/dtype.hpp>
+#include <core/shape.hpp>
+#include <core/tensor.hpp>
+
+#include <rocblas/rocblas.h>
+
+#include <cstddef>
+#include <stdexcept>
+
+namespace kl::test
+{
+
+    inline void rocblasLinearBackwardGradInputFloat32(
+        RocblasHandle &handle,
+        const Tensor &weights,
+        const Tensor &grad_output,
+        Tensor &grad_input)
+    {
+        const std::size_t batch_size =
+            grad_output.shape()[0];
+
+        const std::size_t output_features =
+            grad_output.shape()[1];
+
+        const std::size_t input_features =
+            weights.shape()[1];
+
+        const float alpha =
+            1.0F;
+
+        const float beta =
+            0.0F;
+
+        check_rocblas(
+            rocblas_sgemm(
+                handle.get(),
+                rocblas_operation_none,
+                rocblas_operation_none,
+                static_cast<int>(input_features),
+                static_cast<int>(batch_size),
+                static_cast<int>(output_features),
+                &alpha,
+                static_cast<const float *>(weights.data()),
+                static_cast<int>(input_features),
+                static_cast<const float *>(grad_output.data()),
+                static_cast<int>(output_features),
+                &beta,
+                static_cast<float *>(grad_input.data()),
+                static_cast<int>(input_features)),
+            "rocBLAS linear backward grad_input failed");
+    }
+
+    inline Tensor rocblasLinearBackwardGradInputFloat32(
+        const Tensor &weights,
+        const Tensor &grad_output)
+    {
+        Tensor grad_input(
+            Shape{
+                grad_output.shape()[0],
+                weights.shape()[1]},
+            grad_output.dtype(),
+            grad_output.device());
+
+        RocblasHandle handle;
+
+        rocblasLinearBackwardGradInputFloat32(
+            handle,
+            weights,
+            grad_output,
+            grad_input);
+
+        return grad_input;
+    }
+
+    inline void rocblasLinearBackwardGradWeightsFloat32(
+        RocblasHandle &handle,
+        const Tensor &input,
+        const Tensor &grad_output,
+        Tensor &grad_weights)
+    {
+        const std::size_t batch_size =
+            input.shape()[0];
+
+        const std::size_t input_features =
+            input.shape()[1];
+
+        const std::size_t output_features =
+            grad_output.shape()[1];
+
+        const float alpha =
+            1.0F;
+
+        const float beta =
+            0.0F;
+
+        check_rocblas(
+            rocblas_sgemm(
+                handle.get(),
+                rocblas_operation_none,
+                rocblas_operation_transpose,
+                static_cast<int>(input_features),
+                static_cast<int>(output_features),
+                static_cast<int>(batch_size),
+                &alpha,
+                static_cast<const float *>(input.data()),
+                static_cast<int>(input_features),
+                static_cast<const float *>(grad_output.data()),
+                static_cast<int>(output_features),
+                &beta,
+                static_cast<float *>(grad_weights.data()),
+                static_cast<int>(input_features)),
+            "rocBLAS linear backward grad_weights failed");
+    }
+
+    inline Tensor rocblasLinearBackwardGradWeightsFloat32(
+        const Tensor &input,
+        const Tensor &grad_output)
+    {
+        Tensor grad_weights(
+            Shape{
+                grad_output.shape()[1],
+                input.shape()[1]},
+            grad_output.dtype(),
+            grad_output.device());
+
+        RocblasHandle handle;
+
+        rocblasLinearBackwardGradWeightsFloat32(
+            handle,
+            input,
+            grad_output,
+            grad_weights);
+
+        return grad_weights;
+    }
+
+    inline void rocblasLinearBackwardGradBiasFloat32(
+        RocblasHandle &handle,
+        const Tensor &grad_output,
+        const Tensor &ones,
+        Tensor &grad_bias)
+    {
+        const std::size_t batch_size =
+            grad_output.shape()[0];
+
+        const std::size_t output_features =
+            grad_output.shape()[1];
+
+        const float alpha =
+            1.0F;
+
+        const float beta =
+            0.0F;
+
+        check_rocblas(
+            rocblas_sgemv(
+                handle.get(),
+                rocblas_operation_none,
+                static_cast<int>(output_features),
+                static_cast<int>(batch_size),
+                &alpha,
+                static_cast<const float *>(grad_output.data()),
+                static_cast<int>(output_features),
+                static_cast<const float *>(ones.data()),
+                1,
+                &beta,
+                static_cast<float *>(grad_bias.data()),
+                1),
+            "rocBLAS linear backward grad_bias failed");
+    }
+
+    inline Tensor rocblasLinearBackwardGradBiasFloat32(
+        const Tensor &grad_output)
+    {
+        Tensor grad_bias(
+            Shape{
+                grad_output.shape()[1]},
+            grad_output.dtype(),
+            grad_output.device());
+
+        const Tensor ones =
+            makeOnesRocmFloat32(
+                grad_output.shape()[0]);
+
+        RocblasHandle handle;
+
+        rocblasLinearBackwardGradBiasFloat32(
+            handle,
+            grad_output,
+            ones,
+            grad_bias);
+
+        return grad_bias;
+    }
+
+}
+
+#endif // KL_ENABLE_ROCM
+
+#endif // KL_TEST_ROCBLAS_LINEAR_BACKWARD_HPP
