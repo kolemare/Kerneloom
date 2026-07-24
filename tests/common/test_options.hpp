@@ -21,13 +21,13 @@ namespace kl::test::options
         {
 
             constexpr std::size_t batch_size =
-                2048;
+                3840;
 
             constexpr std::size_t input_features =
-                8192;
+                15360;
 
             constexpr std::size_t output_features =
-                4096;
+                7680;
 
         }
 
@@ -35,13 +35,13 @@ namespace kl::test::options
         {
 
             constexpr std::size_t batch_size =
-                2049;
+                3841;
 
             constexpr std::size_t input_features =
-                8191;
+                15359;
 
             constexpr std::size_t output_features =
-                4097;
+                7681;
 
         }
 
@@ -66,13 +66,13 @@ namespace kl::test::options
         {
 
             constexpr std::size_t batch_size =
-                2048;
+                3328;
 
             constexpr std::size_t input_features =
-                8192;
+                13312;
 
             constexpr std::size_t output_features =
-                4096;
+                6656;
 
         }
 
@@ -80,13 +80,13 @@ namespace kl::test::options
         {
 
             constexpr std::size_t batch_size =
-                2049;
+                3329;
 
             constexpr std::size_t input_features =
-                8191;
+                13311;
 
             constexpr std::size_t output_features =
-                4097;
+                6657;
 
         }
 
