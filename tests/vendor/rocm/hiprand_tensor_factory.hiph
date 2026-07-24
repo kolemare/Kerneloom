@@ -1,0 +1,22 @@
+#ifndef KL_TEST_HIPRAND_TENSOR_FACTORY_HPP
+#define KL_TEST_HIPRAND_TENSOR_FACTORY_HPP
+
+#ifdef KL_ENABLE_ROCM
+
+#include <core/shape.hpp>
+#include <core/tensor.hpp>
+
+namespace kl::test
+{
+
+    Tensor makeRandomRocmTensorFloat32(
+        Shape shape,
+        double min_value,
+        double max_value,
+        unsigned int seed);
+
+}
+
+#endif // KL_ENABLE_ROCM
+
+#endif // KL_TEST_HIPRAND_TENSOR_FACTORY_HPP

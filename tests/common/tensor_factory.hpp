@@ -3,6 +3,14 @@
 
 #include "common/dtype_dispatch.hpp"
 
+#ifdef KL_ENABLE_CUDA
+#include "vendor/cuda/curand_tensor_factory.cuh"
+#endif
+
+#ifdef KL_ENABLE_ROCM
+#include "vendor/rocm/hiprand_tensor_factory.hiph"
+#endif
+
 #include <core/device.hpp>
 #include <core/dtype.hpp>
 #include <core/shape.hpp>
@@ -15,6 +23,48 @@
 
 namespace kl::test
 {
+
+    namespace
+    {
+
+        inline Tensor makeRandomTensorCpu(
+            Shape shape,
+            DType dtype,
+            double min_value,
+            double max_value,
+            unsigned int seed)
+        {
+            Tensor tensor(
+                std::move(shape),
+                dtype,
+                Device::cpu());
+
+            std::mt19937 generator(
+                seed);
+
+            std::uniform_real_distribution<double> distribution(
+                min_value,
+                max_value);
+
+            dispatchFloatDType(dtype, [&]<typename T>()
+                               {
+                T *data =
+                    static_cast<T *>(tensor.data());
+
+                for (std::size_t i = 0;
+                     i < tensor.numel();
+                     ++i)
+                {
+                    data[i] =
+                        static_cast<T>(
+                            distribution(
+                                generator));
+                } });
+
+            return tensor;
+        }
+
+    }
 
     inline Tensor makeTensor(
         Shape shape,
@@ -39,11 +89,15 @@ namespace kl::test
 
         dispatchFloatDType(dtype, [&]<typename T>()
                            {
-            T* data = static_cast<T*>(tensor.data());
+            T *data =
+                static_cast<T *>(tensor.data());
 
-            for (std::size_t i = 0; i < tensor.numel(); ++i)
+            for (std::size_t i = 0;
+                 i < tensor.numel();
+                 ++i)
             {
-                data[i] = static_cast<T>(0);
+                data[i] =
+                    static_cast<T>(0);
             } });
 
         return tensor.to(device);
@@ -57,24 +111,37 @@ namespace kl::test
         double max_value = 1.0,
         unsigned int seed = 42)
     {
-        Tensor tensor(
-            std::move(shape),
-            dtype,
-            Device::cpu());
+#ifdef KL_ENABLE_CUDA
+        if (device.type() == DeviceType::CUDA &&
+            dtype == DType::Float32)
+        {
+            return makeRandomCudaTensorFloat32(
+                std::move(shape),
+                min_value,
+                max_value,
+                seed);
+        }
+#endif
 
-        std::mt19937 generator(seed);
-        std::uniform_real_distribution<double> distribution(
-            min_value,
-            max_value);
+#ifdef KL_ENABLE_ROCM
+        if (device.type() == DeviceType::ROCM &&
+            dtype == DType::Float32)
+        {
+            return makeRandomRocmTensorFloat32(
+                std::move(shape),
+                min_value,
+                max_value,
+                seed);
+        }
+#endif
 
-        dispatchFloatDType(dtype, [&]<typename T>()
-                           {
-            T* data = static_cast<T*>(tensor.data());
-
-            for (std::size_t i = 0; i < tensor.numel(); ++i)
-            {
-                data[i] = static_cast<T>(distribution(generator));
-            } });
+        Tensor tensor =
+            makeRandomTensorCpu(
+                std::move(shape),
+                dtype,
+                min_value,
+                max_value,
+                seed);
 
         return tensor.to(device);
     }
@@ -105,15 +172,19 @@ namespace kl::test
 
         dispatchFloatDType(source_cpu.dtype(), [&]<typename T>()
                            {
-            const T* source_data =
-                static_cast<const T*>(source_cpu.data());
+            const T *source_data =
+                static_cast<const T *>(source_cpu.data());
 
-            T* transposed_data =
-                static_cast<T*>(transposed_cpu.data());
+            T *transposed_data =
+                static_cast<T *>(transposed_cpu.data());
 
-            for (std::size_t row = 0; row < rows; ++row)
+            for (std::size_t row = 0;
+                 row < rows;
+                 ++row)
             {
-                for (std::size_t column = 0; column < columns; ++column)
+                for (std::size_t column = 0;
+                     column < columns;
+                     ++column)
                 {
                     transposed_data[column * rows + row] =
                         source_data[row * columns + column];
