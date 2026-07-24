@@ -2,7 +2,7 @@
 
 #include <hip/hip_runtime.h>
 
-#include <cstddef>
+#include <cstdint>
 #include <stdexcept>
 #include <string>
 
@@ -12,37 +12,92 @@ namespace kl
     namespace
     {
 
-        void check_hip(hipError_t error, const char *message)
+        constexpr int output_tile_size =
+            64;
+
+        constexpr int reduction_lanes =
+            8;
+
+        void check_hip(
+            const hipError_t error,
+            const char *message)
         {
             if (error != hipSuccess)
             {
                 throw std::runtime_error(
-                    std::string(message) + ": " + hipGetErrorString(error));
+                    std::string(message) + ": " +
+                    hipGetErrorString(error));
             }
         }
 
-        __global__ void backward_linear_grad_bias_rocm_float32_kernel(
-            const float *grad_output,
-            float *grad_bias,
-            std::size_t batch_size,
-            std::size_t output_features)
+        constexpr unsigned int divide_up(
+            const std::uint32_t value,
+            const std::uint32_t divisor)
         {
-            const std::size_t out =
-                blockIdx.x * blockDim.x + threadIdx.x;
+            return static_cast<unsigned int>(
+                (value + divisor - 1U) / divisor);
+        }
 
-            if (out >= output_features)
+        __global__ void backward_linear_grad_bias_rocm_float32_kernel(
+            const float *__restrict__ grad_output,
+            float *__restrict__ grad_bias,
+            const std::uint32_t batch_size,
+            const std::uint32_t output_features)
+        {
+            __shared__ float partial_sums
+                [reduction_lanes]
+                [output_tile_size];
+
+            const int thread_x =
+                static_cast<int>(threadIdx.x);
+
+            const int thread_y =
+                static_cast<int>(threadIdx.y);
+
+            const std::uint32_t output =
+                static_cast<std::uint32_t>(blockIdx.x) *
+                    output_tile_size +
+                static_cast<std::uint32_t>(thread_x);
+
+            float sum =
+                0.0F;
+
+            if (output < output_features)
             {
-                return;
+                for (std::uint32_t batch =
+                         static_cast<std::uint32_t>(thread_y);
+                     batch < batch_size;
+                     batch += reduction_lanes)
+                {
+                    sum = fmaf(
+                        1.0F,
+                        grad_output[batch * output_features +
+                                    output],
+                        sum);
+                }
             }
 
-            float sum = 0.0f;
+            partial_sums[thread_y][thread_x] =
+                sum;
 
-            for (std::size_t n = 0; n < batch_size; ++n)
+            __syncthreads();
+
+            if (thread_y == 0 &&
+                output < output_features)
             {
-                sum += grad_output[n * output_features + out];
-            }
+                float total =
+                    partial_sums[0][thread_x];
 
-            grad_bias[out] = sum;
+                for (int lane = 1;
+                     lane < reduction_lanes;
+                     ++lane)
+                {
+                    total += partial_sums[lane][thread_x];
+                }
+
+                grad_bias[output] =
+                    total;
+            }
         }
 
     }
@@ -51,19 +106,32 @@ namespace kl
         const Tensor &grad_output,
         Tensor &grad_bias)
     {
-        const std::size_t batch_size = grad_output.shape()[0];
-        const std::size_t output_features = grad_output.shape()[1];
+        const auto batch_size =
+            static_cast<std::uint32_t>(grad_output.shape()[0]);
 
-        const float *grad_output_data =
+        const auto output_features =
+            static_cast<std::uint32_t>(grad_output.shape()[1]);
+
+        if (batch_size == 0U ||
+            output_features == 0U)
+        {
+            return;
+        }
+
+        const auto *grad_output_data =
             static_cast<const float *>(grad_output.data());
 
-        float *grad_bias_data =
+        auto *grad_bias_data =
             static_cast<float *>(grad_bias.data());
 
-        constexpr int block_size = 256;
+        const dim3 block(
+            output_tile_size,
+            reduction_lanes);
 
-        dim3 block(block_size);
-        dim3 grid(static_cast<unsigned int>((output_features + block_size - 1) / block_size));
+        const dim3 grid(
+            divide_up(
+                output_features,
+                output_tile_size));
 
         hipLaunchKernelGGL(
             backward_linear_grad_bias_rocm_float32_kernel,
