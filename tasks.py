@@ -4,10 +4,9 @@ import shutil
 
 
 BUILD_DIR = Path("build")
-TEST_BUILD_DIR = Path("build_tests")
 
 APP_BINARY = BUILD_DIR / "kerneloom"
-TEST_BINARY = TEST_BUILD_DIR / "tests" / "kerneloom_tests"
+TEST_BINARY = BUILD_DIR / "tests" / "kerneloom_tests"
 
 
 def remove(path):
@@ -36,16 +35,15 @@ def cmake_build(ctx, build_dir, cuda=False, rocm=False, debug=False, tests=False
 @task
 def clean(ctx):
     remove(BUILD_DIR)
-    remove(TEST_BUILD_DIR)
 
 
 @task
 def build(ctx, cuda=False, rocm=False, cuda_tests=False, rocm_tests=False, debug=False, jobs=16):
+    remove(BUILD_DIR)
+
     if cuda_tests or rocm_tests:
-        remove(TEST_BUILD_DIR)
-        cmake_build(ctx, TEST_BUILD_DIR, cuda_tests, rocm_tests, debug, True, jobs)
+        cmake_build(ctx, BUILD_DIR, cuda_tests, rocm_tests, debug, True, jobs)
     else:
-        remove(BUILD_DIR)
         cmake_build(ctx, BUILD_DIR, cuda, rocm, debug, False, jobs)
 
 

@@ -35,7 +35,9 @@ if(KL_ENABLE_CUDA)
         src/kernels/cuda/*.cu
     )
 
-    list(APPEND KL_SOURCES ${KL_CUDA_SOURCES})
+    list(APPEND KL_SOURCES
+        ${KL_CUDA_SOURCES}
+    )
 endif()
 
 if(KL_ENABLE_ROCM)
@@ -47,10 +49,14 @@ if(KL_ENABLE_ROCM)
         src/kernels/rocm/*.hip
     )
 
-    list(APPEND KL_SOURCES ${KL_ROCM_SOURCES})
+    list(APPEND KL_SOURCES
+        ${KL_ROCM_SOURCES}
+    )
 endif()
 
-add_library(kerneloom_lib ${KL_SOURCES})
+add_library(kerneloom_lib
+    ${KL_SOURCES}
+)
 
 target_include_directories(kerneloom_lib PUBLIC
     include
@@ -58,8 +64,13 @@ target_include_directories(kerneloom_lib PUBLIC
 )
 
 if(KL_BUILD_APP)
-    add_executable(kerneloom tests/manual/test_training.cpp)
-    target_link_libraries(kerneloom PRIVATE kerneloom_lib)
+    add_executable(kerneloom
+        tests/manual/test_training.cpp
+    )
+
+    target_link_libraries(kerneloom PRIVATE
+        kerneloom_lib
+    )
 endif()
 
 if(KL_BUILD_TESTS)
