@@ -624,7 +624,7 @@ namespace kl::test::options
         {
 
             constexpr std::size_t element_count =
-                384ULL * 1024ULL * 1024ULL;
+                128ULL * 1024ULL * 1024ULL;
 
         }
 
@@ -632,7 +632,7 @@ namespace kl::test::options
         {
 
             constexpr std::size_t element_count =
-                402653184ULL - 1ULL;
+                134217728ULL - 1ULL;
 
         }
 
@@ -640,7 +640,7 @@ namespace kl::test::options
         {
 
             constexpr std::size_t batch_size =
-                262144;
+                65536;
 
             constexpr std::size_t class_count =
                 1536;
@@ -651,7 +651,7 @@ namespace kl::test::options
         {
 
             constexpr std::size_t batch_size =
-                393217;
+                131073;
 
             constexpr std::size_t class_count =
                 1009;
