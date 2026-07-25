@@ -169,7 +169,7 @@ namespace kl::test::options
         {
 
             constexpr std::size_t batch_size =
-                448;
+                320;
 
             constexpr std::size_t channels =
                 64;
@@ -214,7 +214,7 @@ namespace kl::test::options
         {
 
             constexpr std::size_t batch_size =
-                257;
+                320;
 
             constexpr std::size_t channels =
                 65;
@@ -259,7 +259,7 @@ namespace kl::test::options
         {
 
             constexpr std::size_t batch_size =
-                128;
+                208;
 
             constexpr std::size_t channels =
                 64;
@@ -304,7 +304,7 @@ namespace kl::test::options
         {
 
             constexpr std::size_t batch_size =
-                256;
+                320;
 
             constexpr std::size_t channels =
                 64;
@@ -366,7 +366,7 @@ namespace kl::test::options
         {
 
             constexpr std::size_t batch_size =
-                448;
+                320;
 
             constexpr std::size_t channels =
                 64;
@@ -411,7 +411,7 @@ namespace kl::test::options
         {
 
             constexpr std::size_t batch_size =
-                257;
+                320;
 
             constexpr std::size_t channels =
                 65;
@@ -456,7 +456,7 @@ namespace kl::test::options
         {
 
             constexpr std::size_t batch_size =
-                128;
+                208;
 
             constexpr std::size_t channels =
                 64;
@@ -501,7 +501,7 @@ namespace kl::test::options
         {
 
             constexpr std::size_t batch_size =
-                256;
+                320;
 
             constexpr std::size_t channels =
                 64;
@@ -563,7 +563,7 @@ namespace kl::test::options
         {
 
             constexpr std::size_t element_count =
-                64ULL * 1024ULL * 1024ULL;
+                512ULL * 1024ULL * 1024ULL;
 
         }
 
@@ -571,7 +571,7 @@ namespace kl::test::options
         {
 
             constexpr std::size_t element_count =
-                67ULL * 1024ULL * 1024ULL - 1ULL;
+                536870912ULL - 1ULL;
 
         }
 
@@ -579,10 +579,10 @@ namespace kl::test::options
         {
 
             constexpr std::size_t batch_size =
-                32768;
+                262144;
 
             constexpr std::size_t class_count =
-                1024;
+                2048;
 
         }
 
@@ -590,7 +590,7 @@ namespace kl::test::options
         {
 
             constexpr std::size_t batch_size =
-                65537;
+                524289;
 
             constexpr std::size_t class_count =
                 1009;
@@ -624,7 +624,7 @@ namespace kl::test::options
         {
 
             constexpr std::size_t element_count =
-                64ULL * 1024ULL * 1024ULL;
+                384ULL * 1024ULL * 1024ULL;
 
         }
 
@@ -632,7 +632,7 @@ namespace kl::test::options
         {
 
             constexpr std::size_t element_count =
-                67ULL * 1024ULL * 1024ULL - 1ULL;
+                402653184ULL - 1ULL;
 
         }
 
@@ -640,10 +640,10 @@ namespace kl::test::options
         {
 
             constexpr std::size_t batch_size =
-                32768;
+                262144;
 
             constexpr std::size_t class_count =
-                1024;
+                1536;
 
         }
 
@@ -651,7 +651,7 @@ namespace kl::test::options
         {
 
             constexpr std::size_t batch_size =
-                65537;
+                393217;
 
             constexpr std::size_t class_count =
                 1009;
