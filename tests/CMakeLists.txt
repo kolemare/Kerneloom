@@ -1,5 +1,6 @@
 file(GLOB_RECURSE KL_TEST_SUITE_SOURCES CONFIGURE_DEPENDS
     suites/*.cpp
+    stress/*.cpp
 )
 
 set(KL_TEST_VENDOR_SOURCES)
