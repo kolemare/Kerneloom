@@ -8,6 +8,8 @@
 #include "common/tensor_factory.hpp"
 #include "common/test_options.hpp"
 
+#include "options/linear_backward_options.hpp"
+
 #include "vendor/cuda/cublas_linear_backward.cuh"
 
 #include <core/device.hpp>
@@ -20,23 +22,26 @@
 #include <kernels/cuda/linear/backward_linear_grad_weights_cuda_float32.cuh>
 
 #include <cstddef>
+#include <string>
 
 namespace
 {
 
     namespace options =
-        kl::test::options::linear_backward_float32;
+        kl::test::options::linear_backward;
 
     void runGradInputCorrectness(
-        std::size_t batch_size,
-        std::size_t input_features,
-        std::size_t output_features)
+        const options::Shape &shape)
     {
+        SCOPED_TRACE(
+            std::string("Shape: ") +
+            shape.name);
+
         const auto weights =
             kl::test::makeRandomTensor(
                 kl::Shape{
-                    output_features,
-                    input_features},
+                    shape.output_features,
+                    shape.input_features},
                 kl::DType::Float32,
                 kl::Device::cuda(),
                 -1.0,
@@ -46,8 +51,8 @@ namespace
         const auto grad_output =
             kl::test::makeRandomTensor(
                 kl::Shape{
-                    batch_size,
-                    output_features},
+                    shape.batch_size,
+                    shape.output_features},
                 kl::DType::Float32,
                 kl::Device::cuda(),
                 -1.0,
@@ -56,8 +61,8 @@ namespace
 
         kl::Tensor actual_grad_input(
             kl::Shape{
-                batch_size,
-                input_features},
+                shape.batch_size,
+                shape.input_features},
             kl::DType::Float32,
             kl::Device::cuda());
 
@@ -74,20 +79,23 @@ namespace
         EXPECT_TRUE(kl::test::tensorCompare(
             expected_grad_input,
             actual_grad_input,
-            options::absolute_tolerance,
-            options::relative_tolerance));
+            options::float32_absolute_tolerance,
+            options::float32_relative_tolerance,
+            kl::test::options::tensor_compare::max_mismatch_ratio));
     }
 
     void runGradWeightsCorrectness(
-        std::size_t batch_size,
-        std::size_t input_features,
-        std::size_t output_features)
+        const options::Shape &shape)
     {
+        SCOPED_TRACE(
+            std::string("Shape: ") +
+            shape.name);
+
         const auto input =
             kl::test::makeRandomTensor(
                 kl::Shape{
-                    batch_size,
-                    input_features},
+                    shape.batch_size,
+                    shape.input_features},
                 kl::DType::Float32,
                 kl::Device::cuda(),
                 -1.0,
@@ -97,8 +105,8 @@ namespace
         const auto grad_output =
             kl::test::makeRandomTensor(
                 kl::Shape{
-                    batch_size,
-                    output_features},
+                    shape.batch_size,
+                    shape.output_features},
                 kl::DType::Float32,
                 kl::Device::cuda(),
                 -1.0,
@@ -107,8 +115,8 @@ namespace
 
         kl::Tensor actual_grad_weights(
             kl::Shape{
-                output_features,
-                input_features},
+                shape.output_features,
+                shape.input_features},
             kl::DType::Float32,
             kl::Device::cuda());
 
@@ -125,19 +133,23 @@ namespace
         EXPECT_TRUE(kl::test::tensorCompare(
             expected_grad_weights,
             actual_grad_weights,
-            options::absolute_tolerance,
-            options::relative_tolerance));
+            options::float32_absolute_tolerance,
+            options::float32_relative_tolerance,
+            kl::test::options::tensor_compare::max_mismatch_ratio));
     }
 
     void runGradBiasCorrectness(
-        std::size_t batch_size,
-        std::size_t output_features)
+        const options::BiasShape &shape)
     {
+        SCOPED_TRACE(
+            std::string("Shape: ") +
+            shape.name);
+
         const auto grad_output =
             kl::test::makeRandomTensor(
                 kl::Shape{
-                    batch_size,
-                    output_features},
+                    shape.batch_size,
+                    shape.output_features},
                 kl::DType::Float32,
                 kl::Device::cuda(),
                 -1.0,
@@ -146,7 +158,7 @@ namespace
 
         kl::Tensor actual_grad_bias(
             kl::Shape{
-                output_features},
+                shape.output_features},
             kl::DType::Float32,
             kl::Device::cuda());
 
@@ -161,21 +173,19 @@ namespace
         EXPECT_TRUE(kl::test::tensorCompare(
             expected_grad_bias,
             actual_grad_bias,
-            options::absolute_tolerance,
-            options::relative_tolerance));
+            options::float32_absolute_tolerance,
+            options::float32_relative_tolerance,
+            kl::test::options::tensor_compare::max_mismatch_ratio));
     }
 
     void runGradInputBenchmark(
-        const char *benchmark_name,
-        std::size_t batch_size,
-        std::size_t input_features,
-        std::size_t output_features)
+        const options::Shape &shape)
     {
         const auto weights =
             kl::test::makeRandomTensor(
                 kl::Shape{
-                    output_features,
-                    input_features},
+                    shape.output_features,
+                    shape.input_features},
                 kl::DType::Float32,
                 kl::Device::cuda(),
                 -1.0,
@@ -185,8 +195,8 @@ namespace
         const auto grad_output =
             kl::test::makeRandomTensor(
                 kl::Shape{
-                    batch_size,
-                    output_features},
+                    shape.batch_size,
+                    shape.output_features},
                 kl::DType::Float32,
                 kl::Device::cuda(),
                 -1.0,
@@ -195,15 +205,15 @@ namespace
 
         kl::Tensor kerneloom_grad_input(
             kl::Shape{
-                batch_size,
-                input_features},
+                shape.batch_size,
+                shape.input_features},
             kl::DType::Float32,
             kl::Device::cuda());
 
         kl::Tensor cublas_grad_input(
             kl::Shape{
-                batch_size,
-                input_features},
+                shape.batch_size,
+                shape.input_features},
             kl::DType::Float32,
             kl::Device::cuda());
 
@@ -243,11 +253,16 @@ namespace
         EXPECT_TRUE(kl::test::tensorCompare(
             cublas_grad_input,
             kerneloom_grad_input,
-            options::absolute_tolerance,
-            options::relative_tolerance));
+            options::float32_absolute_tolerance,
+            options::float32_relative_tolerance,
+            kl::test::options::tensor_compare::max_mismatch_ratio));
+
+        const std::string benchmark_name =
+            std::string("Linear Backward Grad Input CUDA Float32 ") +
+            shape.name;
 
         kl::test::printBenchmarkComparison(
-            benchmark_name,
+            benchmark_name.c_str(),
             "Kerneloom CUDA",
             kerneloom_ms,
             "cuBLAS",
@@ -255,16 +270,13 @@ namespace
     }
 
     void runGradWeightsBenchmark(
-        const char *benchmark_name,
-        std::size_t batch_size,
-        std::size_t input_features,
-        std::size_t output_features)
+        const options::Shape &shape)
     {
         const auto input =
             kl::test::makeRandomTensor(
                 kl::Shape{
-                    batch_size,
-                    input_features},
+                    shape.batch_size,
+                    shape.input_features},
                 kl::DType::Float32,
                 kl::Device::cuda(),
                 -1.0,
@@ -274,8 +286,8 @@ namespace
         const auto grad_output =
             kl::test::makeRandomTensor(
                 kl::Shape{
-                    batch_size,
-                    output_features},
+                    shape.batch_size,
+                    shape.output_features},
                 kl::DType::Float32,
                 kl::Device::cuda(),
                 -1.0,
@@ -284,15 +296,15 @@ namespace
 
         kl::Tensor kerneloom_grad_weights(
             kl::Shape{
-                output_features,
-                input_features},
+                shape.output_features,
+                shape.input_features},
             kl::DType::Float32,
             kl::Device::cuda());
 
         kl::Tensor cublas_grad_weights(
             kl::Shape{
-                output_features,
-                input_features},
+                shape.output_features,
+                shape.input_features},
             kl::DType::Float32,
             kl::Device::cuda());
 
@@ -332,11 +344,16 @@ namespace
         EXPECT_TRUE(kl::test::tensorCompare(
             cublas_grad_weights,
             kerneloom_grad_weights,
-            options::absolute_tolerance,
-            options::relative_tolerance));
+            options::float32_absolute_tolerance,
+            options::float32_relative_tolerance,
+            kl::test::options::tensor_compare::max_mismatch_ratio));
+
+        const std::string benchmark_name =
+            std::string("Linear Backward Grad Weights CUDA Float32 ") +
+            shape.name;
 
         kl::test::printBenchmarkComparison(
-            benchmark_name,
+            benchmark_name.c_str(),
             "Kerneloom CUDA",
             kerneloom_ms,
             "cuBLAS",
@@ -344,15 +361,13 @@ namespace
     }
 
     void runGradBiasBenchmark(
-        const char *benchmark_name,
-        std::size_t batch_size,
-        std::size_t output_features)
+        const options::BiasShape &shape)
     {
         const auto grad_output =
             kl::test::makeRandomTensor(
                 kl::Shape{
-                    batch_size,
-                    output_features},
+                    shape.batch_size,
+                    shape.output_features},
                 kl::DType::Float32,
                 kl::Device::cuda(),
                 -1.0,
@@ -361,19 +376,19 @@ namespace
 
         kl::Tensor kerneloom_grad_bias(
             kl::Shape{
-                output_features},
+                shape.output_features},
             kl::DType::Float32,
             kl::Device::cuda());
 
         kl::Tensor cublas_grad_bias(
             kl::Shape{
-                output_features},
+                shape.output_features},
             kl::DType::Float32,
             kl::Device::cuda());
 
         const auto ones =
             kl::test::makeOnesCudaFloat32(
-                batch_size);
+                shape.batch_size);
 
         kl::test::CublasHandle cublas_handle;
 
@@ -410,11 +425,16 @@ namespace
         EXPECT_TRUE(kl::test::tensorCompare(
             cublas_grad_bias,
             kerneloom_grad_bias,
-            options::absolute_tolerance,
-            options::relative_tolerance));
+            options::float32_absolute_tolerance,
+            options::float32_relative_tolerance,
+            kl::test::options::tensor_compare::max_mismatch_ratio));
+
+        const std::string benchmark_name =
+            std::string("Linear Backward Grad Bias CUDA Float32 ") +
+            shape.name;
 
         kl::test::printBenchmarkComparison(
-            benchmark_name,
+            benchmark_name.c_str(),
             "Kerneloom CUDA",
             kerneloom_ms,
             "cuBLAS",
@@ -423,102 +443,58 @@ namespace
 
 }
 
-TEST(LinearBackwardCudaFloat32, GradInputMatchesCuBLAS_LargeNonSquare)
+TEST(LinearBackwardCudaFloat32, GradInputMatchesCuBLAS)
 {
-    runGradInputCorrectness(
-        options::large_non_square::batch_size,
-        options::large_non_square::input_features,
-        options::large_non_square::output_features);
+    for (const auto &shape : options::correctness_shapes)
+    {
+        runGradInputCorrectness(
+            shape);
+    }
 }
 
-TEST(LinearBackwardCudaFloat32, GradWeightsMatchesCuBLAS_LargeNonSquare)
+TEST(LinearBackwardCudaFloat32, GradWeightsMatchesCuBLAS)
 {
-    runGradWeightsCorrectness(
-        options::large_non_square::batch_size,
-        options::large_non_square::input_features,
-        options::large_non_square::output_features);
+    for (const auto &shape : options::correctness_shapes)
+    {
+        runGradWeightsCorrectness(
+            shape);
+    }
 }
 
-TEST(LinearBackwardCudaFloat32, GradBiasMatchesCuBLAS_LargeNonSquare)
+TEST(LinearBackwardCudaFloat32, GradBiasMatchesCuBLAS)
 {
-    runGradBiasCorrectness(
-        options::large_non_square::batch_size,
-        options::large_non_square::output_features);
+    for (const auto &shape : options::grad_bias_correctness_shapes)
+    {
+        runGradBiasCorrectness(
+            shape);
+    }
 }
 
-TEST(LinearBackwardCudaFloat32, GradInputBenchmarkAgainstCuBLAS_LargeNonSquare)
+TEST(LinearBackwardCudaFloat32, GradInputBenchmarkAgainstCuBLAS)
 {
-    runGradInputBenchmark(
-        "Linear Backward Grad Input CUDA Float32 Large Non-Square",
-        options::large_non_square::batch_size,
-        options::large_non_square::input_features,
-        options::large_non_square::output_features);
+    for (const auto &shape : options::benchmark_shapes)
+    {
+        runGradInputBenchmark(
+            shape);
+    }
 }
 
-TEST(LinearBackwardCudaFloat32, GradWeightsBenchmarkAgainstCuBLAS_LargeNonSquare)
+TEST(LinearBackwardCudaFloat32, GradWeightsBenchmarkAgainstCuBLAS)
 {
-    runGradWeightsBenchmark(
-        "Linear Backward Grad Weights CUDA Float32 Large Non-Square",
-        options::large_non_square::batch_size,
-        options::large_non_square::input_features,
-        options::large_non_square::output_features);
+    for (const auto &shape : options::benchmark_shapes)
+    {
+        runGradWeightsBenchmark(
+            shape);
+    }
 }
 
-TEST(LinearBackwardCudaFloat32, GradBiasBenchmarkAgainstCuBLAS_LargeNonSquare)
+TEST(LinearBackwardCudaFloat32, GradBiasBenchmarkAgainstCuBLAS)
 {
-    runGradBiasBenchmark(
-        "Linear Backward Grad Bias CUDA Float32 Large Non-Square",
-        options::grad_bias_large::batch_size,
-        options::grad_bias_large::output_features);
-}
-
-TEST(LinearBackwardCudaFloat32, GradInputMatchesCuBLAS_DemandingOddShape)
-{
-    runGradInputCorrectness(
-        options::demanding_odd_shape::batch_size,
-        options::demanding_odd_shape::input_features,
-        options::demanding_odd_shape::output_features);
-}
-
-TEST(LinearBackwardCudaFloat32, GradWeightsMatchesCuBLAS_DemandingOddShape)
-{
-    runGradWeightsCorrectness(
-        options::demanding_odd_shape::batch_size,
-        options::demanding_odd_shape::input_features,
-        options::demanding_odd_shape::output_features);
-}
-
-TEST(LinearBackwardCudaFloat32, GradBiasMatchesCuBLAS_DemandingOddShape)
-{
-    runGradBiasCorrectness(
-        options::demanding_odd_shape::batch_size,
-        options::demanding_odd_shape::output_features);
-}
-
-TEST(LinearBackwardCudaFloat32, GradInputBenchmarkAgainstCuBLAS_DemandingOddShape)
-{
-    runGradInputBenchmark(
-        "Linear Backward Grad Input CUDA Float32 Demanding Odd Shape",
-        options::demanding_odd_shape::batch_size,
-        options::demanding_odd_shape::input_features,
-        options::demanding_odd_shape::output_features);
-}
-
-TEST(LinearBackwardCudaFloat32, GradWeightsBenchmarkAgainstCuBLAS_DemandingOddShape)
-{
-    runGradWeightsBenchmark(
-        "Linear Backward Grad Weights CUDA Float32 Demanding Odd Shape",
-        options::demanding_odd_shape::batch_size,
-        options::demanding_odd_shape::input_features,
-        options::demanding_odd_shape::output_features);
-}
-
-TEST(LinearBackwardCudaFloat32, GradBiasBenchmarkAgainstCuBLAS_DemandingOddShape)
-{
-    runGradBiasBenchmark(
-        "Linear Backward Grad Bias CUDA Float32 Demanding Odd Shape",
-        options::grad_bias_odd::batch_size,
-        options::grad_bias_odd::output_features);
+    for (const auto &shape : options::grad_bias_benchmark_shapes)
+    {
+        runGradBiasBenchmark(
+            shape);
+    }
 }
 
 #endif // KL_ENABLE_CUDA
