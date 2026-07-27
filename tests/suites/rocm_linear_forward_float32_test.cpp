@@ -8,6 +8,8 @@
 #include "common/tensor_factory.hpp"
 #include "common/test_options.hpp"
 
+#include "options/linear_forward_options.hpp"
+
 #include "vendor/rocm/rocblas_linear.hiph"
 
 #include <core/device.hpp>
@@ -18,22 +20,25 @@
 #include <kernels/rocm/linear/linear_rocm_float32.hiph>
 
 #include <cstddef>
+#include <string>
 
 namespace
 {
 
     namespace options =
-        kl::test::options::linear_forward_float32;
+        kl::test::options::linear_forward;
 
     void runCorrectnessNoBias(
-        std::size_t batch_size,
-        std::size_t input_features,
-        std::size_t output_features)
+        const options::Shape &shape)
     {
+        SCOPED_TRACE(
+            std::string("Shape: ") +
+            shape.name);
+
         const auto input = kl::test::makeRandomTensor(
             kl::Shape{
-                batch_size,
-                input_features},
+                shape.batch_size,
+                shape.input_features},
             kl::DType::Float32,
             kl::Device::rocm(),
             -1.0,
@@ -42,8 +47,8 @@ namespace
 
         const auto weights = kl::test::makeRandomTensor(
             kl::Shape{
-                output_features,
-                input_features},
+                shape.output_features,
+                shape.input_features},
             kl::DType::Float32,
             kl::Device::rocm(),
             -1.0,
@@ -52,8 +57,8 @@ namespace
 
         kl::Tensor actual(
             kl::Shape{
-                batch_size,
-                output_features},
+                shape.batch_size,
+                shape.output_features},
             kl::DType::Float32,
             kl::Device::rocm());
 
@@ -71,19 +76,22 @@ namespace
         EXPECT_TRUE(kl::test::tensorCompare(
             expected,
             actual,
-            options::absolute_tolerance,
-            options::relative_tolerance));
+            options::float32_absolute_tolerance,
+            options::float32_relative_tolerance,
+            kl::test::options::tensor_compare::max_mismatch_ratio));
     }
 
     void runCorrectnessWithBias(
-        std::size_t batch_size,
-        std::size_t input_features,
-        std::size_t output_features)
+        const options::Shape &shape)
     {
+        SCOPED_TRACE(
+            std::string("Shape: ") +
+            shape.name);
+
         const auto input = kl::test::makeRandomTensor(
             kl::Shape{
-                batch_size,
-                input_features},
+                shape.batch_size,
+                shape.input_features},
             kl::DType::Float32,
             kl::Device::rocm(),
             -1.0,
@@ -92,8 +100,8 @@ namespace
 
         const auto weights = kl::test::makeRandomTensor(
             kl::Shape{
-                output_features,
-                input_features},
+                shape.output_features,
+                shape.input_features},
             kl::DType::Float32,
             kl::Device::rocm(),
             -1.0,
@@ -102,7 +110,7 @@ namespace
 
         const auto bias = kl::test::makeRandomTensor(
             kl::Shape{
-                output_features},
+                shape.output_features},
             kl::DType::Float32,
             kl::Device::rocm(),
             -1.0,
@@ -111,8 +119,8 @@ namespace
 
         kl::Tensor actual(
             kl::Shape{
-                batch_size,
-                output_features},
+                shape.batch_size,
+                shape.output_features},
             kl::DType::Float32,
             kl::Device::rocm());
 
@@ -131,20 +139,18 @@ namespace
         EXPECT_TRUE(kl::test::tensorCompare(
             expected,
             actual,
-            options::absolute_tolerance,
-            options::relative_tolerance));
+            options::float32_absolute_tolerance,
+            options::float32_relative_tolerance,
+            kl::test::options::tensor_compare::max_mismatch_ratio));
     }
 
     void runBenchmarkNoBias(
-        const char *benchmark_name,
-        std::size_t batch_size,
-        std::size_t input_features,
-        std::size_t output_features)
+        const options::Shape &shape)
     {
         const auto input = kl::test::makeRandomTensor(
             kl::Shape{
-                batch_size,
-                input_features},
+                shape.batch_size,
+                shape.input_features},
             kl::DType::Float32,
             kl::Device::rocm(),
             -1.0,
@@ -153,8 +159,8 @@ namespace
 
         const auto weights = kl::test::makeRandomTensor(
             kl::Shape{
-                output_features,
-                input_features},
+                shape.output_features,
+                shape.input_features},
             kl::DType::Float32,
             kl::Device::rocm(),
             -1.0,
@@ -163,15 +169,15 @@ namespace
 
         kl::Tensor kerneloom_output(
             kl::Shape{
-                batch_size,
-                output_features},
+                shape.batch_size,
+                shape.output_features},
             kl::DType::Float32,
             kl::Device::rocm());
 
         kl::Tensor rocblas_output(
             kl::Shape{
-                batch_size,
-                output_features},
+                shape.batch_size,
+                shape.output_features},
             kl::DType::Float32,
             kl::Device::rocm());
 
@@ -210,11 +216,16 @@ namespace
         EXPECT_TRUE(kl::test::tensorCompare(
             rocblas_output,
             kerneloom_output,
-            options::absolute_tolerance,
-            options::relative_tolerance));
+            options::float32_absolute_tolerance,
+            options::float32_relative_tolerance,
+            kl::test::options::tensor_compare::max_mismatch_ratio));
+
+        const std::string benchmark_name =
+            std::string("Linear Forward ROCm Float32 No Bias ") +
+            shape.name;
 
         kl::test::printBenchmarkComparison(
-            benchmark_name,
+            benchmark_name.c_str(),
             "Kerneloom ROCm",
             kerneloom_ms,
             "rocBLAS",
@@ -222,15 +233,12 @@ namespace
     }
 
     void runBenchmarkWithBias(
-        const char *benchmark_name,
-        std::size_t batch_size,
-        std::size_t input_features,
-        std::size_t output_features)
+        const options::Shape &shape)
     {
         const auto input = kl::test::makeRandomTensor(
             kl::Shape{
-                batch_size,
-                input_features},
+                shape.batch_size,
+                shape.input_features},
             kl::DType::Float32,
             kl::Device::rocm(),
             -1.0,
@@ -239,8 +247,8 @@ namespace
 
         const auto weights = kl::test::makeRandomTensor(
             kl::Shape{
-                output_features,
-                input_features},
+                shape.output_features,
+                shape.input_features},
             kl::DType::Float32,
             kl::Device::rocm(),
             -1.0,
@@ -249,7 +257,7 @@ namespace
 
         const auto bias = kl::test::makeRandomTensor(
             kl::Shape{
-                output_features},
+                shape.output_features},
             kl::DType::Float32,
             kl::Device::rocm(),
             -1.0,
@@ -258,21 +266,21 @@ namespace
 
         kl::Tensor kerneloom_output(
             kl::Shape{
-                batch_size,
-                output_features},
+                shape.batch_size,
+                shape.output_features},
             kl::DType::Float32,
             kl::Device::rocm());
 
         kl::Tensor rocblas_output(
             kl::Shape{
-                batch_size,
-                output_features},
+                shape.batch_size,
+                shape.output_features},
             kl::DType::Float32,
             kl::Device::rocm());
 
         const auto ones =
             kl::test::makeOnesRocmFloat32(
-                batch_size);
+                shape.batch_size);
 
         kl::test::RocblasHandle rocblas_handle;
 
@@ -311,11 +319,16 @@ namespace
         EXPECT_TRUE(kl::test::tensorCompare(
             rocblas_output,
             kerneloom_output,
-            options::absolute_tolerance,
-            options::relative_tolerance));
+            options::float32_absolute_tolerance,
+            options::float32_relative_tolerance,
+            kl::test::options::tensor_compare::max_mismatch_ratio));
+
+        const std::string benchmark_name =
+            std::string("Linear Forward ROCm Float32 With Bias ") +
+            shape.name;
 
         kl::test::printBenchmarkComparison(
-            benchmark_name,
+            benchmark_name.c_str(),
             "Kerneloom ROCm",
             kerneloom_ms,
             "rocBLAS",
@@ -324,72 +337,40 @@ namespace
 
 }
 
-TEST(LinearForwardRocmFloat32, MatchesRocBLAS_NoBias_LargeNonSquare)
+TEST(LinearForwardRocmFloat32, MatchesRocBLAS_NoBias)
 {
-    runCorrectnessNoBias(
-        options::large_non_square::batch_size,
-        options::large_non_square::input_features,
-        options::large_non_square::output_features);
+    for (const auto &shape : options::correctness_shapes)
+    {
+        runCorrectnessNoBias(
+            shape);
+    }
 }
 
-TEST(LinearForwardRocmFloat32, MatchesRocBLAS_WithBias_LargeNonSquare)
+TEST(LinearForwardRocmFloat32, MatchesRocBLAS_WithBias)
 {
-    runCorrectnessWithBias(
-        options::large_non_square::batch_size,
-        options::large_non_square::input_features,
-        options::large_non_square::output_features);
+    for (const auto &shape : options::correctness_shapes)
+    {
+        runCorrectnessWithBias(
+            shape);
+    }
 }
 
-TEST(LinearForwardRocmFloat32, MatchesRocBLAS_NoBias_DemandingOddShape)
+TEST(LinearForwardRocmFloat32, BenchmarkAgainstRocBLAS_NoBias)
 {
-    runCorrectnessNoBias(
-        options::demanding_odd_shape::batch_size,
-        options::demanding_odd_shape::input_features,
-        options::demanding_odd_shape::output_features);
+    for (const auto &shape : options::no_bias_benchmark_shapes)
+    {
+        runBenchmarkNoBias(
+            shape);
+    }
 }
 
-TEST(LinearForwardRocmFloat32, MatchesRocBLAS_WithBias_DemandingOddShape)
+TEST(LinearForwardRocmFloat32, BenchmarkAgainstRocBLAS_WithBias)
 {
-    runCorrectnessWithBias(
-        options::demanding_odd_shape::batch_size,
-        options::demanding_odd_shape::input_features,
-        options::demanding_odd_shape::output_features);
-}
-
-TEST(LinearForwardRocmFloat32, BenchmarkAgainstRocBLAS_NoBias_LargeNonSquare)
-{
-    runBenchmarkNoBias(
-        "Linear Forward ROCm Float32 No Bias Large Non-Square",
-        options::large_non_square::batch_size,
-        options::large_non_square::input_features,
-        options::large_non_square::output_features);
-}
-
-TEST(LinearForwardRocmFloat32, BenchmarkAgainstRocBLAS_WithBias_LargeNonSquare)
-{
-    runBenchmarkWithBias(
-        "Linear Forward ROCm Float32 With Bias Large Non-Square",
-        options::bias_add_large::batch_size,
-        options::bias_add_large::input_features,
-        options::bias_add_large::output_features);
-}
-
-TEST(LinearForwardRocmFloat32, BenchmarkAgainstRocBLAS_NoBias_DemandingOddShape)
-{
-    runBenchmarkNoBias(
-        "Linear Forward ROCm Float32 No Bias Demanding Odd Shape",
-        options::demanding_odd_shape::batch_size,
-        options::demanding_odd_shape::input_features,
-        options::demanding_odd_shape::output_features);
-}
-
-TEST(LinearForwardRocmFloat32, BenchmarkAgainstRocBLAS_WithBias_DemandingOddShape)
-{
-    runBenchmarkWithBias(
-        "Linear Forward ROCm Float32 With Bias Demanding Odd Shape",
-        options::bias_add_odd::batch_size,
-        options::bias_add_odd::input_features,
-        options::bias_add_odd::output_features);
+    for (const auto &shape : options::bias_benchmark_shapes)
+    {
+        runBenchmarkWithBias(
+            shape);
+    }
 }
 
 #endif // KL_ENABLE_ROCM
