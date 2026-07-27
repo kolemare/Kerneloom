@@ -78,6 +78,8 @@ namespace kl
             const float maximum =
                 shared[0];
 
+            __syncthreads();
+
             float local_sum =
                 0.0f;
 
