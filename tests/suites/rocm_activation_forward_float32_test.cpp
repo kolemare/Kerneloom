@@ -8,6 +8,8 @@
 #include "common/tensor_factory.hpp"
 #include "common/test_options.hpp"
 
+#include "options/activation_forward_options.hpp"
+
 #include "vendor/rocm/miopen_activation.hiph"
 
 #include <core/device.hpp>
@@ -23,18 +25,19 @@
 #include <miopen/miopen.h>
 
 #include <cstddef>
+#include <string>
 
 namespace
 {
 
     namespace options =
-        kl::test::options::activation_forward_float32;
+        kl::test::options::activation_forward;
 
     using ActivationKernel =
         void (*)(kl::Tensor &);
 
     void runElementwiseCorrectness(
-        std::size_t element_count,
+        const options::ElementwiseShape &shape,
         double lower,
         double upper,
         int seed,
@@ -43,13 +46,17 @@ namespace
         double absolute_tolerance,
         double relative_tolerance)
     {
+        SCOPED_TRACE(
+            std::string("Shape: ") +
+            shape.name);
+
         auto actual =
             kl::test::makeRandomTensor(
                 kl::Shape{
                     1,
                     1,
                     1,
-                    element_count},
+                    shape.element_count},
                 kl::DType::Float32,
                 kl::Device::rocm(),
                 lower,
@@ -62,7 +69,7 @@ namespace
                     1,
                     1,
                     1,
-                    element_count},
+                    shape.element_count},
                 kl::DType::Float32,
                 kl::Device::rocm(),
                 lower,
@@ -85,14 +92,17 @@ namespace
     }
 
     void runSoftmaxCorrectness(
-        std::size_t batch_size,
-        std::size_t class_count)
+        const options::SoftmaxShape &shape)
     {
+        SCOPED_TRACE(
+            std::string("Shape: ") +
+            shape.name);
+
         auto actual =
             kl::test::makeRandomTensor(
                 kl::Shape{
-                    batch_size,
-                    class_count,
+                    shape.batch_size,
+                    shape.class_count,
                     1,
                     1},
                 kl::DType::Float32,
@@ -104,8 +114,8 @@ namespace
         auto expected =
             kl::test::makeRandomTensor(
                 kl::Shape{
-                    batch_size,
-                    class_count,
+                    shape.batch_size,
+                    shape.class_count,
                     1,
                     1},
                 kl::DType::Float32,
@@ -124,13 +134,13 @@ namespace
         EXPECT_TRUE(kl::test::tensorCompare(
             expected,
             actual,
-            options::softmax_absolute_tolerance,
-            options::softmax_relative_tolerance));
+            options::softmax_float32_absolute_tolerance,
+            options::softmax_float32_relative_tolerance));
     }
 
     void runElementwiseBenchmark(
         const char *benchmark_name,
-        std::size_t element_count,
+        const options::ElementwiseShape &shape,
         double lower,
         double upper,
         int seed,
@@ -143,7 +153,7 @@ namespace
                     1,
                     1,
                     1,
-                    element_count},
+                    shape.element_count},
                 kl::DType::Float32,
                 kl::Device::rocm(),
                 lower,
@@ -156,7 +166,7 @@ namespace
                     1,
                     1,
                     1,
-                    element_count},
+                    shape.element_count},
                 kl::DType::Float32,
                 kl::Device::rocm(),
                 lower,
@@ -204,11 +214,16 @@ namespace
         EXPECT_TRUE(kl::test::tensorCompare(
             miopen_tensor,
             kerneloom_tensor,
-            options::elementwise_absolute_tolerance,
-            options::elementwise_relative_tolerance));
+            options::elementwise_float32_absolute_tolerance,
+            options::elementwise_float32_relative_tolerance));
+
+        const std::string full_benchmark_name =
+            std::string(benchmark_name) +
+            " " +
+            shape.name;
 
         kl::test::printBenchmarkComparison(
-            benchmark_name,
+            full_benchmark_name.c_str(),
             "Kerneloom ROCm",
             kerneloom_ms,
             "MIOpen",
@@ -217,14 +232,13 @@ namespace
 
     void runSoftmaxBenchmark(
         const char *benchmark_name,
-        std::size_t batch_size,
-        std::size_t class_count)
+        const options::SoftmaxShape &shape)
     {
         auto kerneloom_tensor =
             kl::test::makeRandomTensor(
                 kl::Shape{
-                    batch_size,
-                    class_count,
+                    shape.batch_size,
+                    shape.class_count,
                     1,
                     1},
                 kl::DType::Float32,
@@ -236,8 +250,8 @@ namespace
         auto miopen_tensor =
             kl::test::makeRandomTensor(
                 kl::Shape{
-                    batch_size,
-                    class_count,
+                    shape.batch_size,
+                    shape.class_count,
                     1,
                     1},
                 kl::DType::Float32,
@@ -283,11 +297,16 @@ namespace
         EXPECT_TRUE(kl::test::tensorCompare(
             miopen_tensor,
             kerneloom_tensor,
-            options::softmax_absolute_tolerance,
-            options::softmax_relative_tolerance));
+            options::softmax_float32_absolute_tolerance,
+            options::softmax_float32_relative_tolerance));
+
+        const std::string full_benchmark_name =
+            std::string(benchmark_name) +
+            " " +
+            shape.name;
 
         kl::test::printBenchmarkComparison(
-            benchmark_name,
+            full_benchmark_name.c_str(),
             "Kerneloom ROCm",
             kerneloom_ms,
             "MIOpen",
@@ -296,94 +315,116 @@ namespace
 
 }
 
-TEST(ActivationForwardRocmFloat32, ReluCorrectness_HugeTensor)
+TEST(ActivationForwardRocmFloat32, ReluCorrectness)
 {
-    runElementwiseCorrectness(
-        options::elementwise_huge::element_count,
-        -10.0,
-        10.0,
-        11,
-        miopenActivationRELU,
-        kl::relu_rocm_float32,
-        options::elementwise_absolute_tolerance,
-        options::elementwise_relative_tolerance);
+    for (const auto &shape : options::elementwise_correctness_shapes)
+    {
+        runElementwiseCorrectness(
+            shape,
+            -10.0,
+            10.0,
+            11,
+            miopenActivationRELU,
+            kl::relu_rocm_float32,
+            options::elementwise_float32_absolute_tolerance,
+            options::elementwise_float32_relative_tolerance);
+    }
 }
 
-TEST(ActivationForwardRocmFloat32, SigmoidCorrectness_HugeTensor)
+TEST(ActivationForwardRocmFloat32, SigmoidCorrectness)
 {
-    runElementwiseCorrectness(
-        options::elementwise_huge::element_count,
-        -8.0,
-        8.0,
-        22,
-        miopenActivationLOGISTIC,
-        kl::sigmoid_rocm_float32,
-        options::elementwise_absolute_tolerance,
-        options::elementwise_relative_tolerance);
+    for (const auto &shape : options::elementwise_correctness_shapes)
+    {
+        runElementwiseCorrectness(
+            shape,
+            -8.0,
+            8.0,
+            22,
+            miopenActivationLOGISTIC,
+            kl::sigmoid_rocm_float32,
+            options::elementwise_float32_absolute_tolerance,
+            options::elementwise_float32_relative_tolerance);
+    }
 }
 
-TEST(ActivationForwardRocmFloat32, TanhCorrectness_HugeTensor)
+TEST(ActivationForwardRocmFloat32, TanhCorrectness)
 {
-    runElementwiseCorrectness(
-        options::elementwise_huge::element_count,
-        -8.0,
-        8.0,
-        33,
-        miopenActivationTANH,
-        kl::tanh_rocm_float32,
-        options::elementwise_absolute_tolerance,
-        options::elementwise_relative_tolerance);
+    for (const auto &shape : options::elementwise_correctness_shapes)
+    {
+        runElementwiseCorrectness(
+            shape,
+            -8.0,
+            8.0,
+            33,
+            miopenActivationTANH,
+            kl::tanh_rocm_float32,
+            options::elementwise_float32_absolute_tolerance,
+            options::elementwise_float32_relative_tolerance);
+    }
 }
 
-TEST(ActivationForwardRocmFloat32, SoftmaxCorrectness_HugeTensor)
+TEST(ActivationForwardRocmFloat32, SoftmaxCorrectness)
 {
-    runSoftmaxCorrectness(
-        options::softmax_huge::batch_size,
-        options::softmax_huge::class_count);
+    for (const auto &shape : options::softmax_correctness_shapes)
+    {
+        runSoftmaxCorrectness(
+            shape);
+    }
 }
 
-TEST(ActivationForwardRocmFloat32, ReluBenchmark_HugeTensor)
+TEST(ActivationForwardRocmFloat32, ReluBenchmark)
 {
-    runElementwiseBenchmark(
-        "ReLU Forward ROCm Float32 Huge Tensor",
-        options::elementwise_odd_huge::element_count,
-        -10.0,
-        10.0,
-        11,
-        miopenActivationRELU,
-        kl::relu_rocm_float32);
+    for (const auto &shape : options::elementwise_benchmark_shapes)
+    {
+        runElementwiseBenchmark(
+            "ReLU Forward ROCm Float32",
+            shape,
+            -10.0,
+            10.0,
+            11,
+            miopenActivationRELU,
+            kl::relu_rocm_float32);
+    }
 }
 
-TEST(ActivationForwardRocmFloat32, SigmoidBenchmark_HugeTensor)
+TEST(ActivationForwardRocmFloat32, SigmoidBenchmark)
 {
-    runElementwiseBenchmark(
-        "Sigmoid Forward ROCm Float32 Huge Tensor",
-        options::elementwise_odd_huge::element_count,
-        -8.0,
-        8.0,
-        22,
-        miopenActivationLOGISTIC,
-        kl::sigmoid_rocm_float32);
+    for (const auto &shape : options::elementwise_benchmark_shapes)
+    {
+        runElementwiseBenchmark(
+            "Sigmoid Forward ROCm Float32",
+            shape,
+            -8.0,
+            8.0,
+            22,
+            miopenActivationLOGISTIC,
+            kl::sigmoid_rocm_float32);
+    }
 }
 
-TEST(ActivationForwardRocmFloat32, TanhBenchmark_HugeTensor)
+TEST(ActivationForwardRocmFloat32, TanhBenchmark)
 {
-    runElementwiseBenchmark(
-        "Tanh Forward ROCm Float32 Huge Tensor",
-        options::elementwise_odd_huge::element_count,
-        -8.0,
-        8.0,
-        33,
-        miopenActivationTANH,
-        kl::tanh_rocm_float32);
+    for (const auto &shape : options::elementwise_benchmark_shapes)
+    {
+        runElementwiseBenchmark(
+            "Tanh Forward ROCm Float32",
+            shape,
+            -8.0,
+            8.0,
+            33,
+            miopenActivationTANH,
+            kl::tanh_rocm_float32);
+    }
 }
 
-TEST(ActivationForwardRocmFloat32, SoftmaxBenchmark_HugeTensor)
+TEST(ActivationForwardRocmFloat32, SoftmaxBenchmark)
 {
-    runSoftmaxBenchmark(
-        "Softmax Forward ROCm Float32 Huge Tensor",
-        options::softmax_odd_huge::batch_size,
-        options::softmax_odd_huge::class_count);
+    for (const auto &shape : options::softmax_benchmark_shapes)
+    {
+        runSoftmaxBenchmark(
+            "Softmax Forward ROCm Float32",
+            shape);
+    }
 }
 
 #endif // KL_ENABLE_ROCM

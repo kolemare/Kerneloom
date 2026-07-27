@@ -8,6 +8,8 @@
 #include "common/tensor_factory.hpp"
 #include "common/test_options.hpp"
 
+#include "options/activation_forward_options.hpp"
+
 #include "vendor/cuda/cudnn_activation.cuh"
 
 #include <core/device.hpp>
@@ -23,18 +25,19 @@
 #include <cudnn.h>
 
 #include <cstddef>
+#include <string>
 
 namespace
 {
 
     namespace options =
-        kl::test::options::activation_forward_float32;
+        kl::test::options::activation_forward;
 
     using ActivationKernel =
         void (*)(kl::Tensor &);
 
     void runElementwiseCorrectness(
-        std::size_t element_count,
+        const options::ElementwiseShape &shape,
         double lower,
         double upper,
         int seed,
@@ -43,13 +46,17 @@ namespace
         double absolute_tolerance,
         double relative_tolerance)
     {
+        SCOPED_TRACE(
+            std::string("Shape: ") +
+            shape.name);
+
         auto actual =
             kl::test::makeRandomTensor(
                 kl::Shape{
                     1,
                     1,
                     1,
-                    element_count},
+                    shape.element_count},
                 kl::DType::Float32,
                 kl::Device::cuda(),
                 lower,
@@ -62,7 +69,7 @@ namespace
                     1,
                     1,
                     1,
-                    element_count},
+                    shape.element_count},
                 kl::DType::Float32,
                 kl::Device::cuda(),
                 lower,
@@ -95,14 +102,17 @@ namespace
     }
 
     void runSoftmaxCorrectness(
-        std::size_t batch_size,
-        std::size_t class_count)
+        const options::SoftmaxShape &shape)
     {
+        SCOPED_TRACE(
+            std::string("Shape: ") +
+            shape.name);
+
         auto actual =
             kl::test::makeRandomTensor(
                 kl::Shape{
-                    batch_size,
-                    class_count,
+                    shape.batch_size,
+                    shape.class_count,
                     1,
                     1},
                 kl::DType::Float32,
@@ -114,8 +124,8 @@ namespace
         auto expected =
             kl::test::makeRandomTensor(
                 kl::Shape{
-                    batch_size,
-                    class_count,
+                    shape.batch_size,
+                    shape.class_count,
                     1,
                     1},
                 kl::DType::Float32,
@@ -141,13 +151,13 @@ namespace
         EXPECT_TRUE(kl::test::tensorCompare(
             expected,
             actual,
-            options::softmax_absolute_tolerance,
-            options::softmax_relative_tolerance));
+            options::softmax_float32_absolute_tolerance,
+            options::softmax_float32_relative_tolerance));
     }
 
     void runElementwiseBenchmark(
         const char *benchmark_name,
-        std::size_t element_count,
+        const options::ElementwiseShape &shape,
         double lower,
         double upper,
         int seed,
@@ -160,7 +170,7 @@ namespace
                     1,
                     1,
                     1,
-                    element_count},
+                    shape.element_count},
                 kl::DType::Float32,
                 kl::Device::cuda(),
                 lower,
@@ -173,7 +183,7 @@ namespace
                     1,
                     1,
                     1,
-                    element_count},
+                    shape.element_count},
                 kl::DType::Float32,
                 kl::Device::cuda(),
                 lower,
@@ -221,11 +231,16 @@ namespace
         EXPECT_TRUE(kl::test::tensorCompare(
             cudnn_tensor,
             kerneloom_tensor,
-            options::elementwise_absolute_tolerance,
-            options::elementwise_relative_tolerance));
+            options::elementwise_float32_absolute_tolerance,
+            options::elementwise_float32_relative_tolerance));
+
+        const std::string full_benchmark_name =
+            std::string(benchmark_name) +
+            " " +
+            shape.name;
 
         kl::test::printBenchmarkComparison(
-            benchmark_name,
+            full_benchmark_name.c_str(),
             "Kerneloom CUDA",
             kerneloom_ms,
             "cuDNN",
@@ -234,14 +249,13 @@ namespace
 
     void runSoftmaxBenchmark(
         const char *benchmark_name,
-        std::size_t batch_size,
-        std::size_t class_count)
+        const options::SoftmaxShape &shape)
     {
         auto kerneloom_tensor =
             kl::test::makeRandomTensor(
                 kl::Shape{
-                    batch_size,
-                    class_count,
+                    shape.batch_size,
+                    shape.class_count,
                     1,
                     1},
                 kl::DType::Float32,
@@ -253,8 +267,8 @@ namespace
         auto cudnn_tensor =
             kl::test::makeRandomTensor(
                 kl::Shape{
-                    batch_size,
-                    class_count,
+                    shape.batch_size,
+                    shape.class_count,
                     1,
                     1},
                 kl::DType::Float32,
@@ -300,11 +314,16 @@ namespace
         EXPECT_TRUE(kl::test::tensorCompare(
             cudnn_tensor,
             kerneloom_tensor,
-            options::softmax_absolute_tolerance,
-            options::softmax_relative_tolerance));
+            options::softmax_float32_absolute_tolerance,
+            options::softmax_float32_relative_tolerance));
+
+        const std::string full_benchmark_name =
+            std::string(benchmark_name) +
+            " " +
+            shape.name;
 
         kl::test::printBenchmarkComparison(
-            benchmark_name,
+            full_benchmark_name.c_str(),
             "Kerneloom CUDA",
             kerneloom_ms,
             "cuDNN",
@@ -313,94 +332,116 @@ namespace
 
 }
 
-TEST(ActivationForwardCudaFloat32, ReluCorrectness_HugeTensor)
+TEST(ActivationForwardCudaFloat32, ReluCorrectness)
 {
-    runElementwiseCorrectness(
-        options::elementwise_huge::element_count,
-        -10.0,
-        10.0,
-        11,
-        CUDNN_ACTIVATION_RELU,
-        kl::relu_cuda_float32,
-        options::elementwise_absolute_tolerance,
-        options::elementwise_relative_tolerance);
+    for (const auto &shape : options::elementwise_correctness_shapes)
+    {
+        runElementwiseCorrectness(
+            shape,
+            -10.0,
+            10.0,
+            11,
+            CUDNN_ACTIVATION_RELU,
+            kl::relu_cuda_float32,
+            options::elementwise_float32_absolute_tolerance,
+            options::elementwise_float32_relative_tolerance);
+    }
 }
 
-TEST(ActivationForwardCudaFloat32, SigmoidCorrectness_HugeTensor)
+TEST(ActivationForwardCudaFloat32, SigmoidCorrectness)
 {
-    runElementwiseCorrectness(
-        options::elementwise_huge::element_count,
-        -8.0,
-        8.0,
-        22,
-        CUDNN_ACTIVATION_SIGMOID,
-        kl::sigmoid_cuda_float32,
-        options::elementwise_absolute_tolerance,
-        options::elementwise_relative_tolerance);
+    for (const auto &shape : options::elementwise_correctness_shapes)
+    {
+        runElementwiseCorrectness(
+            shape,
+            -8.0,
+            8.0,
+            22,
+            CUDNN_ACTIVATION_SIGMOID,
+            kl::sigmoid_cuda_float32,
+            options::elementwise_float32_absolute_tolerance,
+            options::elementwise_float32_relative_tolerance);
+    }
 }
 
-TEST(ActivationForwardCudaFloat32, TanhCorrectness_HugeTensor)
+TEST(ActivationForwardCudaFloat32, TanhCorrectness)
 {
-    runElementwiseCorrectness(
-        options::elementwise_huge::element_count,
-        -8.0,
-        8.0,
-        33,
-        CUDNN_ACTIVATION_TANH,
-        kl::tanh_cuda_float32,
-        options::elementwise_absolute_tolerance,
-        options::elementwise_relative_tolerance);
+    for (const auto &shape : options::elementwise_correctness_shapes)
+    {
+        runElementwiseCorrectness(
+            shape,
+            -8.0,
+            8.0,
+            33,
+            CUDNN_ACTIVATION_TANH,
+            kl::tanh_cuda_float32,
+            options::elementwise_float32_absolute_tolerance,
+            options::elementwise_float32_relative_tolerance);
+    }
 }
 
-TEST(ActivationForwardCudaFloat32, SoftmaxCorrectness_HugeTensor)
+TEST(ActivationForwardCudaFloat32, SoftmaxCorrectness)
 {
-    runSoftmaxCorrectness(
-        options::softmax_huge::batch_size,
-        options::softmax_huge::class_count);
+    for (const auto &shape : options::softmax_correctness_shapes)
+    {
+        runSoftmaxCorrectness(
+            shape);
+    }
 }
 
-TEST(ActivationForwardCudaFloat32, ReluBenchmark_HugeTensor)
+TEST(ActivationForwardCudaFloat32, ReluBenchmark)
 {
-    runElementwiseBenchmark(
-        "ReLU Forward CUDA Float32 Huge Tensor",
-        options::elementwise_odd_huge::element_count,
-        -10.0,
-        10.0,
-        11,
-        CUDNN_ACTIVATION_RELU,
-        kl::relu_cuda_float32);
+    for (const auto &shape : options::elementwise_benchmark_shapes)
+    {
+        runElementwiseBenchmark(
+            "ReLU Forward CUDA Float32",
+            shape,
+            -10.0,
+            10.0,
+            11,
+            CUDNN_ACTIVATION_RELU,
+            kl::relu_cuda_float32);
+    }
 }
 
-TEST(ActivationForwardCudaFloat32, SigmoidBenchmark_HugeTensor)
+TEST(ActivationForwardCudaFloat32, SigmoidBenchmark)
 {
-    runElementwiseBenchmark(
-        "Sigmoid Forward CUDA Float32 Huge Tensor",
-        options::elementwise_odd_huge::element_count,
-        -8.0,
-        8.0,
-        22,
-        CUDNN_ACTIVATION_SIGMOID,
-        kl::sigmoid_cuda_float32);
+    for (const auto &shape : options::elementwise_benchmark_shapes)
+    {
+        runElementwiseBenchmark(
+            "Sigmoid Forward CUDA Float32",
+            shape,
+            -8.0,
+            8.0,
+            22,
+            CUDNN_ACTIVATION_SIGMOID,
+            kl::sigmoid_cuda_float32);
+    }
 }
 
-TEST(ActivationForwardCudaFloat32, TanhBenchmark_HugeTensor)
+TEST(ActivationForwardCudaFloat32, TanhBenchmark)
 {
-    runElementwiseBenchmark(
-        "Tanh Forward CUDA Float32 Huge Tensor",
-        options::elementwise_odd_huge::element_count,
-        -8.0,
-        8.0,
-        33,
-        CUDNN_ACTIVATION_TANH,
-        kl::tanh_cuda_float32);
+    for (const auto &shape : options::elementwise_benchmark_shapes)
+    {
+        runElementwiseBenchmark(
+            "Tanh Forward CUDA Float32",
+            shape,
+            -8.0,
+            8.0,
+            33,
+            CUDNN_ACTIVATION_TANH,
+            kl::tanh_cuda_float32);
+    }
 }
 
-TEST(ActivationForwardCudaFloat32, SoftmaxBenchmark_HugeTensor)
+TEST(ActivationForwardCudaFloat32, SoftmaxBenchmark)
 {
-    runSoftmaxBenchmark(
-        "Softmax Forward CUDA Float32 Huge Tensor",
-        options::softmax_odd_huge::batch_size,
-        options::softmax_odd_huge::class_count);
+    for (const auto &shape : options::softmax_benchmark_shapes)
+    {
+        runSoftmaxBenchmark(
+            "Softmax Forward CUDA Float32",
+            shape);
+    }
 }
 
 #endif // KL_ENABLE_CUDA
