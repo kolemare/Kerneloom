@@ -8,6 +8,8 @@
 #include "common/tensor_factory.hpp"
 #include "common/test_options.hpp"
 
+#include "options/linear_forward_options.hpp"
+
 #include "vendor/cuda/cublas_linear.cuh"
 
 #include <core/device.hpp>
@@ -18,22 +20,25 @@
 #include <kernels/cuda/linear/linear_cuda_float32.cuh>
 
 #include <cstddef>
+#include <string>
 
 namespace
 {
 
     namespace options =
-        kl::test::options::linear_forward_float32;
+        kl::test::options::linear_forward;
 
     void runCorrectnessNoBias(
-        std::size_t batch_size,
-        std::size_t input_features,
-        std::size_t output_features)
+        const options::Shape &shape)
     {
+        SCOPED_TRACE(
+            std::string("Shape: ") +
+            shape.name);
+
         const auto input = kl::test::makeRandomTensor(
             kl::Shape{
-                batch_size,
-                input_features},
+                shape.batch_size,
+                shape.input_features},
             kl::DType::Float32,
             kl::Device::cuda(),
             -1.0,
@@ -42,8 +47,8 @@ namespace
 
         const auto weights = kl::test::makeRandomTensor(
             kl::Shape{
-                output_features,
-                input_features},
+                shape.output_features,
+                shape.input_features},
             kl::DType::Float32,
             kl::Device::cuda(),
             -1.0,
@@ -52,8 +57,8 @@ namespace
 
         kl::Tensor actual(
             kl::Shape{
-                batch_size,
-                output_features},
+                shape.batch_size,
+                shape.output_features},
             kl::DType::Float32,
             kl::Device::cuda());
 
@@ -71,19 +76,22 @@ namespace
         EXPECT_TRUE(kl::test::tensorCompare(
             expected,
             actual,
-            options::absolute_tolerance,
-            options::relative_tolerance));
+            options::float32_absolute_tolerance,
+            options::float32_relative_tolerance,
+            kl::test::options::tensor_compare::max_mismatch_ratio));
     }
 
     void runCorrectnessWithBias(
-        std::size_t batch_size,
-        std::size_t input_features,
-        std::size_t output_features)
+        const options::Shape &shape)
     {
+        SCOPED_TRACE(
+            std::string("Shape: ") +
+            shape.name);
+
         const auto input = kl::test::makeRandomTensor(
             kl::Shape{
-                batch_size,
-                input_features},
+                shape.batch_size,
+                shape.input_features},
             kl::DType::Float32,
             kl::Device::cuda(),
             -1.0,
@@ -92,8 +100,8 @@ namespace
 
         const auto weights = kl::test::makeRandomTensor(
             kl::Shape{
-                output_features,
-                input_features},
+                shape.output_features,
+                shape.input_features},
             kl::DType::Float32,
             kl::Device::cuda(),
             -1.0,
@@ -102,7 +110,7 @@ namespace
 
         const auto bias = kl::test::makeRandomTensor(
             kl::Shape{
-                output_features},
+                shape.output_features},
             kl::DType::Float32,
             kl::Device::cuda(),
             -1.0,
@@ -111,8 +119,8 @@ namespace
 
         kl::Tensor actual(
             kl::Shape{
-                batch_size,
-                output_features},
+                shape.batch_size,
+                shape.output_features},
             kl::DType::Float32,
             kl::Device::cuda());
 
@@ -131,20 +139,18 @@ namespace
         EXPECT_TRUE(kl::test::tensorCompare(
             expected,
             actual,
-            options::absolute_tolerance,
-            options::relative_tolerance));
+            options::float32_absolute_tolerance,
+            options::float32_relative_tolerance,
+            kl::test::options::tensor_compare::max_mismatch_ratio));
     }
 
     void runBenchmarkNoBias(
-        const char *benchmark_name,
-        std::size_t batch_size,
-        std::size_t input_features,
-        std::size_t output_features)
+        const options::Shape &shape)
     {
         const auto input = kl::test::makeRandomTensor(
             kl::Shape{
-                batch_size,
-                input_features},
+                shape.batch_size,
+                shape.input_features},
             kl::DType::Float32,
             kl::Device::cuda(),
             -1.0,
@@ -153,8 +159,8 @@ namespace
 
         const auto weights = kl::test::makeRandomTensor(
             kl::Shape{
-                output_features,
-                input_features},
+                shape.output_features,
+                shape.input_features},
             kl::DType::Float32,
             kl::Device::cuda(),
             -1.0,
@@ -163,15 +169,15 @@ namespace
 
         kl::Tensor kerneloom_output(
             kl::Shape{
-                batch_size,
-                output_features},
+                shape.batch_size,
+                shape.output_features},
             kl::DType::Float32,
             kl::Device::cuda());
 
         kl::Tensor cublas_output(
             kl::Shape{
-                batch_size,
-                output_features},
+                shape.batch_size,
+                shape.output_features},
             kl::DType::Float32,
             kl::Device::cuda());
 
@@ -210,11 +216,14 @@ namespace
         EXPECT_TRUE(kl::test::tensorCompare(
             cublas_output,
             kerneloom_output,
-            options::absolute_tolerance,
-            options::relative_tolerance));
+            options::float32_absolute_tolerance,
+            options::float32_relative_tolerance,
+            kl::test::options::tensor_compare::max_mismatch_ratio));
 
         kl::test::printBenchmarkComparison(
-            benchmark_name,
+            (std::string("Linear Forward CUDA Float32 No Bias ") +
+             shape.name)
+                .c_str(),
             "Kerneloom CUDA",
             kerneloom_ms,
             "cuBLAS",
@@ -222,15 +231,12 @@ namespace
     }
 
     void runBenchmarkWithBias(
-        const char *benchmark_name,
-        std::size_t batch_size,
-        std::size_t input_features,
-        std::size_t output_features)
+        const options::Shape &shape)
     {
         const auto input = kl::test::makeRandomTensor(
             kl::Shape{
-                batch_size,
-                input_features},
+                shape.batch_size,
+                shape.input_features},
             kl::DType::Float32,
             kl::Device::cuda(),
             -1.0,
@@ -239,8 +245,8 @@ namespace
 
         const auto weights = kl::test::makeRandomTensor(
             kl::Shape{
-                output_features,
-                input_features},
+                shape.output_features,
+                shape.input_features},
             kl::DType::Float32,
             kl::Device::cuda(),
             -1.0,
@@ -249,7 +255,7 @@ namespace
 
         const auto bias = kl::test::makeRandomTensor(
             kl::Shape{
-                output_features},
+                shape.output_features},
             kl::DType::Float32,
             kl::Device::cuda(),
             -1.0,
@@ -258,21 +264,21 @@ namespace
 
         kl::Tensor kerneloom_output(
             kl::Shape{
-                batch_size,
-                output_features},
+                shape.batch_size,
+                shape.output_features},
             kl::DType::Float32,
             kl::Device::cuda());
 
         kl::Tensor cublas_output(
             kl::Shape{
-                batch_size,
-                output_features},
+                shape.batch_size,
+                shape.output_features},
             kl::DType::Float32,
             kl::Device::cuda());
 
         const auto ones =
             kl::test::makeOnesCudaFloat32(
-                batch_size);
+                shape.batch_size);
 
         kl::test::CublasHandle cublas_handle;
 
@@ -311,11 +317,14 @@ namespace
         EXPECT_TRUE(kl::test::tensorCompare(
             cublas_output,
             kerneloom_output,
-            options::absolute_tolerance,
-            options::relative_tolerance));
+            options::float32_absolute_tolerance,
+            options::float32_relative_tolerance,
+            kl::test::options::tensor_compare::max_mismatch_ratio));
 
         kl::test::printBenchmarkComparison(
-            benchmark_name,
+            (std::string("Linear Forward CUDA Float32 With Bias ") +
+             shape.name)
+                .c_str(),
             "Kerneloom CUDA",
             kerneloom_ms,
             "cuBLAS",
@@ -324,72 +333,40 @@ namespace
 
 }
 
-TEST(LinearForwardCudaFloat32, MatchesCuBLAS_NoBias_LargeNonSquare)
+TEST(LinearForwardCudaFloat32, MatchesCuBLAS_NoBias)
 {
-    runCorrectnessNoBias(
-        options::large_non_square::batch_size,
-        options::large_non_square::input_features,
-        options::large_non_square::output_features);
+    for (const auto &shape : options::correctness_shapes)
+    {
+        runCorrectnessNoBias(
+            shape);
+    }
 }
 
-TEST(LinearForwardCudaFloat32, MatchesCuBLAS_WithBias_LargeNonSquare)
+TEST(LinearForwardCudaFloat32, MatchesCuBLAS_WithBias)
 {
-    runCorrectnessWithBias(
-        options::large_non_square::batch_size,
-        options::large_non_square::input_features,
-        options::large_non_square::output_features);
+    for (const auto &shape : options::correctness_shapes)
+    {
+        runCorrectnessWithBias(
+            shape);
+    }
 }
 
-TEST(LinearForwardCudaFloat32, MatchesCuBLAS_NoBias_DemandingOddShape)
+TEST(LinearForwardCudaFloat32, BenchmarkAgainstCuBLAS_NoBias)
 {
-    runCorrectnessNoBias(
-        options::demanding_odd_shape::batch_size,
-        options::demanding_odd_shape::input_features,
-        options::demanding_odd_shape::output_features);
+    for (const auto &shape : options::no_bias_benchmark_shapes)
+    {
+        runBenchmarkNoBias(
+            shape);
+    }
 }
 
-TEST(LinearForwardCudaFloat32, MatchesCuBLAS_WithBias_DemandingOddShape)
+TEST(LinearForwardCudaFloat32, BenchmarkAgainstCuBLAS_WithBias)
 {
-    runCorrectnessWithBias(
-        options::demanding_odd_shape::batch_size,
-        options::demanding_odd_shape::input_features,
-        options::demanding_odd_shape::output_features);
-}
-
-TEST(LinearForwardCudaFloat32, BenchmarkAgainstCuBLAS_NoBias_LargeNonSquare)
-{
-    runBenchmarkNoBias(
-        "Linear Forward CUDA Float32 No Bias Large Non-Square",
-        options::large_non_square::batch_size,
-        options::large_non_square::input_features,
-        options::large_non_square::output_features);
-}
-
-TEST(LinearForwardCudaFloat32, BenchmarkAgainstCuBLAS_WithBias_LargeNonSquare)
-{
-    runBenchmarkWithBias(
-        "Linear Forward CUDA Float32 With Bias Large Non-Square",
-        options::bias_add_large::batch_size,
-        options::bias_add_large::input_features,
-        options::bias_add_large::output_features);
-}
-
-TEST(LinearForwardCudaFloat32, BenchmarkAgainstCuBLAS_NoBias_DemandingOddShape)
-{
-    runBenchmarkNoBias(
-        "Linear Forward CUDA Float32 No Bias Demanding Odd Shape",
-        options::demanding_odd_shape::batch_size,
-        options::demanding_odd_shape::input_features,
-        options::demanding_odd_shape::output_features);
-}
-
-TEST(LinearForwardCudaFloat32, BenchmarkAgainstCuBLAS_WithBias_DemandingOddShape)
-{
-    runBenchmarkWithBias(
-        "Linear Forward CUDA Float32 With Bias Demanding Odd Shape",
-        options::bias_add_odd::batch_size,
-        options::bias_add_odd::input_features,
-        options::bias_add_odd::output_features);
+    for (const auto &shape : options::bias_benchmark_shapes)
+    {
+        runBenchmarkWithBias(
+            shape);
+    }
 }
 
 #endif // KL_ENABLE_CUDA
