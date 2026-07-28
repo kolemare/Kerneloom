@@ -1,6 +1,7 @@
 from invoke import task
 from pathlib import Path
 import shutil
+import shlex
 
 
 BUILD_DIR = Path("build")
@@ -32,6 +33,49 @@ def cmake_build(ctx, build_dir, cuda=False, rocm=False, debug=False, tests=False
     ctx.run(f"cmake --build {build_dir} -j {jobs}", pty=True)
 
 
+def test_filter(name):
+    if not name:
+        return None
+
+    if "." not in name:
+        return f"{name}.*"
+
+    return name
+
+
+def disabled_filter(name):
+    if not name:
+        return "DISABLED_*:*DISABLED_*"
+
+    if "." not in name:
+        return f"DISABLED_{name}.*:{name}.DISABLED_*"
+
+    suite, test = name.split(".", 1)
+
+    return (
+        f"DISABLED_{suite}.{test}:"
+        f"{suite}.DISABLED_{test}:"
+        f"DISABLED_{suite}.DISABLED_{test}"
+    )
+
+
+def gtest_args(filter=None, repeat=0, disabled=False):
+    args = []
+
+    selected_filter = disabled_filter(filter) if disabled else test_filter(filter)
+
+    if selected_filter:
+        args.append(f"--gtest_filter={shlex.quote(selected_filter)}")
+
+    if disabled:
+        args.append("--gtest_also_run_disabled_tests")
+
+    if repeat:
+        args.append(f"--gtest_repeat={repeat}")
+
+    return " ".join(args)
+
+
 @task
 def clean(ctx):
     remove(BUILD_DIR)
@@ -53,5 +97,10 @@ def run(ctx):
 
 
 @task(name="test")
-def test(ctx):
-    ctx.run(str(TEST_BINARY), pty=True)
+def test(ctx, filter=None, repeat=0):
+    ctx.run(f"{TEST_BINARY} {gtest_args(filter, repeat)}", pty=True)
+
+
+@task
+def spin(ctx, filter=None, repeat=0):
+    ctx.run(f"{TEST_BINARY} {gtest_args(filter, repeat, disabled=True)}", pty=True)
